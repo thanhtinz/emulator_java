@@ -86,6 +86,10 @@
     return [_facade resetArtworkWithNSString:suiteId];
 }
 
+- (NSString *)autoSetupForSuite:(NSString *)suiteId {
+    return [_facade autoSetupWithNSString:suiteId];
+}
+
 #pragma mark - Profiles
 
 - (NSString *)profileJSONForSuite:(NSString *)suiteId {

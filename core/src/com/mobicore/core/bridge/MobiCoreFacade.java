@@ -8,6 +8,7 @@ import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
+import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.mod.ModManager;
@@ -280,6 +281,40 @@ public final class MobiCoreFacade {
                 session.context().setMasterVolume(profile.volume(), profile.isMuted());
             }
             return ok("suiteId", profile.suiteId());
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Throws away hand-set values and configures the game from the game
+     * again — the escape hatch for anyone who changed a setting, broke the
+     * game, and wants out without knowing what they changed.
+     */
+    public String autoSetup(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            GameProfile current = library.profile(suiteId);
+            AutoSetup.Result result = AutoSetup.configure(library.load(suiteId));
+            GameProfile fresh = result.profile();
+            if (current != null) {
+                // Play history and the user's own choices about this game —
+                // volume, favourite — are theirs, not detections.
+                fresh.setVolume(current.volume());
+                fresh.setMuted(current.isMuted());
+                fresh.setFavourite(current.isFavourite());
+            }
+            library.saveProfile(fresh);
+            if (session != null && suiteId.equals(activeSuiteId)) {
+                session.context().setMasterVolume(fresh.volume(), fresh.isMuted());
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("device", fresh.device().resolution());
+            json.put("notes", new ArrayList<Object>(result.notes()));
+            return Json.write(json);
         } catch (IOException e) {
             return error(e.getMessage());
         }

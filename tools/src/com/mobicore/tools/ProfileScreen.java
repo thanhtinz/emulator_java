@@ -12,6 +12,7 @@ import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.storage.MemoryVfs;
 import com.mobicore.core.storage.StorageLayout;
 import com.mobicore.core.storage.Vfs;
+import com.mobicore.tools.ui.Icons;
 import com.mobicore.tools.ui.Theme;
 import com.mobicore.tools.ui.Ui;
 
@@ -37,16 +38,11 @@ public final class ProfileScreen {
         library.open();
 
         LibraryEntry entry = library.install(SampleSuite.jar(fixtureDir), SampleSuite.jad()).entry();
+        // Left exactly as the import configured it: the point of the screen
+        // is that a player never has to touch any of this.
         GameProfile profile = library.profile(entry.suiteId());
-        profile.setDevice(DeviceProfile.QVGA_240x320);
-        profile.setInput(InputProfile.sonyEricsson());
-        profile.input().remap("fire", '5');
-        profile.input().setTurbo("num5", 60);
-        profile.setScaleMode(GameProfile.SCALE_INTEGER);
-        profile.setFrameLimit(30);
         profile.setVolume(65);
         profile.setFavourite(true);
-        profile.setNetworkMode(GameProfile.NETWORK_ASK);
         profile.markPlayed(1_700_000_000_000L);
         library.saveProfile(profile);
 
@@ -75,11 +71,32 @@ public final class ProfileScreen {
         int fieldX = margin + Ui.PAD;
         int fieldWidth = width - Ui.PAD * 2;
         int y = Ui.APP_BAR + 18;
+        int row;
+
+        // What the emulator worked out on its own ------------------------
+        List<String> notes = profile.setupNotes();
+        int autoHeight = 12 + ui.small().height() + 10 + notes.size() * 24
+                + ui.medium().height() + 34;
+        row = ui.section(margin, y, width, autoHeight, "ĐÃ TỰ CẤU HÌNH",
+                profile.isAuto() ? "tự động" : "đã chỉnh tay");
+        for (int i = 0; i < notes.size(); i++) {
+            int glyph = ui.small().height() + 2;
+            Icons.draw(frame, Icons.CHECK, fieldX, row + i * 24, glyph, Theme.GOOD);
+            ui.text(ui.small(), ui.ellipsize(ui.small(), notes.get(i), fieldWidth - glyph - 8),
+                    fieldX + glyph + 8, row + i * 24 + 1, Theme.TEXT);
+        }
+        ui.text(ui.small(), "Không cần chỉnh gì để chơi.", fieldX,
+                row + notes.size() * 24 + 4, Theme.TEXT_DIM);
+        y += autoHeight + 14;
+
+        ui.text(ui.small(), "NÂNG CAO — chỉ mở khi game chạy sai", margin + Ui.PAD, y,
+                Theme.TEXT_DIM);
+        y += ui.small().height() + 12;
 
         // Device profile -------------------------------------------------
         int chipRow = ui.chipHeight() + 8;
         int deviceHeight = 12 + ui.small().height() + 8 + chipRow * 2 + Ui.ROW + 6;
-        int row = ui.section(margin, y, width, deviceHeight, "MÁY GIẢ LẬP", null);
+        row = ui.section(margin, y, width, deviceHeight, "MÁY GIẢ LẬP", null);
         int chipX = fieldX;
         int chipY = row;
         for (DeviceProfile candidate : DeviceProfile.catalog()) {

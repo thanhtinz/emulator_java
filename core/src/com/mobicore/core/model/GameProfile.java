@@ -2,6 +2,8 @@ package com.mobicore.core.model;
 
 import com.mobicore.core.storage.Json;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,6 +47,16 @@ public final class GameProfile {
     private boolean smoothing = true;
     private int networkMode = NETWORK_ASK;
     private String skin = "classic";
+    /**
+     * True while the settings are the ones {@link AutoSetup} worked out.
+     *
+     * <p>Cleared the moment the user changes anything that was detected, so
+     * the interface can stop claiming a value was measured when it was
+     * chosen. Nothing else depends on it — a hand-set profile is as valid as
+     * a detected one.</p>
+     */
+    private boolean auto;
+    private List<String> setupNotes = new ArrayList<String>();
     private boolean favourite;
     private long lastPlayed;
     private int playCount;
@@ -70,6 +82,9 @@ public final class GameProfile {
     }
 
     public void setDevice(DeviceProfile device) {
+        if (!device.id().equals(this.device.id())) {
+            auto = false;
+        }
         this.device = device;
     }
 
@@ -78,7 +93,23 @@ public final class GameProfile {
     }
 
     public void setInput(InputProfile input) {
+        auto = false;
         this.input = input;
+    }
+
+    /** True while every detected setting is still as detected. */
+    public boolean isAuto() {
+        return auto;
+    }
+
+    /** Why the emulator set the game up this way, one line per decision. */
+    public List<String> setupNotes() {
+        return setupNotes;
+    }
+
+    public void setAuto(boolean auto, List<String> notes) {
+        this.auto = auto;
+        this.setupNotes = notes == null ? new ArrayList<String>() : new ArrayList<String>(notes);
     }
 
     public int scaleMode() {
@@ -259,6 +290,8 @@ public final class GameProfile {
         json.put("smoothing", Boolean.valueOf(smoothing));
         json.put("networkMode", Integer.valueOf(networkMode));
         json.put("skin", skin);
+        json.put("auto", Boolean.valueOf(auto));
+        json.put("setupNotes", new ArrayList<Object>(setupNotes));
         json.put("favourite", Boolean.valueOf(favourite));
         json.put("lastPlayed", Long.valueOf(lastPlayed));
         json.put("playCount", Integer.valueOf(playCount));
@@ -280,6 +313,11 @@ public final class GameProfile {
         profile.smoothing = Json.bool(json, "smoothing", true);
         profile.networkMode = Json.integer(json, "networkMode", NETWORK_ASK);
         profile.skin = Json.string(json, "skin", "classic");
+        profile.auto = Json.bool(json, "auto", false);
+        List<Object> notes = Json.array(json, "setupNotes");
+        for (int i = 0; i < notes.size(); i++) {
+            profile.setupNotes.add(String.valueOf(notes.get(i)));
+        }
         profile.favourite = Json.bool(json, "favourite", false);
         profile.lastPlayed = Json.longValue(json, "lastPlayed", 0L);
         profile.playCount = Json.integer(json, "playCount", 0);

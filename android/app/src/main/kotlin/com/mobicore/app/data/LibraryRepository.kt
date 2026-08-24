@@ -3,6 +3,7 @@ package com.mobicore.app.data
 import com.mobicore.core.jar.SuiteLoader
 import com.mobicore.core.library.GameLibrary
 import com.mobicore.core.library.LibraryEntry
+import com.mobicore.core.model.AutoSetup
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.rms.RecordStoreManager
 import com.mobicore.core.storage.LocalVfs
@@ -113,6 +114,24 @@ class LibraryRepository(filesDir: String) {
      * Renames a game as the library lists it. The suite's own manifest title
      * is kept, so the change is reversible and a reinstall still matches.
      */
+    /**
+     * Configures a game from the game again, throwing away hand-set values.
+     *
+     * The user's own choices — volume, whether it is a favourite — are not
+     * detections and are carried across; everything else is worked out from
+     * the suite as it was at import.
+     */
+    fun autoSetup(suiteId: String): GameProfile? {
+        val current = library.profile(suiteId) ?: return null
+        val fresh = AutoSetup.configure(library.load(suiteId)).profile()
+        fresh.setVolume(current.volume())
+        fresh.setMuted(current.isMuted)
+        fresh.isFavourite = current.isFavourite
+        library.saveProfile(fresh)
+        refresh()
+        return fresh
+    }
+
     fun rename(suiteId: String, title: String) {
         library.rename(suiteId, title)
         refresh()

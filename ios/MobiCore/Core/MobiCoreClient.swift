@@ -72,6 +72,12 @@ final class MobiCoreClient: ObservableObject {
         return result?.ok ?? false
     }
 
+    /// Configures a game from the game again, discarding hand-set values.
+    func autoSetup(_ suiteId: String) {
+        report(decode(bridge.autoSetup(forSuite: suiteId)))
+        refresh()
+    }
+
     func resetTitle(_ suiteId: String) {
         report(decode(bridge.resetTitle(forSuite: suiteId)))
         refresh()

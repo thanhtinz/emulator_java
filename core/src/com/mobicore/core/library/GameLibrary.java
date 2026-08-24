@@ -3,6 +3,7 @@ package com.mobicore.core.library;
 import com.mobicore.core.gfx.PngReader;
 import com.mobicore.core.jar.JarArchive;
 import com.mobicore.core.jar.SuiteLoader;
+import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.MidletSuiteInfo;
 import com.mobicore.core.rms.RecordStoreManager;
@@ -151,7 +152,9 @@ public final class GameLibrary {
             vfs.write(layout.artworkPath(suiteId), icon);
         }
 
-        GameProfile stored = profile != null ? profile : GameProfile.defaultsFor(info);
+        // Nothing to set up by hand: the suite is inspected and configured on
+        // the way in, so importing a game is the whole of getting it running.
+        GameProfile stored = profile != null ? profile : AutoSetup.configure(suite).profile();
         saveProfile(stored);
 
         LibraryEntry entry = new LibraryEntry(suiteId, info.title(), info.vendor(), info.version(),

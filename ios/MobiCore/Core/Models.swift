@@ -37,6 +37,10 @@ struct GameSettings: Codable, Hashable {
     var smoothing: Bool
     var networkMode: Int
     var skin: String
+    /// True while every setting is still the one the import worked out.
+    var auto: Bool
+    /// Why the emulator set the game up this way, in the user's language.
+    var setupNotes: [String]
     var favourite: Bool
     var lastPlayed: Int64
     var playCount: Int

@@ -13,13 +13,13 @@ public final class IconData {
     public static final int SIZE = 64;
 
     public static final String[] NAMES = {
-            "add", "arrow_back", "build", "chevron_left",
-            "close", "delete", "download", "edit",
-            "folder_open", "home", "keyboard_arrow_down", "keyboard_arrow_left",
-            "keyboard_arrow_right", "keyboard_arrow_up", "photo_camera", "photo_library",
-            "play_arrow", "save", "search", "settings",
-            "star", "star_border", "tune", "undo",
-            "videogame_asset",
+            "add", "arrow_back", "build", "check_circle",
+            "chevron_left", "close", "delete", "download",
+            "edit", "folder_open", "home", "keyboard_arrow_down",
+            "keyboard_arrow_left", "keyboard_arrow_right", "keyboard_arrow_up", "photo_camera",
+            "photo_library", "play_arrow", "save", "search",
+            "settings", "star", "star_border", "tune",
+            "undo", "videogame_asset",
     };
 
     private static final String[] ADD_BITS = {
@@ -112,6 +112,37 @@ public final class IconData {
             "AAAAAAAAAAAAAAAAAAAAn//////+MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJ/////+MAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
             "AAAAAACf///+MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAn//+MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJ/9MAAA",
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    };
+
+    private static final String[] CHECK_CIRCLE_BITS = {
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUaJmZhkEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEnf///////9lAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAF9////////////1xAAAAAAAAAAAAAAAAAAAAAAAAABjv//////////////6BAAAAAAAAAAAAAAAAAAAAAAAF7///",
+            "//////////////5QAAAAAAAAAAAAAAAAAAAAAa////////////////////oQAAAAAAAAAAAAAAAAAAAt////////////////////",
+            "/9IAAAAAAAAAAAAAAAAAA+///////////////////////jAAAAAAAAAAAAAAAAA+////////////////////////4wAAAAAAAAAA",
+            "AAAAAu/////////////////////////+IAAAAAAAAAAAAAAd///////////////////////////RAAAAAAAAAAAAAK//////////",
+            "//////////////////oAAAAAAAAAAAAF////////////////////////3v///1AAAAAAAAAAAB7///////////////////////0j",
+            "7///4QAAAAAAAAAAj///////////////////////0gA+///4AAAAAAAAAAHv//////////////////////0gAAPv//4QAAAAAAAA",
+            "CP//////////////////////0gAAAJ///4AAAAAAAAAN//////////////////////0gAAAH////0AAAAAAAAE//////////////",
+            "////////0gAAAH/////0AAAAAAAAn/////////////////////0gAAAH//////kAAAAAAADP////////////////////0gAAAH//",
+            "/////AAAAAAAAf////////////////////0gAAAH////////EAAAAAAE////////////////////0gAAAH////////9AAAAAAAb/",
+            "/////8r///////////0gAAAH/////////2AAAAAACP/////8EJ//////////0gAAAH//////////gAAAAAAJ/////8EACf//////",
+            "//0gAAAH//////////+QAAAAAAr////8EAAAn///////0gAAAH///////////6AAAAAACv////wQAAAJ//////0gAAAH////////",
+            "////oAAAAAAJ/////8EAAACf////0gAAAH////////////+QAAAAAAj//////BAAAAn///0gAAAH/////////////4AAAAAABv//",
+            "////wQAAAJ//0gAAAH//////////////YAAAAAAE///////8EAAACf0gAAAH//////////////9AAAAAAAH////////BAAAAggAA",
+            "AH///////////////xAAAAAAAM////////wQAAAAAAAH///////////////8AAAAAAAAn////////8EAAAAAAH//////////////",
+            "//kAAAAAAABP/////////BAAAAAH////////////////9AAAAAAAAA3/////////wQAAAH/////////////////QAAAAAAAACP//",
+            "///////8EAAH/////////////////4AAAAAAAAAB7//////////BAH/////////////////+EAAAAAAAAACP//////////wX////",
+            "//////////////gAAAAAAAAAAB7//////////9//////////////////4QAAAAAAAAAABf////////////////////////////9Q",
+            "AAAAAAAAAAAAr///////////////////////////+gAAAAAAAAAAAAAd///////////////////////////RAAAAAAAAAAAAAALv",
+            "/////////////////////////iAAAAAAAAAAAAAAAD7////////////////////////jAAAAAAAAAAAAAAAAA+//////////////",
+            "/////////jAAAAAAAAAAAAAAAAAALf/////////////////////SAAAAAAAAAAAAAAAAAAABr///////////////////+hAAAAAA",
+            "AAAAAAAAAAAAAAAF7/////////////////5QAAAAAAAAAAAAAAAAAAAAAAAY7//////////////+gQAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAX3////////////XEAAAAAAAAAAAAAAAAAAAAAAAAAAAAEnf///////9lAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFGiZmYZB",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
     };
 
@@ -803,28 +834,29 @@ public final class IconData {
             case 0: return join(ADD_BITS);
             case 1: return join(ARROW_BACK_BITS);
             case 2: return join(BUILD_BITS);
-            case 3: return join(CHEVRON_LEFT_BITS);
-            case 4: return join(CLOSE_BITS);
-            case 5: return join(DELETE_BITS);
-            case 6: return join(DOWNLOAD_BITS);
-            case 7: return join(EDIT_BITS);
-            case 8: return join(FOLDER_OPEN_BITS);
-            case 9: return join(HOME_BITS);
-            case 10: return join(KEYBOARD_ARROW_DOWN_BITS);
-            case 11: return join(KEYBOARD_ARROW_LEFT_BITS);
-            case 12: return join(KEYBOARD_ARROW_RIGHT_BITS);
-            case 13: return join(KEYBOARD_ARROW_UP_BITS);
-            case 14: return join(PHOTO_CAMERA_BITS);
-            case 15: return join(PHOTO_LIBRARY_BITS);
-            case 16: return join(PLAY_ARROW_BITS);
-            case 17: return join(SAVE_BITS);
-            case 18: return join(SEARCH_BITS);
-            case 19: return join(SETTINGS_BITS);
-            case 20: return join(STAR_BITS);
-            case 21: return join(STAR_BORDER_BITS);
-            case 22: return join(TUNE_BITS);
-            case 23: return join(UNDO_BITS);
-            case 24: return join(VIDEOGAME_ASSET_BITS);
+            case 3: return join(CHECK_CIRCLE_BITS);
+            case 4: return join(CHEVRON_LEFT_BITS);
+            case 5: return join(CLOSE_BITS);
+            case 6: return join(DELETE_BITS);
+            case 7: return join(DOWNLOAD_BITS);
+            case 8: return join(EDIT_BITS);
+            case 9: return join(FOLDER_OPEN_BITS);
+            case 10: return join(HOME_BITS);
+            case 11: return join(KEYBOARD_ARROW_DOWN_BITS);
+            case 12: return join(KEYBOARD_ARROW_LEFT_BITS);
+            case 13: return join(KEYBOARD_ARROW_RIGHT_BITS);
+            case 14: return join(KEYBOARD_ARROW_UP_BITS);
+            case 15: return join(PHOTO_CAMERA_BITS);
+            case 16: return join(PHOTO_LIBRARY_BITS);
+            case 17: return join(PLAY_ARROW_BITS);
+            case 18: return join(SAVE_BITS);
+            case 19: return join(SEARCH_BITS);
+            case 20: return join(SETTINGS_BITS);
+            case 21: return join(STAR_BITS);
+            case 22: return join(STAR_BORDER_BITS);
+            case 23: return join(TUNE_BITS);
+            case 24: return join(UNDO_BITS);
+            case 25: return join(VIDEOGAME_ASSET_BITS);
             default: return null;
         }
     }

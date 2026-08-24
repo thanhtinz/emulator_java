@@ -42,6 +42,7 @@ public final class Icons {
     public static final String PHOTO = "photo_library";
     public static final String CAMERA = "photo_camera";
     public static final String UNDO = "undo";
+    public static final String CHECK = "check_circle";
 
     private static final byte[][] CACHE = new byte[IconData.NAMES.length][];
 

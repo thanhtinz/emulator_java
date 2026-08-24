@@ -1,5 +1,7 @@
 package com.mobicore.tests;
 
+import com.mobicore.core.jar.SuiteLoader;
+import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.InputProfile;
@@ -7,8 +9,10 @@ import com.mobicore.core.jar.AttributeSet;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.model.MidletSuiteInfo;
 import com.mobicore.core.storage.Json;
+import com.mobicore.tools.SampleSuite;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,12 +23,99 @@ public final class ProfileTest extends Test {
         return "Profiles + JSON";
     }
 
+    /**
+     * The player never sets any of this up: the suite is inspected and the
+     * settings follow from what is in it.
+     */
+    private void autoSetup() throws Exception {
+        Map<String, byte[]> entries = new LinkedHashMap<String, byte[]>();
+        entries.put("META-INF/MANIFEST.MF", utf8("MIDlet-Name: Silent Puzzle\n"
+                + "MIDlet-Version: 1.0\n"
+                + "MIDlet-Vendor: Quiet Games\n"
+                + "MIDlet-1: Silent Puzzle,,demo.Puzzle\n"));
+        entries.put("demo/Puzzle.class", utf8("nothing this game imports is interesting"));
+        entries.put("bg.png", png(176, 208));
+        entries.put("icon.png", png(32, 32));
+        SuiteLoader plain = SuiteLoader.load(SampleSuite.zip(entries), null);
+
+        AutoSetup.Result result = AutoSetup.configure(plain);
+        GameProfile profile = result.profile();
+        eq(176, profile.device().width(), "the screen is read off the largest picture");
+        eq(208, profile.device().height(), "and so is its height");
+        check(profile.isAuto(), "a detected profile says it was detected");
+        check(!result.notes().isEmpty(), "and says why, in words the user can read");
+        eq(GameProfile.NETWORK_BLOCKED, profile.networkMode(),
+                "a game with no networking is never going to prompt about networking");
+        eq(20, profile.frameLimit(), "a screen-driven game does not need thirty frames a second");
+        eq("Nokia", profile.input().presetName(), "the common keypad is the default");
+
+        // What the suite declares about itself beats what its pictures imply.
+        Map<String, byte[]> declared = new LinkedHashMap<String, byte[]>();
+        declared.put("META-INF/MANIFEST.MF", utf8("MIDlet-Name: Racer\n"
+                + "MIDlet-Version: 1.0\n"
+                + "MIDlet-Vendor: Sony Ericsson Studio\n"
+                + "Nokia-MIDlet-Original-Display-Size: 240,320\n"
+                + "MIDlet-1: Racer,,demo.Racer\n"));
+        declared.put("demo/Racer.class",
+                utf8("javax/microedition/lcdui/game/GameCanvas javax/microedition/io/Connector"
+                        + " javax/microedition/media/Manager"));
+        declared.put("splash.png", png(128, 128));
+        GameProfile racer = AutoSetup.configure(
+                SuiteLoader.load(SampleSuite.zip(declared), null)).profile();
+        eq(240, racer.device().width(), "a declared display size wins over the artwork");
+        eq("Sony Ericsson", racer.input().presetName(),
+                "the vendor says which keypad the game was written for");
+        eq(GameProfile.NETWORK_ASK, racer.networkMode(),
+                "a game that opens connections is allowed to ask");
+        eq(30, racer.frameLimit(), "a game drawing its own frames gets the full rate");
+
+        // Changing a detected value stops the emulator claiming it measured it.
+        racer.setDevice(DeviceProfile.S40_128);
+        check(!racer.isAuto(), "a hand-set profile is no longer an automatic one");
+
+        GameProfile restored = GameProfile.fromJson(
+                Json.readObject(Json.write(profile.toJson())));
+        check(restored.isAuto(), "the automatic flag survives JSON");
+        eq(profile.setupNotes().size(), restored.setupNotes().size(),
+                "and so do the reasons");
+    }
+
+    /** A PNG header of the given size, which is all the detector reads. */
+    private byte[] png(int width, int height) {
+        byte[] out = new byte[24];
+        byte[] signature = {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10};
+        System.arraycopy(signature, 0, out, 0, signature.length);
+        out[12] = 'I';
+        out[13] = 'H';
+        out[14] = 'D';
+        out[15] = 'R';
+        writeInt(out, 16, width);
+        writeInt(out, 20, height);
+        return out;
+    }
+
+    private void writeInt(byte[] out, int at, int value) {
+        out[at] = (byte) (value >> 24);
+        out[at + 1] = (byte) (value >> 16);
+        out[at + 2] = (byte) (value >> 8);
+        out[at + 3] = (byte) value;
+    }
+
+    private byte[] utf8(String text) throws Exception {
+        return text.getBytes("UTF-8");
+    }
+
     @Override
     public void run() {
         json();
         devices();
         input();
         game();
+        try {
+            autoSetup();
+        } catch (Exception e) {
+            fail("automatic setup threw " + e);
+        }
     }
 
     private void json() {

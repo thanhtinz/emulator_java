@@ -48,6 +48,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// Puts the icon the suite ships back on the tile.
 - (NSString *)resetArtworkForSuite:(NSString *)suiteId;
 
+/// Re-runs the automatic setup for a game, discarding hand-set values.
+- (NSString *)autoSetupForSuite:(NSString *)suiteId;
+
 #pragma mark - Profiles
 
 - (NSString *)profileJSONForSuite:(NSString *)suiteId;

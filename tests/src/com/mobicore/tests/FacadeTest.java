@@ -91,6 +91,25 @@ public final class FacadeTest extends Test {
         check(Json.bool(Json.readObject(facade.resetArtwork(suiteId)), "ok", false),
                 "the suite's own icon can be put back");
 
+        // Automatic setup: the player configures nothing, and can see why ---
+        Map<String, Object> imported0 = Json.readObject(facade.profileJson(suiteId));
+        check(Json.bool(imported0, "auto", false), "an imported game is configured automatically");
+        check(Json.array(imported0, "setupNotes").size() >= 4,
+                "and says in words what it decided");
+
+        check(Json.bool(Json.readObject(facade.setDeviceProfile(suiteId, "s40-128x128")), "ok", false),
+                "the device can still be set by hand");
+        check(!Json.bool(Json.readObject(facade.profileJson(suiteId)), "auto", true),
+                "which stops the emulator claiming it measured that");
+
+        Map<String, Object> redone = Json.readObject(facade.autoSetup(suiteId));
+        check(Json.bool(redone, "ok", false), "setup can be run again from the game itself");
+        check(Json.array(redone, "notes").size() >= 4, "and reports what it found");
+        Map<String, Object> afterAuto = Json.readObject(facade.profileJson(suiteId));
+        check(Json.bool(afterAuto, "auto", false), "the profile is automatic again");
+        eq("qvga-240x320", Json.string(Json.child(afterAuto, "device"), "id", ""),
+                "and the hand-set device was replaced by the detected one");
+
         Map<String, Object> profile = Json.readObject(facade.profileJson(suiteId));
         eq(7, Json.array(profile, "devices").size(), "the device catalog rides along");
         eq("qvga-240x320", Json.string(Json.child(profile, "device"), "id", ""),

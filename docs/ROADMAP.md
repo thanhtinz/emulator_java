@@ -343,3 +343,32 @@ MIDlet `demo/SoundDemo.java` chạy bằng bytecode trong bộ test: bíp, một
 nhạc dựng bằng tone sequence có block lặp, một hiệu ứng WAV, và một player
 MIDI bị từ chối. `build/screenshots/13-sound.png` chụp màn hình đó kèm danh
 sách những gì game đã phát.
+
+
+## Không bắt người dùng cấu hình
+
+Người chơi chỉ muốn chơi. Những thứ màn hình cài đặt từng hỏi — máy giả lập cỡ
+bao nhiêu, bàn phím hãng nào, có cho vào mạng không — đều đã nằm sẵn trong bộ
+cài, nên `AutoSetup` **đọc ra từ game** thay vì hỏi, ngay lúc nhập:
+
+- **Kích thước màn hình:** ưu tiên khai báo `Nokia-MIDlet-Original-Display-Size`
+  hoặc `MIDlet-Screen-Size`; không có thì suy từ ảnh lớn nhất trong JAR — ảnh
+  nền của game được vẽ đúng cỡ máy. Ảnh tên `icon`, `logo`, `thumb` bị loại, và
+  ảnh trùng đúng một máy trong danh mục được ưu tiên hơn ảnh chỉ "to nhất".
+- **Bàn phím:** theo thuộc tính `Nokia-`, `SonyEricsson-`/`SEMC-`, `Samsung-`
+  hoặc theo tên nhà phát hành. Sai chỗ này là cả cụm phím không ăn — đúng loại
+  lỗi mà người chơi không bao giờ nên phải tự chẩn đoán.
+- **Mạng:** quét bytecode xem game có dùng `Connector`/`HttpConnection` không.
+  Không dùng thì **tắt hẳn**, và người dùng không bị hỏi lần nào.
+- **Âm thanh, giới hạn khung hình:** có `Manager` thì bật tiếng sẵn; dùng
+  `GameCanvas` thì 30 hình/giây, còn game theo màn hình chỉ 20 để đỡ tốn pin.
+
+Mỗi kết luận được ghi lại thành **một dòng tiếng Việt** hiện ngay đầu màn hình
+cài đặt ("Màn hình 240x320 — cỡ phổ biến nhất", "Không dùng mạng — đã tắt"…).
+Đoán mà người dùng không thấy là đoán họ không sửa được.
+
+Toàn bộ phần còn lại nằm sau nút **Nâng cao**, mặc định đóng, kèm câu "chỉ chỉnh
+khi game chạy sai". Chỉnh tay bất cứ giá trị nào đã dò thì cờ `auto` tắt — giao
+diện thôi nhận là đã "đo được" thứ thực ra do người dùng chọn — và nút **Dò lại**
+cấu hình lại từ đầu, giữ nguyên âm lượng và mục yêu thích vì đó là lựa chọn của
+người dùng chứ không phải kết quả dò.

@@ -11,9 +11,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
@@ -56,6 +61,13 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
     var networkMode by remember { mutableIntStateOf(profile.networkMode()) }
     var preset by remember { mutableStateOf(profile.input().presetName()) }
 
+    // Everything below the automatic card is hidden until asked for: a
+    // player who just wants to play should not have to scroll past a page of
+    // switches to find out there is nothing they need to do.
+    var showAdvanced by remember { mutableStateOf(false) }
+    var notes by remember { mutableStateOf(profile.setupNotes().toList()) }
+    var auto by remember { mutableStateOf(profile.isAuto) }
+
     fun persist(mutate: (GameProfile) -> Unit) {
         mutate(profile)
         library.saveProfile(profile)
@@ -73,6 +85,70 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                 Text("Cài đặt trò chơi", color = MobiColors.Text, fontSize = 23.sp,
                     fontWeight = FontWeight.Bold)
             }
+        }
+
+        item {
+            SectionCard(
+                title = "ĐÃ TỰ CẤU HÌNH",
+                trailing = if (auto) "tự động" else "đã chỉnh tay",
+            ) {
+                Column {
+                    notes.forEach { note ->
+                        Row(
+                            Modifier.padding(vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = MobiColors.Good,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(note, color = MobiColors.Text, fontSize = 13.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("Không cần chỉnh gì để chơi.", color = MobiColors.TextDim, fontSize = 12.sp)
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        SecondaryButton(
+                            label = "Dò lại",
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Filled.Refresh,
+                        ) {
+                            val fresh = library.autoSetup(suiteId)
+                            if (fresh != null) {
+                                notes = fresh.setupNotes().toList()
+                                auto = true
+                                deviceId = fresh.device().id()
+                                preset = fresh.input().presetName()
+                                scaleMode = fresh.scaleMode()
+                                frameLimit = fresh.frameLimit()
+                                networkMode = fresh.networkMode()
+                            }
+                        }
+                        SecondaryButton(
+                            label = if (showAdvanced) "Ẩn nâng cao" else "Nâng cao",
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Filled.Tune,
+                        ) { showAdvanced = !showAdvanced }
+                    }
+                }
+            }
+        }
+
+        if (!showAdvanced) {
+            item { Spacer(Modifier.height(24.dp)) }
+            return@LazyColumn
+        }
+
+        item {
+            Text(
+                "Chỉ chỉnh khi game chạy sai.",
+                color = MobiColors.TextDim,
+                fontSize = 12.sp,
+            )
         }
 
         item {

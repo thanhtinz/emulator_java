@@ -7,11 +7,56 @@ struct GameSettingsView: View {
 
     @EnvironmentObject private var client: MobiCoreClient
     @State private var settings: GameSettings?
+    /// Everything past the automatic card stays hidden until asked for: a
+    /// player who just wants to play should not have to scroll a page of
+    /// switches to learn there is nothing for them to do.
+    @State private var showAdvanced = false
 
     var body: some View {
         ScrollView {
             if var current = settings {
                 VStack(alignment: .leading, spacing: 14) {
+                    SectionCard(
+                        title: "ĐÃ TỰ CẤU HÌNH",
+                        trailing: current.auto ? "tự động" : "đã chỉnh tay"
+                    ) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(current.setupNotes, id: \.self) { note in
+                                Label(note, systemImage: "checkmark.circle.fill")
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.text)
+                            }
+                            Text("Không cần chỉnh gì để chơi.")
+                                .font(.caption)
+                                .foregroundStyle(Palette.textDim)
+                            HStack(spacing: 10) {
+                                Button {
+                                    client.autoSetup(suiteId)
+                                    reload()
+                                } label: {
+                                    Label("Dò lại", systemImage: "arrow.clockwise")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+
+                                Button {
+                                    showAdvanced.toggle()
+                                } label: {
+                                    Label(showAdvanced ? "Ẩn nâng cao" : "Nâng cao",
+                                          systemImage: "slider.horizontal.3")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                            .padding(.top, 4)
+                        }
+                    }
+
+                    if showAdvanced {
+                    Text("Chỉ chỉnh khi game chạy sai.")
+                        .font(.caption)
+                        .foregroundStyle(Palette.textDim)
+
                     SectionCard(title: "MÁY GIẢ LẬP", trailing: current.device.keypadName) {
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(current.devices ?? []) { device in
@@ -133,6 +178,7 @@ struct GameSettingsView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                    }
                     }
                 }
                 .padding(16)
