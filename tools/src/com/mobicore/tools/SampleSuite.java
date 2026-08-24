@@ -25,6 +25,7 @@ public final class SampleSuite {
             + "MIDlet-1: Sky Runner,/icon.png,demo.SkyRunner\n"
             + "MIDlet-2: Level Editor,,demo.Editor\n"
             + "MIDlet-3: Menu Demo,,demo.MenuDemo\n"
+            + "MIDlet-4: Sound Demo,,demo.SoundDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 
@@ -37,6 +38,7 @@ public final class SampleSuite {
             + "MIDlet-1: Sky Runner,/icon.png,demo.SkyRunner\n"
             + "MIDlet-2: Level Editor,,demo.Editor\n"
             + "MIDlet-3: Menu Demo,,demo.MenuDemo\n"
+            + "MIDlet-4: Sound Demo,,demo.SoundDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 

@@ -13,5 +13,6 @@ public final class Midp {
         MidpUi.install(vm, context);
         MidpForms.install(vm, context);
         MidpGame.install(vm);
+        MidpMedia.install(vm, context);
     }
 }

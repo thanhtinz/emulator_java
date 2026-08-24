@@ -2,6 +2,7 @@
 
 #import "J2ObjC_header.h"
 #import "IOSPrimitiveArray.h"
+#import "MobiCoreAudioSink.h"
 #import "com/mobicore/core/bridge/MobiCoreFacade.h"
 
 @implementation MobiCoreBridge {
@@ -10,6 +11,7 @@
     /// sixty times a second would churn memory for no reason.
     uint32_t *_pixelBuffer;
     NSUInteger _pixelCapacity;
+    MobiCoreAudioSink *_audio;
 }
 
 + (MobiCoreBridge *)shared {
@@ -25,6 +27,10 @@
     self = [super init];
     if (self) {
         _facade = [[ComMobicoreCoreBridgeMobiCoreFacade alloc] init];
+        // Handed over once: without it the emulator still plays every sound,
+        // into a recorder nobody can hear.
+        _audio = [[MobiCoreAudioSink alloc] init];
+        [_facade setAudioSinkWithComMobicoreCoreAudioAudioSink:_audio];
     }
     return self;
 }
@@ -229,6 +235,7 @@
 }
 
 - (void)stopGame {
+    [_audio releaseAll];
     [_facade stopGame];
 }
 

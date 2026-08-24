@@ -1,6 +1,7 @@
 package com.mobicore.core.bridge;
 
 import com.mobicore.core.emu.EmulatorLog;
+import com.mobicore.core.audio.AudioSink;
 import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
@@ -50,6 +51,8 @@ public final class MobiCoreFacade {
     private EmulatorSession session;
     private String activeSuiteId;
     private VmHost host;
+    /** Where sound goes once a game starts; recorded if the app sets none. */
+    private AudioSink audioSink;
 
     public MobiCoreFacade() {
         this(new LocalVfs());
@@ -60,6 +63,19 @@ public final class MobiCoreFacade {
     }
 
     /** Overrides platform services; iOS supplies its own clock and console. */
+    /**
+     * Gives the emulator a speaker. Without one it still plays every sound —
+     * into a recorder, where the developer tools can read it back — so a
+     * platform that has not wired audio up yet runs games rather than
+     * crashing on the first beep.
+     */
+    public void setAudioSink(AudioSink sink) {
+        this.audioSink = sink;
+        if (session != null) {
+            session.setAudio(sink);
+        }
+    }
+
     public void setHost(VmHost host) {
         this.host = host;
     }
@@ -258,6 +274,11 @@ public final class MobiCoreFacade {
         try {
             GameProfile profile = GameProfile.fromJson(Json.readObject(json));
             library.saveProfile(profile);
+            // Volume is the one setting a user changes expecting it to take
+            // effect now, mid-game, rather than at the next start.
+            if (session != null && profile.suiteId().equals(activeSuiteId)) {
+                session.context().setMasterVolume(profile.volume(), profile.isMuted());
+            }
             return ok("suiteId", profile.suiteId());
         } catch (IOException e) {
             return error(e.getMessage());
@@ -445,6 +466,9 @@ public final class MobiCoreFacade {
             }
             SuiteLoader suite = library.load(suiteId);
             session = EmulatorSession.create(suite, profile, vfs, layout, host);
+            if (audioSink != null) {
+                session.setAudio(audioSink);
+            }
             session.start();
             activeSuiteId = suiteId;
             profile.markPlayed(now());

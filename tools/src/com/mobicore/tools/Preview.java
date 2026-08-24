@@ -47,6 +47,7 @@ public final class Preview {
         write(vfs, outDir, "10-options-menu.png", new MenuScreen(fixtures, "menu").render());
         write(vfs, outDir, "11-textbox.png", new MenuScreen(fixtures, "textbox").render());
         write(vfs, outDir, "12-alert.png", new MenuScreen(fixtures, "alert").render());
+        write(vfs, outDir, "13-sound.png", new SoundScreen(fixtures).render());
 
         System.out.println("Screenshots written to " + outDir);
     }

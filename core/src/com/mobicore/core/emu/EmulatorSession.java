@@ -1,5 +1,7 @@
 package com.mobicore.core.emu;
 
+import com.mobicore.core.audio.AudioLog;
+import com.mobicore.core.audio.AudioSink;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.jar.JarArchive;
@@ -97,6 +99,15 @@ public final class EmulatorSession {
         // it. Off-screen images a game draws into are deliberately left alone;
         // see Framebuffer.setAntialias.
         context.setSmoothShapes(profile.smoothing());
+        // Sound goes to a recorder unless the platform hands over a speaker.
+        // It keeps the emulator's own clock, so a game that waits for a sound
+        // to end waits the same length of time whatever is listening.
+        context.setAudio(new AudioLog(new AudioLog.Clock() {
+            public long nowMs() {
+                return vm.host().currentTimeMillis();
+            }
+        }));
+        context.setMasterVolume(profile.volume(), profile.isMuted());
 
         Vfs vfs = storage == null ? new MemoryVfs() : storage;
         StorageLayout paths = layout == null ? new StorageLayout("MobiCore") : layout;
@@ -132,6 +143,20 @@ public final class EmulatorSession {
 
     public Vm vm() {
         return vm;
+    }
+
+    /**
+     * Sends sound somewhere real. Android passes an {@code AudioTrack} sink
+     * and iOS an audio queue; left alone, everything the game plays is
+     * recorded and nothing is heard.
+     */
+    public void setAudio(AudioSink sink) {
+        context.setAudio(sink);
+    }
+
+    /** What the game has played, when the sink is the recording one. */
+    public AudioSink audio() {
+        return context.audio();
     }
 
     public MidpContext context() {

@@ -52,6 +52,7 @@ class EmulatorEngine(
         private set
 
     private var session: EmulatorSession? = null
+    private val audio = AudioTrackSink()
     private var loop: Thread? = null
     private val stopRequested = AtomicBoolean(false)
     private var pixelBuffer: IntArray = IntArray(0)
@@ -68,6 +69,10 @@ class EmulatorEngine(
         lastError = null
         val layout = StorageLayout(StorageLayout.join(filesDir, "MobiCore"))
         val created = EmulatorSession.create(suite, profile, LocalVfs(), layout, AndroidHost())
+        // Sound goes to the device rather than to the recorder the core
+        // defaults to; the profile's volume is already applied inside the
+        // emulator, so the track only has to play what it is handed.
+        created.setAudio(audio)
         session = created
         val width = created.screen().width()
         val height = created.screen().height()
@@ -162,6 +167,7 @@ class EmulatorEngine(
         loop = null
         session?.destroy()
         session = null
+        audio.releaseAll()
         running = false
         paused = false
     }

@@ -9,7 +9,8 @@
 | 5 | Ứng dụng Android (Kotlin) | Xong (chưa biên dịch được ở CI) |
 | 6 | Ứng dụng iOS (SwiftUI + J2ObjC) | Xong (chưa biên dịch được ở CI) |
 | 7 | Developer tools, network layer, modding | Xong |
-| 8 | Tối ưu tương thích và hiệu năng | Kế tiếp |
+| 8 | Âm thanh: javax.microedition.media | Xong |
+| 9 | Tối ưu tương thích và hiệu năng | Kế tiếp |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -310,3 +311,35 @@ Nay đổi được cả hai:
 
 Nút "+" ở trang chủ nhập game; trang chi tiết có mục "Tên và ảnh bìa", còn
 ảnh bìa có sẵn nút sửa ngay ở góc — chỗ người ta nhìn vào khi muốn đổi ảnh.
+
+
+## Âm thanh
+
+`javax.microedition.media` trước đây không có. Với một game có tiếng, đó không
+phải là thiếu tính năng: `Manager` không nằm trên class path nên trình nạp lớp
+hỏng ngay trước khung hình đầu tiên — game không chạy được, chứ không phải
+chạy mà im lặng.
+
+Nay có đủ `Manager`, `Player`, `PlayerListener`, `Control`, `MediaException`,
+`VolumeControl` và `ToneControl`.
+
+- **Phát được:** `Manager.playTone` (một nốt), chuỗi nốt của `ToneControl`
+  (kể cả block, repeat, set volume, tempo, resolution) và WAV không nén —
+  8/16 bit, mono hoặc stereo, tự trộn về mono 16-bit.
+- **Không phát được:** MIDI và MP3. Máy thật giải mã bằng phần cứng; ở đây
+  chúng bị **từ chối một cách trung thực**: `Player` vẫn tạo được, đến khi
+  `realize()` thì ném `MediaException`, và game chạy tiếp không tiếng thay vì
+  chết. Đa số game bắt và bỏ qua ngoại lệ này.
+- **Tách lõi khỏi loa.** Lõi chỉ tổng hợp và giải mã, rồi đưa `AudioClip`
+  (PCM 16-bit mono) cho `AudioSink`. Android nối vào `AudioTrack`, iOS nối
+  vào `AVAudioPlayer`. Không có loa thì sink mặc định là `AudioLog` — ghi lại
+  thay vì phát, vẫn đếm thời gian đúng, nên game chờ một tiếng kết thúc vẫn
+  chờ đúng chừng ấy.
+- **Âm lượng là của người dùng.** Game xin bao nhiêu cũng bị nhân với mức
+  người dùng đặt cho game đó; tắt tiếng là tắt hẳn. Đổi âm lượng có hiệu lực
+  ngay giữa lúc chơi, không phải đợi khởi động lại.
+
+MIDlet `demo/SoundDemo.java` chạy bằng bytecode trong bộ test: bíp, một bản
+nhạc dựng bằng tone sequence có block lặp, một hiệu ứng WAV, và một player
+MIDI bị từ chối. `build/screenshots/13-sound.png` chụp màn hình đó kèm danh
+sách những gì game đã phát.

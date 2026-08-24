@@ -1,5 +1,7 @@
 package com.mobicore.core.midp;
 
+import com.mobicore.core.audio.AudioLog;
+import com.mobicore.core.audio.AudioSink;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.vm.Vm;
 import com.mobicore.core.vm.VmObject;
@@ -66,6 +68,9 @@ public final class MidpContext {
     private String title;
     private int frames;
     private boolean smoothShapes;
+    private AudioSink audio = new AudioLog(AudioLog.systemClock());
+    private int masterVolume = 100;
+    private boolean muted;
 
     public MidpContext(Vm vm, int width, int height) {
         this.vm = vm;
@@ -196,6 +201,45 @@ public final class MidpContext {
     }
 
     /** Whether shapes the game draws get anti-aliased edges. */
+    /**
+     * Where sound goes. Recording by default, so a context nobody wired a
+     * speaker to still runs a game that plays sounds — the alternative is a
+     * null check at every call site, or a crash on the first beep.
+     */
+    public AudioSink audio() {
+        return audio;
+    }
+
+    public void setAudio(AudioSink audio) {
+        this.audio = audio == null ? this.audio : audio;
+    }
+
+    /**
+     * The volume a sound should actually play at: what the game asked for,
+     * scaled by the player's own setting for this game. A game has no idea
+     * the user turned it down, and it should not — it just asks for a sound.
+     */
+    public int effectiveVolume(int requested) {
+        if (muted || masterVolume <= 0) {
+            return 0;
+        }
+        int clamped = Math.max(0, Math.min(100, requested));
+        return clamped * Math.min(100, masterVolume) / 100;
+    }
+
+    public void setMasterVolume(int volume, boolean muted) {
+        this.masterVolume = Math.max(0, Math.min(100, volume));
+        this.muted = muted;
+    }
+
+    public int masterVolume() {
+        return masterVolume;
+    }
+
+    public boolean isMuted() {
+        return muted;
+    }
+
     public boolean smoothShapes() {
         return smoothShapes;
     }
