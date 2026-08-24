@@ -36,8 +36,12 @@ public final class DetailScreen {
         // like, including the line offering the manifest name back.
         facade.renameGame(suiteId, "Sky Runner (bản Việt)");
         facade.startGame(suiteId);
-        facade.renderFrame();
-        facade.stopGame();
+        for (int i = 0; i < 25; i++) {
+            facade.renderFrame();
+        }
+        // Left the way a player leaves a game, so the screen below is the
+        // real saved state rather than a mock-up of one.
+        facade.stopGameSaving();
         facade.backup(suiteId);
 
         Map<String, Object> library = Json.readObject(facade.libraryJson());
@@ -107,6 +111,12 @@ public final class DetailScreen {
         int buttonHeight = ui.button(margin, y, buttonWidth, "Chơi", true, Icons.PLAY);
         ui.button(margin + buttonWidth + 12, y, buttonWidth, "Cài đặt", false, Icons.TUNE);
         y += buttonHeight + 16;
+
+        // Where the player left off ---------------------------------------
+        byte[] saved = facade.saveStateThumbnail(suiteId);
+        if (saved.length > 0 && PngReader.looksLikePng(saved)) {
+            y += resumeCard(ui, facade, saved, margin, y, width, buttonHeight) + 16;
+        }
 
         // Name and cover -------------------------------------------------
         boolean renamed = Json.bool(game, "renamed", false);
@@ -178,6 +188,43 @@ public final class DetailScreen {
                 fieldX, y + 12 + ui.medium().height() + 4, Theme.TEXT_DIM);
 
         return frame;
+    }
+
+    /**
+     * The screen the player was looking at when they left, and a button back
+     * into it.
+     *
+     * <p>A picture rather than a date: someone coming back to four games
+     * recognises where they were from the screen long before they work it out
+     * from a timestamp.</p>
+     */
+    private int resumeCard(Ui ui, MobiCoreFacade facade, byte[] thumbnail, int x, int y,
+                           int width, int buttonHeight) throws Exception {
+        Framebuffer frame = ui.frame();
+        PngReader.Image decoded = PngReader.decode(thumbnail);
+        int shotHeight = 96;
+        int shotWidth = decoded.width * shotHeight / Math.max(1, decoded.height);
+        int height = shotHeight + 24 + buttonHeight + 12;
+
+        ui.panel(x, y, width, height, Theme.SURFACE, Theme.BORDER);
+        ui.text(ui.small(), "ĐANG CHƠI DỞ", x + Ui.PAD, y + 12, Theme.TEXT_DIM);
+
+        int shotY = y + 12 + ui.small().height() + 8;
+        Framebuffer shot = Framebuffer.wrap(decoded.pixels, decoded.width, decoded.height)
+                .scaleSmooth(shotWidth, shotHeight);
+        frame.setBlendMode(Framebuffer.BLEND_REPLACE);
+        frame.drawFramebuffer(shot, x + Ui.PAD, shotY);
+        frame.setBlendMode(Framebuffer.BLEND_SRC_OVER);
+        frame.setColor(Theme.BORDER);
+        frame.drawRect(x + Ui.PAD, shotY, shotWidth - 1, shotHeight - 1);
+
+        int textLeft = x + Ui.PAD + shotWidth + 14;
+        ui.text(ui.medium(), "Chơi tiếp từ chỗ đã dừng", textLeft, shotY + 2, Theme.TEXT);
+        ui.text(ui.small(), "Tự lưu khi bạn thoát game", textLeft,
+                shotY + ui.medium().height() + 6, Theme.TEXT_DIM);
+        ui.button(textLeft, shotY + shotHeight - buttonHeight, width - (textLeft - x) - Ui.PAD,
+                "Chơi tiếp", true, Icons.PLAY);
+        return height;
     }
 
     /**

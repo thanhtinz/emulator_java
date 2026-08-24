@@ -90,6 +90,33 @@
     return [_facade autoSetupWithNSString:suiteId];
 }
 
+#pragma mark - Save states
+
+- (NSString *)saveState {
+    return [_facade saveState];
+}
+
+- (NSString *)startGameResuming:(NSString *)suiteId {
+    return [_facade resumeGameWithNSString:suiteId];
+}
+
+- (BOOL)hasSaveStateForSuite:(NSString *)suiteId {
+    return [_facade hasSaveStateWithNSString:suiteId];
+}
+
+- (NSData *)saveStateThumbnailForSuite:(NSString *)suiteId {
+    return [self dataFrom:[_facade saveStateThumbnailWithNSString:suiteId]];
+}
+
+- (NSString *)deleteSaveStateForSuite:(NSString *)suiteId {
+    return [_facade deleteSaveStateWithNSString:suiteId];
+}
+
+- (NSString *)stopGameSaving {
+    [_audio releaseAll];
+    return [_facade stopGameSaving];
+}
+
 #pragma mark - Profiles
 
 - (NSString *)profileJSONForSuite:(NSString *)suiteId {

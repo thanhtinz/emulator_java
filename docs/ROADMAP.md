@@ -12,6 +12,7 @@
 | 8 | Âm thanh: javax.microedition.media | Xong |
 | 9 | Tương thích: Timer và kiểm tra trước khi chơi | Xong |
 | 10 | Tối ưu hiệu năng | Xong |
+| 11 | Lưu trạng thái, chơi tiếp | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -446,3 +447,37 @@ Bốn thay đổi, tìm ra bằng cách lấy mẫu ngăn xếp chứ không đo
 - **Nhớ kết quả tra hàm ảo** theo lớp: tra một lần rồi dùng lại, vì lớp ở đây
   không bao giờ bị định nghĩa lại.
 - **Font đậm/nghiêng được nhớ** thay vì dựng lại mỗi lần vẽ chữ.
+
+
+## Lưu trạng thái và chơi tiếp
+
+Phần lớn game J2ME không lưu gì, hoặc chỉ lưu điểm cao. Thoát giữa màn là chơi
+lại màn đó từ đầu — mà trên điện thoại, việc thoát nhiều khi không do người
+chơi quyết định: một cuộc gọi, một tin nhắn, hết pin.
+
+`SaveState` ghi lại **heap của máy ảo**: mọi đối tượng với tới được từ biến
+static của các lớp, từ MIDlet và từ màn hình đang hiện. Đối tượng ở đây rất
+gọn — một kiểu, một dãy số nguyên, một dãy tham chiếu — nên việc duyệt là đơn
+giản. Phần không gọn là trạng thái phía host, và mỗi loại được viết tay: chuỗi,
+số đóng hộp, pixel của ảnh, hạt ngẫu nhiên, nội dung tập hợp, và trạng thái của
+`Sprite` / `TiledLayer` / `LayerManager`.
+
+Thứ **không** ghi được thì **dừng lại và nói rõ**: một kết nối đang mở, một kho
+dữ liệu, một bản nhạc đang phát. Bản lưu âm thầm bỏ mất chúng rồi khôi phục ra
+một game hỏng ngầm còn tệ hơn là không có tính năng này.
+
+`java.util.Random` được thay bằng bản tự viết đúng thuật toán mà tài liệu Java
+quy định. Bản của máy chủ cho ra cùng dãy số nhưng giữ kín hạt giống, mà bản lưu
+không đọc được hạt giống thì game có màn chơi sinh ngẫu nhiên sẽ chạy khác sau
+khi nạp lại — đó là nói dối chứ không phải lưu.
+
+Danh sách `Command` cũng được lưu. Chúng nằm trong context của máy chứ không
+nằm trong đối tượng màn hình, và lần khôi phục chạy được đầu tiên đã chứng minh
+vì sao điều đó quan trọng: trạng thái game trở lại chính xác, nhưng **thanh
+phím mềm biến mất**, nên vùng vẽ cao hơn và **51.779 / 76.800 điểm ảnh lệch
+nhau**. Lưu thêm danh sách lệnh: **0 điểm ảnh lệch**.
+
+Trong ứng dụng, việc này không cần người chơi bấm gì: **thoát game là tự lưu**,
+mở lại là chơi tiếp. Trang chi tiết có thẻ "Đang chơi dở" kèm **ảnh màn hình lúc
+rời đi** — nhìn ảnh thì nhận ra mình đang ở đâu nhanh hơn nhìn ngày giờ nhiều —
+và một dòng để bỏ bản lưu, chơi lại từ đầu.

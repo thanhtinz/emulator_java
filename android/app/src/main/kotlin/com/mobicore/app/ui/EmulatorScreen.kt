@@ -61,6 +61,10 @@ fun EmulatorScreen(
         val active = library.profile(suiteId) ?: return@LaunchedEffect
         library.markPlayed(suiteId)
         engine.start(loaded, active)
+        // Straight back to where the player left off. The state is restored
+        // after the game has started, because starting is what loads its
+        // classes and builds the machine the state goes into.
+        library.readSaveState(suiteId)?.let { engine.restoreState(it) }
     }
 
     // Immersive while playing, restored on the way out.
@@ -76,6 +80,12 @@ fun EmulatorScreen(
         window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
         onDispose {
             controller?.show(WindowInsetsCompat.Type.systemBars())
+            // Leaving a game saves it. On a phone, leaving is not always the
+            // player's decision — a call, a notification, a flat battery —
+            // and a J2ME game closed mid-level otherwise loses the level.
+            engine.captureState()?.let { state ->
+                library.writeSaveState(suiteId, state, engine.screenshot())
+            }
             engine.stop()
         }
     }

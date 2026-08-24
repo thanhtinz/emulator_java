@@ -6,6 +6,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobicore.core.emu.EmulatorSession
+import com.mobicore.core.emu.SaveState
+import com.mobicore.core.gfx.PngWriter
 import com.mobicore.core.jar.SuiteLoader
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.storage.LocalVfs
@@ -158,6 +160,35 @@ class EmulatorEngine(
             paused = false
             active.resume()
         }
+    }
+
+    /**
+     * Captures the running game.
+     *
+     * Returns null when the game holds something that cannot be written down
+     * — an open connection, a sound being played. The caller carries on: not
+     * being able to save a position is a disappointment, and refusing to
+     * close the game over it would be worse.
+     */
+    fun captureState(): ByteArray? {
+        val active = session ?: return null
+        return runCatching { SaveState.capture(active) }.getOrNull()
+    }
+
+    /** Puts a captured game back. The session must already be started. */
+    fun restoreState(state: ByteArray): Boolean {
+        val active = session ?: return false
+        return runCatching {
+            SaveState.restore(active, state)
+            publish(active)
+            true
+        }.getOrDefault(false)
+    }
+
+    /** The screen as it stands, as PNG bytes, for the saved state's picture. */
+    fun screenshot(): ByteArray? {
+        val active = session ?: return null
+        return runCatching { PngWriter.encode(active.screen()) }.getOrNull()
     }
 
     fun stop() {

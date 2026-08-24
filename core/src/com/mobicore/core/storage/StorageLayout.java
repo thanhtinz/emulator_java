@@ -95,6 +95,22 @@ public final class StorageLayout {
         return join(dir(SAVES), suiteId);
     }
 
+    /**
+     * Where a game's saved state lives.
+     *
+     * <p>Under {@code saves/}, beside whatever the game itself writes: both
+     * are the player's progress, and a backup that took one without the other
+     * would restore a game that has forgotten half of where it was.</p>
+     */
+    public String saveStatePath(String suiteId) {
+        return join(saveDir(suiteId), "state.mcs");
+    }
+
+    /** The screen as it looked when the state was saved. */
+    public String saveStateThumbnailPath(String suiteId) {
+        return join(saveDir(suiteId), "state.png");
+    }
+
     public String modDir(String suiteId) {
         return join(dir(MODS), suiteId);
     }

@@ -33,7 +33,9 @@ final class EmulatorEngine: ObservableObject {
 
     func start(suiteId: String, settings: GameSettings?) {
         stop()
-        let response = bridge.start(suiteId)
+        // Starts the game and, if the player left one behind, puts it back
+        // where it was.
+        let response = bridge.startGameResuming(suiteId)
         guard let result: ActionResult = decode(response), result.ok else {
             error = decode(response).flatMap { (r: ActionResult) in r.error } ?? "Không khởi động được trò chơi"
             return
@@ -113,7 +115,9 @@ final class EmulatorEngine: ObservableObject {
         displayLink?.invalidate()
         displayLink = nil
         if isRunning {
-            bridge.stopGame()
+            // Leaving a game saves it: on a phone, leaving is not always the
+            // player's decision.
+            bridge.stopGameSaving()
         }
         isRunning = false
         isPaused = false

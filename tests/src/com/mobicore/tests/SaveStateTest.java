@@ -5,11 +5,15 @@ import com.mobicore.core.emu.SaveState;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.midp.MidpContext;
+import com.mobicore.core.bridge.MobiCoreFacade;
 import com.mobicore.core.rt.JavaRandom;
+import com.mobicore.core.storage.Json;
+import com.mobicore.core.storage.MemoryVfs;
 import com.mobicore.core.vm.VmHost;
 import com.mobicore.tools.SampleSuite;
 
 import java.io.File;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -41,6 +45,7 @@ public final class SaveStateTest extends Test {
         }
         roundTrip();
         refusals();
+        throughTheBridge();
     }
 
     /**
@@ -132,6 +137,43 @@ public final class SaveStateTest extends Test {
 
         session.destroy();
         other.destroy();
+    }
+
+    /**
+     * What the app actually calls: leave a game and it is saved; open it
+     * again and it is where it was.
+     */
+    private void throughTheBridge() throws Exception {
+        MobiCoreFacade facade = new MobiCoreFacade(new MemoryVfs());
+        facade.open("/data");
+        Map<String, Object> imported = Json.readObject(
+                facade.importSuite(SampleSuite.jar(fixtureDir), SampleSuite.jad()));
+        String suiteId = Json.string(Json.child(imported, "game"), "suiteId", "");
+
+        check(Json.bool(Json.readObject(facade.startGame(suiteId)), "ok", false),
+                "the game starts");
+        check(!facade.hasSaveState(suiteId), "and has nothing saved yet");
+        for (int i = 0; i < 25; i++) {
+            facade.renderFrame();
+        }
+
+        check(Json.bool(Json.readObject(facade.stopGameSaving()), "ok", false),
+                "leaving the game saves it");
+        check(facade.hasSaveState(suiteId), "the saved state is on disk");
+        check(facade.saveStateThumbnail(suiteId).length > 0,
+                "with a picture of the screen the player left");
+
+        Map<String, Object> resumed = Json.readObject(facade.resumeGame(suiteId));
+        check(Json.bool(resumed, "ok", false), "opening it again starts the game");
+        check(Json.bool(resumed, "resumed", false), "and puts it back where it was");
+
+        check(Json.bool(Json.readObject(facade.deleteSaveState(suiteId)), "ok", false),
+                "a saved state can be thrown away");
+        check(!facade.hasSaveState(suiteId), "and then it is gone");
+        Map<String, Object> fresh = Json.readObject(facade.resumeGame(suiteId));
+        check(Json.bool(fresh, "ok", false), "a game with nothing saved still starts");
+        check(!Json.bool(fresh, "resumed", true), "and says it started from the beginning");
+        facade.stopGame();
     }
 
     private void expectRefusal(EmulatorSession session, byte[] blob, String message) {

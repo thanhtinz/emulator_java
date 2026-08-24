@@ -296,6 +296,53 @@ public final class GameLibrary {
         return updated;
     }
 
+    // --------------------------------------------------------- save states
+
+    /**
+     * Stores a saved state and the screen that went with it.
+     *
+     * <p>The picture is not decoration: a player coming back to four games
+     * recognises where they were from the screen far faster than from a date,
+     * and it costs a few kilobytes.</p>
+     */
+    public void writeSaveState(String suiteId, byte[] state, byte[] screenshot)
+            throws IOException {
+        if (!entries.containsKey(suiteId)) {
+            throw new IOException("No installed suite with id " + suiteId);
+        }
+        vfs.mkdirs(layout.saveDir(suiteId));
+        vfs.write(layout.saveStatePath(suiteId), state);
+        if (screenshot != null && screenshot.length > 0) {
+            vfs.write(layout.saveStateThumbnailPath(suiteId), screenshot);
+        }
+    }
+
+    public byte[] readSaveState(String suiteId) throws IOException {
+        String path = layout.saveStatePath(suiteId);
+        return vfs.exists(path) ? vfs.read(path) : null;
+    }
+
+    public byte[] saveStateThumbnail(String suiteId) throws IOException {
+        String path = layout.saveStateThumbnailPath(suiteId);
+        return vfs.exists(path) ? vfs.read(path) : null;
+    }
+
+    public boolean hasSaveState(String suiteId) {
+        return vfs.exists(layout.saveStatePath(suiteId));
+    }
+
+    /** Throws the saved state away; the game starts from the beginning again. */
+    public boolean deleteSaveState(String suiteId) throws IOException {
+        if (!hasSaveState(suiteId)) {
+            return false;
+        }
+        vfs.delete(layout.saveStatePath(suiteId));
+        if (vfs.exists(layout.saveStateThumbnailPath(suiteId))) {
+            vfs.delete(layout.saveStateThumbnailPath(suiteId));
+        }
+        return true;
+    }
+
     public RecordStoreManager records(String suiteId) {
         return new RecordStoreManager(vfs, layout, suiteId);
     }

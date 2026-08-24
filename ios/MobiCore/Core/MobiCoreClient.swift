@@ -72,6 +72,27 @@ final class MobiCoreClient: ObservableObject {
         return result?.ok ?? false
     }
 
+    // MARK: - Save states
+
+    /// True when the player has a game to come back to.
+    func hasSaveState(_ suiteId: String) -> Bool {
+        bridge.hasSaveState(forSuite: suiteId)
+    }
+
+    /// The screen the player left, for the resume card.
+    func saveStateThumbnail(_ suiteId: String) -> Image? {
+        guard let data = bridge.saveStateThumbnail(forSuite: suiteId),
+              let image = UIImage(data: data) else {
+            return nil
+        }
+        return Image(uiImage: image)
+    }
+
+    func deleteSaveState(_ suiteId: String) {
+        report(decode(bridge.deleteSaveState(forSuite: suiteId)))
+        refresh()
+    }
+
     /// Configures a game from the game again, discarding hand-set values.
     func autoSetup(_ suiteId: String) {
         report(decode(bridge.autoSetup(forSuite: suiteId)))

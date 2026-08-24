@@ -121,6 +121,29 @@ class LibraryRepository(filesDir: String) {
      * detections and are carried across; everything else is worked out from
      * the suite as it was at import.
      */
+    /**
+     * Stores where a game was, with the screen the player left behind.
+     *
+     * The picture is not decoration: coming back to several games, a player
+     * recognises where they were from the screen long before a date tells
+     * them.
+     */
+    fun writeSaveState(suiteId: String, state: ByteArray, screenshot: ByteArray?) {
+        library.writeSaveState(suiteId, state, screenshot)
+        refresh()
+    }
+
+    fun readSaveState(suiteId: String): ByteArray? = library.readSaveState(suiteId)
+
+    fun saveStateThumbnail(suiteId: String): ByteArray? = library.saveStateThumbnail(suiteId)
+
+    fun hasSaveState(suiteId: String): Boolean = library.hasSaveState(suiteId)
+
+    fun deleteSaveState(suiteId: String) {
+        library.deleteSaveState(suiteId)
+        refresh()
+    }
+
     fun autoSetup(suiteId: String): GameProfile? {
         val current = library.profile(suiteId) ?: return null
         val fresh = AutoSetup.configure(library.load(suiteId)).profile()

@@ -1,5 +1,9 @@
 package com.mobicore.app.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,33 +22,25 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
 import com.mobicore.app.data.Artwork
 import com.mobicore.app.data.LibraryRepository
 
@@ -146,6 +142,44 @@ fun GameDetailScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PrimaryButton("Chơi", Modifier.weight(1f), onPlay)
                 SecondaryButton("Cài đặt", Modifier.weight(1f), onClick = onSettings)
+            }
+        }
+
+        if (library.hasSaveState(suiteId)) {
+            item {
+                SectionCard(title = "ĐANG CHƠI DỞ") {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val shot = remember(suiteId, coverRevision) {
+                            decodeArtwork(library.saveStateThumbnail(suiteId))
+                        }
+                        if (shot != null) {
+                            Image(
+                                bitmap = shot,
+                                contentDescription = null,
+                                modifier = Modifier.size(72.dp, 96.dp),
+                            )
+                            Spacer(Modifier.width(14.dp))
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text("Chơi tiếp từ chỗ đã dừng", color = MobiColors.Text,
+                                fontSize = 15.sp)
+                            Text("Tự lưu khi bạn thoát game", color = MobiColors.TextDim,
+                                fontSize = 12.sp)
+                            Spacer(Modifier.height(8.dp))
+                            PrimaryButton("Chơi tiếp", Modifier.fillMaxWidth(), onClick = onPlay)
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = "Bỏ và chơi lại từ đầu",
+                                color = MobiColors.TextDim,
+                                fontSize = 12.sp,
+                                modifier = Modifier.clickable {
+                                    library.deleteSaveState(suiteId)
+                                    coverRevision++
+                                },
+                            )
+                        }
+                    }
+                }
             }
         }
 

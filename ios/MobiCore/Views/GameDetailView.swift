@@ -60,6 +60,34 @@ struct GameDetailView: View {
                         .buttonStyle(.bordered)
                     }
 
+                    if client.hasSaveState(suiteId) {
+                        SectionCard(title: "ĐANG CHƠI DỞ") {
+                            HStack(spacing: 14) {
+                                if let shot = client.saveStateThumbnail(suiteId) {
+                                    shot.resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 72, height: 96)
+                                }
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Chơi tiếp từ chỗ đã dừng")
+                                        .font(.subheadline)
+                                        .foregroundStyle(Palette.text)
+                                    Text("Tự lưu khi bạn thoát game")
+                                        .font(.caption)
+                                        .foregroundStyle(Palette.textDim)
+                                    Button("Chơi tiếp") { playing = true }
+                                        .buttonStyle(.borderedProminent)
+                                        .tint(Palette.accentDim)
+                                    Button("Bỏ và chơi lại từ đầu") {
+                                        client.deleteSaveState(suiteId)
+                                    }
+                                    .font(.caption)
+                                    .foregroundStyle(Palette.textDim)
+                                }
+                            }
+                        }
+                    }
+
                     SectionCard(title: "TÊN VÀ ẢNH BÌA") {
                         VStack(alignment: .leading, spacing: 6) {
                             FieldRow(label: "Tên hiển thị", value: game.title)

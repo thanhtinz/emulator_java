@@ -51,6 +51,25 @@ NS_ASSUME_NONNULL_BEGIN
 /// Re-runs the automatic setup for a game, discarding hand-set values.
 - (NSString *)autoSetupForSuite:(NSString *)suiteId;
 
+#pragma mark - Save states
+
+/// Saves the running game where it stands, with a picture of the screen.
+- (NSString *)saveState;
+
+/// Starts a game and puts it back where its saved state left it. Distinct
+/// from `resumeGame`, which merely unpauses a game already running.
+- (NSString *)startGameResuming:(NSString *)suiteId;
+
+- (BOOL)hasSaveStateForSuite:(NSString *)suiteId;
+
+/// The screen the player left, as PNG bytes, or nil.
+- (nullable NSData *)saveStateThumbnailForSuite:(NSString *)suiteId;
+
+- (NSString *)deleteSaveStateForSuite:(NSString *)suiteId;
+
+/// Saves the running game and then stops it: what leaving a game means.
+- (NSString *)stopGameSaving;
+
 #pragma mark - Profiles
 
 - (NSString *)profileJSONForSuite:(NSString *)suiteId;

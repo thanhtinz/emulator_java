@@ -3,6 +3,8 @@ package com.mobicore.core.bridge;
 import com.mobicore.core.emu.EmulatorLog;
 import com.mobicore.core.audio.AudioSink;
 import com.mobicore.core.emu.EmulatorSession;
+import com.mobicore.core.emu.SaveState;
+import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.library.GameLibrary;
@@ -630,6 +632,109 @@ public final class MobiCoreFacade {
         if (session != null) {
             session.resume();
         }
+    }
+
+    // --------------------------------------------------------- save states
+
+    /**
+     * Saves the running game where it stands, with a picture of the screen.
+     *
+     * <p>Called when the player leaves a game as well as on demand: a J2ME
+     * game that is closed halfway through a level otherwise loses the level,
+     * and on a phone leaving is not always the player's decision.</p>
+     */
+    public String saveState() {
+        if (session == null || activeSuiteId == null) {
+            return error("Không có trò chơi nào đang chạy");
+        }
+        try {
+            byte[] state = SaveState.capture(session);
+            byte[] screenshot = PngWriter.encode(session.screen());
+            library.writeSaveState(activeSuiteId, state, screenshot);
+            return ok("bytes", String.valueOf(state.length));
+        } catch (SaveState.NotSavable e) {
+            return error(e.getMessage());
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Starts a game and puts it back where its saved state left it.
+     *
+     * <p>The game is started normally first: that loads its classes and
+     * builds a working machine, and only then is the heap replaced. A game
+     * with no saved state simply starts.</p>
+     */
+    public String resumeGame(String suiteId) {
+        String started = startGame(suiteId);
+        if (!Json.bool(Json.readObject(started), "ok", false)) {
+            return started;
+        }
+        try {
+            byte[] state = library.readSaveState(suiteId);
+            if (state == null) {
+                // Said either way, so the caller never has to guess whether a
+                // missing answer means "from the beginning".
+                Map<String, Object> json = Json.readObject(started);
+                json.put("resumed", Boolean.FALSE);
+                return Json.write(json);
+            }
+            SaveState.restore(session, state);
+            Map<String, Object> json = Json.readObject(started);
+            json.put("resumed", Boolean.TRUE);
+            return Json.write(json);
+        } catch (SaveState.NotSavable e) {
+            // The game is running from its beginning, which is worse than
+            // resuming and far better than not starting: say so and carry on.
+            Map<String, Object> json = Json.readObject(started);
+            json.put("resumed", Boolean.FALSE);
+            json.put("warning", e.getMessage());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public boolean hasSaveState(String suiteId) {
+        return library != null && library.hasSaveState(suiteId);
+    }
+
+    /** The screen as it looked when the game was saved, as PNG bytes. */
+    public byte[] saveStateThumbnail(String suiteId) {
+        try {
+            byte[] data = library == null ? null : library.saveStateThumbnail(suiteId);
+            return data == null ? new byte[0] : data;
+        } catch (IOException e) {
+            return new byte[0];
+        }
+    }
+
+    public String deleteSaveState(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return ok("removed", String.valueOf(library.deleteSaveState(suiteId)));
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Saves the running game before it is put away, then stops it.
+     *
+     * <p>What "leaving a game" should mean on a phone: the player gets back
+     * what they had. A game holding something that cannot be saved is stopped
+     * anyway — refusing to close it would be worse than losing the position.</p>
+     */
+    public String stopGameSaving() {
+        if (session == null) {
+            return ok("saved", "false");
+        }
+        String saved = saveState();
+        stopGame();
+        return saved;
     }
 
     public void stopGame() {
