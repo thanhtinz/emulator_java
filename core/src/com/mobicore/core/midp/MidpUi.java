@@ -180,20 +180,26 @@ public final class MidpUi {
                 .field("title", "Ljava/lang/String;")
                 .field("commandListener", "Ljavax/microedition/lcdui/CommandListener;")
                 .method("<init>", "()V", noop())
+                // A MIDlet lays its whole screen out from these, and a handset
+                // reports the drawing area it is actually given rather than the
+                // size of the display.
                 .method("getWidth", "()I", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Integer.valueOf(context.width());
+                        return Integer.valueOf(context.canvasWidth());
                     }
                 })
                 .method("getHeight", "()I", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Integer.valueOf(context.height());
+                        return Integer.valueOf(context.canvasHeight());
                     }
                 })
                 .method("setTitle", "(Ljava/lang/String;)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         self.set("title", args[0]);
                         context.setTitle(Rt.s(vm, args, 0));
+                        // The title bar takes height away from the canvas, and
+                        // a game that has already measured needs telling.
+                        context.notifySizeChanged(self);
                         return null;
                     }
                 })
@@ -205,12 +211,14 @@ public final class MidpUi {
                 .method("addCommand", "(Ljavax/microedition/lcdui/Command;)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         context.addCommand(self, Rt.obj(args, 0));
+                        context.notifySizeChanged(self);
                         return null;
                     }
                 })
                 .method("removeCommand", "(Ljavax/microedition/lcdui/Command;)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         context.removeCommand(self, Rt.obj(args, 0));
+                        context.notifySizeChanged(self);
                         return null;
                     }
                 })
@@ -260,6 +268,9 @@ public final class MidpUi {
                 .method("setFullScreenMode", "(Z)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         context.setFullScreen(Rt.bool(args, 0));
+                        // Leaving full screen mode hands part of the display
+                        // back to the system, so the canvas really does resize.
+                        context.notifySizeChanged(self);
                         return null;
                     }
                 })
@@ -341,7 +352,8 @@ public final class MidpUi {
                         // The back buffer is the same size as the screen, which
                         // is what flushGraphics assumes, and is shown directly,
                         // so it smooths shapes exactly as the screen does.
-                        Framebuffer back = new Framebuffer(context.width(), context.height());
+                        Framebuffer back = new Framebuffer(context.canvasWidth(),
+                                context.canvasHeight());
                         back.setAntialias(context.smoothShapes());
                         self.host = back;
                         return null;
@@ -386,7 +398,7 @@ public final class MidpUi {
 
     static Framebuffer backBuffer(MidpContext context, VmObject canvas) {
         if (!(canvas.host instanceof Framebuffer)) {
-            Framebuffer back = new Framebuffer(context.width(), context.height());
+            Framebuffer back = new Framebuffer(context.canvasWidth(), context.canvasHeight());
             back.setAntialias(context.smoothShapes());
             canvas.host = back;
         }
@@ -399,8 +411,11 @@ public final class MidpUi {
         screen.setTranslation(0, 0);
         screen.resetClip();
         screen.setBlendMode(Framebuffer.BLEND_REPLACE);
-        screen.drawFramebuffer(back, 0, 0);
+        // The back buffer covers the canvas, not the whole display: the system
+        // chrome above and below it stays put.
+        screen.drawFramebuffer(back, context.canvasLeft(), context.canvasTop());
         screen.setBlendMode(Framebuffer.BLEND_SRC_OVER);
+        context.markChromeDirty();
         context.countFrame();
     }
 

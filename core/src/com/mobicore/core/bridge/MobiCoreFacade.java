@@ -472,6 +472,17 @@ public final class MobiCoreFacade {
         }
     }
 
+    /**
+     * Labels the two softkeys should show, as JSON. A handset leaves them blank
+     * until a MIDlet registers a Command; these are what it registered.
+     */
+    public String softKeysJson() {
+        Map<String, Object> json = Json.object();
+        json.put("left", session == null ? null : session.leftSoftKeyLabel());
+        json.put("right", session == null ? null : session.rightSoftKeyLabel());
+        return Json.write(json);
+    }
+
     public void releaseButton(String button) {
         if (session != null) {
             session.releaseButton(button);

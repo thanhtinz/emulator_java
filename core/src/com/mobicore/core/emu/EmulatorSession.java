@@ -11,6 +11,7 @@ import com.mobicore.core.midp.MidpGfx;
 import com.mobicore.core.midp.MidpUi;
 import com.mobicore.core.midp.MidpNet;
 import com.mobicore.core.midp.MidpRms;
+import com.mobicore.core.midp.SystemChrome;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.model.MidletSuiteInfo;
@@ -108,6 +109,8 @@ public final class EmulatorSession {
             }
         });
 
+        SystemChrome.measure(context);
+
         Cldc.install(vm);
         Midp.install(vm, context);
         MidpRms.install(vm, rms, context);
@@ -166,13 +169,35 @@ public final class EmulatorSession {
      * mapping. This is the entry point the on-screen keypad uses.
      */
     public void pressButton(String button) {
+        pressButton2(button);
+    }
+
+    /**
+     * Presses a virtual keypad button.
+     *
+     * <p>The softkeys are what a handset labels from the game's commands, so
+     * they run the command rather than delivering a bare key code.</p>
+     *
+     * @return true when the press ran one of the screen's commands
+     */
+    public boolean pressButton2(String button) {
+        if ("softLeft".equals(button)) {
+            return pressSoftKey(true);
+        }
+        if ("softRight".equals(button)) {
+            return pressSoftKey(false);
+        }
         int keyCode = profile.input().keyCodeFor(button);
         if (keyCode != 0) {
             keyPressed(keyCode);
         }
+        return false;
     }
 
     public void releaseButton(String button) {
+        if ("softLeft".equals(button) || "softRight".equals(button)) {
+            return;
+        }
         int keyCode = profile.input().keyCodeFor(button);
         if (keyCode != 0) {
             keyReleased(keyCode);
@@ -308,10 +333,44 @@ public final class EmulatorSession {
         Framebuffer screen = context.screen();
         screen.setTranslation(0, 0);
         screen.resetClip();
+        // The game paints into its canvas area only. Clipping here is what
+        // stops a MIDlet that ignores getHeight() from scribbling over the
+        // title and softkey strips the system owns.
+        screen.setClip(context.canvasLeft(), context.canvasTop(),
+                context.canvasWidth(), context.canvasHeight());
+        screen.translate(context.canvasLeft(), context.canvasTop());
         VmObject graphics = MidpGfx.newGraphics(vm, screen);
         vm.callVirtual(current, "paint", "(Ljavax/microedition/lcdui/Graphics;)V", graphics);
+        SystemChrome.draw(context);
         context.countFrame();
         return true;
+    }
+
+    /**
+     * Presses a softkey, invoking whatever command the current screen has
+     * mapped to it.
+     *
+     * @param left true for the left key, false for the right
+     * @return true when a command was actually run
+     */
+    public boolean pressSoftKey(boolean left) {
+        VmObject command = left ? context.leftCommand() : context.rightCommand();
+        if (command == null) {
+            // No command there: the game may still want the raw key.
+            keyPressed(left ? MidpContext.KEY_SOFT_LEFT : MidpContext.KEY_SOFT_RIGHT);
+            keyReleased(left ? MidpContext.KEY_SOFT_LEFT : MidpContext.KEY_SOFT_RIGHT);
+            return false;
+        }
+        return invokeCommand(command);
+    }
+
+    /** Label the left softkey should show, or {@code null} when it has none. */
+    public String leftSoftKeyLabel() {
+        return SystemChrome.leftLabel(context);
+    }
+
+    public String rightSoftKeyLabel() {
+        return SystemChrome.rightLabel(context);
     }
 
     private boolean isCanvas(VmObject displayable) {
@@ -369,7 +428,16 @@ public final class EmulatorSession {
         if (current == null || state != STATE_ACTIVE || !isCanvas(current)) {
             return;
         }
-        vm.callVirtual(current, method, "(II)V", Integer.valueOf(x), Integer.valueOf(y));
+        // Touches arrive in display coordinates; the game thinks in canvas
+        // coordinates, which start below the title bar.
+        int canvasX = x - context.canvasLeft();
+        int canvasY = y - context.canvasTop();
+        if (canvasX < 0 || canvasY < 0
+                || canvasX >= context.canvasWidth() || canvasY >= context.canvasHeight()) {
+            return;
+        }
+        vm.callVirtual(current, method, "(II)V",
+                Integer.valueOf(canvasX), Integer.valueOf(canvasY));
     }
 
     /** Invokes the current screen's command listener, as a softkey press does. */

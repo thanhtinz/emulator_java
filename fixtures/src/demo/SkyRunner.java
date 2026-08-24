@@ -36,8 +36,8 @@ public class SkyRunner extends MIDlet implements CommandListener {
         if (scene == null) {
             scene = new Scene();
             scene.setTitle("Sky Runner");
-            scene.addCommand(new Command("Pause", Command.STOP, 1));
-            scene.addCommand(new Command("Exit", Command.EXIT, 2));
+            scene.addCommand(new Command("Tạm dừng", Command.SCREEN, 1));
+            scene.addCommand(new Command("Thoát", Command.EXIT, 2));
             scene.setCommandListener(this);
         }
         Display.getDisplay(this).setCurrent(scene);

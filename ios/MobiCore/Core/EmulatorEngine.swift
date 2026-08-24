@@ -19,6 +19,9 @@ final class EmulatorEngine: ObservableObject {
     @Published private(set) var measuredFps = 0
     @Published private(set) var error: String?
     @Published private(set) var screenSize = CGSize(width: 240, height: 320)
+    /// Labels the running screen has mapped to the two softkeys.
+    @Published private(set) var leftSoftKeyLabel: String?
+    @Published private(set) var rightSoftKeyLabel: String?
 
     private let bridge = MobiCoreBridge.shared
     private let queue = DispatchQueue(label: "com.mobicore.midlet", qos: .userInitiated)
@@ -47,6 +50,7 @@ final class EmulatorEngine: ObservableObject {
         link.add(to: .main, forMode: .common)
         displayLink = link
 
+        refreshSoftKeys()
         queue.async { [weak self] in
             self?.runLoop()
         }
@@ -117,6 +121,22 @@ final class EmulatorEngine: ObservableObject {
 
     func press(_ button: String) {
         bridge.press(button)
+        if button == "softLeft" || button == "softRight" {
+            // A command may have swapped the screen, and with it the labels.
+            refreshSoftKeys()
+        }
+    }
+
+    /// Re-reads the softkey labels from the running screen.
+    func refreshSoftKeys() {
+        guard let data = bridge.softKeysJSON().data(using: .utf8),
+              let labels = try? JSONDecoder().decode([String: String?].self, from: data) else {
+            leftSoftKeyLabel = nil
+            rightSoftKeyLabel = nil
+            return
+        }
+        leftSoftKeyLabel = labels["left"] ?? nil
+        rightSoftKeyLabel = labels["right"] ?? nil
     }
 
     func release(_ button: String) {

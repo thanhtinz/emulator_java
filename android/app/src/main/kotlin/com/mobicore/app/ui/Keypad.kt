@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,13 +49,23 @@ import androidx.compose.ui.unit.sp
 fun Keypad(
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
+    leftSoftKey: String?,
+    rightSoftKey: String?,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            KeyButton("Phím mềm 1", "softLeft", onPress, onRelease, Modifier.weight(1f))
-            KeyButton("Xóa", "clear", onPress, onRelease, Modifier.weight(1f))
-            KeyButton("Phím mềm 2", "softRight", onPress, onRelease, Modifier.weight(1f))
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        // Directly under the screen, so they line up with the labels the
+        // system draws along its bottom edge, as they do on a handset.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SoftKey(leftSoftKey, "softLeft", TextAlign.Start, onPress, onRelease,
+                Modifier.weight(1f))
+            SoftKey(rightSoftKey, "softRight", TextAlign.End, onPress, onRelease,
+                Modifier.weight(1f))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            PhoneKey("Gọi", "send", MobiColors.Good, onPress, onRelease, Modifier.weight(1f))
+            PhoneKey("Xóa", "clear", MobiColors.Text, onPress, onRelease, Modifier.weight(1f))
+            PhoneKey("Kết thúc", "end", MobiColors.Bad, onPress, onRelease, Modifier.weight(1f))
         }
         Row(
             Modifier.fillMaxWidth(),
@@ -64,6 +75,74 @@ fun Keypad(
             NumericPad(onPress, onRelease)
             DirectionalPad(onPress, onRelease)
         }
+    }
+}
+
+/**
+ * A softkey. Blank until the running screen registers a Command, and then
+ * showing that command's label — which is the only way a player can reach a
+ * MIDlet's menu.
+ */
+@Composable
+private fun SoftKey(
+    label: String?,
+    button: String,
+    align: TextAlign,
+    onPress: (String) -> Unit,
+    onRelease: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var held by remember { mutableStateOf(false) }
+    val bound = !label.isNullOrEmpty()
+    Box(
+        modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                when {
+                    held -> MobiColors.AccentDim
+                    bound -> MobiColors.SurfaceAlt
+                    else -> MobiColors.Background
+                }
+            )
+            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border,
+                RoundedCornerShape(12.dp))
+            .holdable(button, onPress, onRelease) { held = it }
+            .padding(horizontal = 14.dp),
+        contentAlignment = if (align == TextAlign.Start) Alignment.CenterStart else Alignment.CenterEnd,
+    ) {
+        Text(
+            text = if (bound) label!! else "—",
+            color = if (bound) MobiColors.Text else MobiColors.TextDim,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
+    }
+}
+
+/** The call, clear and end trio every J2ME handset carried. */
+@Composable
+private fun PhoneKey(
+    label: String,
+    button: String,
+    tint: androidx.compose.ui.graphics.Color,
+    onPress: (String) -> Unit,
+    onRelease: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var held by remember { mutableStateOf(false) }
+    Box(
+        modifier
+            .height(38.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
+            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border,
+                RoundedCornerShape(10.dp))
+            .holdable(button, onPress, onRelease) { held = it },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, color = tint, fontSize = 13.sp)
     }
 }
 
@@ -118,7 +197,7 @@ private fun NumberKey(
     var held by remember { mutableStateOf(false) }
     Column(
         Modifier
-            .size(64.dp, 50.dp)
+            .size(62.dp, 46.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
             .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, RoundedCornerShape(12.dp))

@@ -18,19 +18,21 @@ struct EmulatorView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button("‹  Thoát") {
+                Button("‹  Thư viện") {
                     engine.stop()
                     client.refresh()
                     dismiss()
                 }
                 Spacer()
-                if settings?.showFps ?? false {
-                    Text("\(engine.measuredFps) hình/giây")
-                        .font(.caption)
-                        .foregroundStyle(Palette.textDim)
-                }
+                // Deliberately not the game's title: the MIDlet has its own
+                // title bar inside the screen, and repeating it invites
+                // confusion with the game's own commands.
+                Text("\(Int(engine.screenSize.width))×\(Int(engine.screenSize.height))"
+                     + "  ·  \(engine.measuredFps) hình/giây")
+                    .font(.caption)
+                    .foregroundStyle(Palette.textDim)
                 Spacer()
-                Button(engine.isPaused ? "Tiếp tục" : "Tạm dừng") {
+                Button(engine.isPaused ? "Tiếp tục" : "Tạm ngưng") {
                     engine.isPaused ? engine.resume() : engine.pause()
                 }
             }
@@ -41,21 +43,6 @@ struct EmulatorView: View {
             GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            HStack {
-                Text("\(Int(engine.screenSize.width))×\(Int(engine.screenSize.height))"
-                     + "  ·  \(settings?.scaleModeName ?? "—")"
-                     + "  ·  \((settings?.smoothing ?? true) ? "làm mượt" : "sắc cạnh")")
-                    .font(.caption2)
-                    .foregroundStyle(Palette.textDim)
-                Spacer()
-                Text("\(engine.measuredFps) hình/giây")
-                    .font(.caption2)
-                    .foregroundStyle(Palette.good)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 5)
-            .background(Palette.surfaceAlt)
-
             if let error = engine.error {
                 Text(error)
                     .font(.caption)
@@ -65,9 +52,12 @@ struct EmulatorView: View {
 
             Keypad(
                 onPress: { engine.press($0) },
-                onRelease: { engine.release($0) }
+                onRelease: { engine.release($0) },
+                leftSoftKey: engine.leftSoftKeyLabel,
+                rightSoftKey: engine.rightSoftKeyLabel
             )
-            .padding(12)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
         }
         .background(Palette.background)
         .statusBarHidden(true)

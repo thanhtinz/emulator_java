@@ -184,6 +184,10 @@
     [_facade pressButtonWithNSString:button];
 }
 
+- (NSString *)softKeysJSON {
+    return [_facade softKeysJson];
+}
+
 - (void)releaseButton:(NSString *)button {
     [_facade releaseButtonWithNSString:button];
 }

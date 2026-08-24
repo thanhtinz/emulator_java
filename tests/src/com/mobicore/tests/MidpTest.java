@@ -50,13 +50,31 @@ public final class MidpTest extends Test {
         Framebuffer screen = session.screen();
         eq(240, screen.width(), "the screen matches the device profile");
 
-        // The HUD is a black strip across the top; the ground is green.
-        eq(0xFF000000, screen.pixel(120, 4), "the HUD bar is painted");
-        int ground = screen.pixel(120, 276);
+        // A screen with a title and commands gets less room than the display,
+        // exactly as a handset gives it. Games lay themselves out from these.
+        MidpContext context = session.context();
+        int canvasTop = context.canvasTop();
+        check(canvasTop > 0, "the title bar takes room off the top");
+        check(context.canvasHeight() < screen.height(),
+                "the softkey bar takes room off the bottom");
+        check(context.hasSoftKeys(), "the screen's commands need a softkey bar");
+
+        // The system draws the title strip; the game cannot reach those rows.
+        check(screen.pixel(120, 2) != 0xFF000000, "the system title bar is drawn");
+        check(screen.pixel(120, screen.height() - 3) != 0xFF000000,
+                "the system softkey bar is drawn");
+
+        // The game's own HUD is a black strip across the top of its canvas.
+        eq(0xFF000000, screen.pixel(120, canvasTop + 4), "the game's HUD bar is painted");
+        int ground = screen.pixel(120, canvasTop + context.canvasHeight() - 40);
         check((ground & 0x00FF00) > 0x005000, "the tiled ground is green, was "
                 + Integer.toHexString(ground));
-        int sky = screen.pixel(10, 30);
+        int sky = screen.pixel(10, canvasTop + 30);
         check((sky & 0xFF) > 0x40, "the sky gradient is blue, was " + Integer.toHexString(sky));
+
+        // The labels a handset shows on its softkeys come from the game.
+        eq("Tạm dừng", session.leftSoftKeyLabel(), "the left softkey shows the screen command");
+        eq("Thoát", session.rightSoftKeyLabel(), "the right softkey shows the exit command");
 
         // Input has to reach the game and change what it draws.
         int startX = ((Integer) session.vm().callVirtual(scene, "playerX", "()I")).intValue();
@@ -91,9 +109,18 @@ public final class MidpTest extends Test {
         eq(240, shot.width, "the screenshot is screen sized");
         eq(320, shot.height, "the screenshot is screen tall");
 
-        // Commands fire through the listener the MIDlet installed.
-        VmObject exitCommand = session.context().commandsOf(scene).get(1);
-        check(session.invokeCommand(exitCommand), "the command listener was invoked");
+        // Full screen mode hands the whole display to the game.
+        session.vm().callVirtual(scene, "setFullScreenMode", "(Z)V", Integer.valueOf(1));
+        eq(screen.height(), session.context().canvasHeight(),
+                "full screen mode gives the game the whole display");
+        eq(0, session.context().canvasTop(), "full screen mode drops the title bar");
+        check(!session.context().hasSoftKeys(), "full screen mode hides the softkey labels");
+        session.vm().callVirtual(scene, "setFullScreenMode", "(Z)V", Integer.valueOf(0));
+        eq(canvasTop, session.context().canvasTop(), "leaving full screen mode restores the bar");
+
+        // Pressing the right softkey must run the game's Exit command, which is
+        // the only way a player can reach it on a handset.
+        check(session.pressButton2("softRight"), "the right softkey ran a command");
         check(session.isFinished(), "the Exit command destroyed the MIDlet");
 
         session.destroy();

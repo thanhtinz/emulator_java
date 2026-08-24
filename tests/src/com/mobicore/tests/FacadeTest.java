@@ -105,7 +105,9 @@ public final class FacadeTest extends Test {
         check(facade.renderFrame(), "a frame renders");
         int[] pixels = facade.framePixels();
         eq(240 * 320, pixels.length, "the pixel buffer is screen sized");
-        check(pixels[240 * 4 + 120] == 0xFF000000, "the HUD bar is in the pixel buffer");
+        // Row 2 is inside the system title bar, which proves the handset
+        // chrome crossed the bridge along with the game's own drawing.
+        check(pixels[240 * 2 + 120] != 0xFF000000, "the system chrome is in the pixel buffer");
 
         facade.pressButton("right");
         facade.releaseButton("right");

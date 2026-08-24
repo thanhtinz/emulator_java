@@ -42,6 +42,10 @@ class EmulatorEngine(
     var measuredFps by mutableIntStateOf(0)
         private set
 
+    /** Bumped whenever the running screen's commands change. */
+    var commandRevision by mutableIntStateOf(0)
+        private set
+
     val frameLock = Any()
 
     var bitmap: Bitmap? = null
@@ -170,6 +174,10 @@ class EmulatorEngine(
 
     fun pressButton(button: String) {
         session?.pressButton(button)
+        if (button == "softLeft" || button == "softRight") {
+            // A command may have swapped the screen, and with it the labels.
+            commandRevision++
+        }
     }
 
     fun releaseButton(button: String) {
@@ -187,6 +195,14 @@ class EmulatorEngine(
     fun pointerUp(x: Int, y: Int) {
         session?.pointerReleased(x, y)
     }
+
+    /**
+     * Labels the two softkeys should show. A handset leaves them blank until a
+     * MIDlet registers a Command, and shows whatever it registered.
+     */
+    fun leftSoftKeyLabel(): String? = session?.leftSoftKeyLabel()
+
+    fun rightSoftKeyLabel(): String? = session?.rightSoftKeyLabel()
 
     fun screenshot(): ByteArray? = session?.screenshotPng()
 

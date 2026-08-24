@@ -73,6 +73,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable NSData *)screenshotPNG;
 
 - (void)pressButton:(NSString *)button;
+
+/// Labels the running screen has mapped to the two softkeys, as JSON.
+- (NSString *)softKeysJSON;
 - (void)releaseButton:(NSString *)button;
 - (void)pointerDownAtX:(NSInteger)x y:(NSInteger)y;
 - (void)pointerMovedToX:(NSInteger)x y:(NSInteger)y;

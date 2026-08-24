@@ -11,13 +11,27 @@ struct Keypad: View {
 
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
+    /// Labels the running screen has mapped to the two softkeys, if any.
+    var leftSoftKey: String?
+    var rightSoftKey: String?
 
     var body: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                SoftKey(label: "Phím mềm 1", button: "softLeft", onPress: onPress, onRelease: onRelease)
-                SoftKey(label: "Xóa", button: "clear", onPress: onPress, onRelease: onRelease)
-                SoftKey(label: "Phím mềm 2", button: "softRight", onPress: onPress, onRelease: onRelease)
+        VStack(spacing: 9) {
+            // Directly under the screen, so they line up with the labels the
+            // system draws along its bottom edge, as they do on a handset.
+            HStack(spacing: 10) {
+                SoftKey(label: leftSoftKey, button: "softLeft", alignment: .leading,
+                        onPress: onPress, onRelease: onRelease)
+                SoftKey(label: rightSoftKey, button: "softRight", alignment: .trailing,
+                        onPress: onPress, onRelease: onRelease)
+            }
+            HStack(spacing: 6) {
+                PhoneKey(label: "Gọi", button: "send", tint: Palette.good,
+                         onPress: onPress, onRelease: onRelease)
+                PhoneKey(label: "Xóa", button: "clear", tint: Palette.text,
+                         onPress: onPress, onRelease: onRelease)
+                PhoneKey(label: "Kết thúc", button: "end", tint: Palette.bad,
+                         onPress: onPress, onRelease: onRelease)
             }
             HStack(alignment: .center) {
                 numericPad
@@ -93,7 +107,7 @@ private struct NumberKey: View {
                 Text(key.hint).font(.system(size: 10)).foregroundStyle(Palette.textDim)
             }
         }
-        .frame(width: 64, height: 50)
+        .frame(width: 62, height: 46)
         .background(held ? Palette.accentDim : Palette.surfaceAlt,
                     in: RoundedRectangle(cornerRadius: 12))
         .overlay(
@@ -104,9 +118,43 @@ private struct NumberKey: View {
     }
 }
 
+/// A softkey. Blank until the running screen registers a Command, and then
+/// showing that command's label — the only way a player can reach a MIDlet's
+/// own menu.
 private struct SoftKey: View {
+    let label: String?
+    let button: String
+    let alignment: Alignment
+    let onPress: (String) -> Void
+    let onRelease: (String) -> Void
+
+    @State private var held = false
+
+    private var bound: Bool { !(label ?? "").isEmpty }
+
+    var body: some View {
+        Text(bound ? label! : "—")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(bound ? Palette.text : Palette.textDim)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: alignment)
+            .padding(.horizontal, 14)
+            .frame(height: 44)
+            .background(held ? Palette.accentDim : (bound ? Palette.surfaceAlt : Palette.background),
+                        in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(held ? Palette.accent : Palette.border, lineWidth: 1)
+            )
+            .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))
+    }
+}
+
+/// The call, clear and end trio every J2ME handset carried.
+private struct PhoneKey: View {
     let label: String
     let button: String
+    let tint: Color
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
 
@@ -114,14 +162,14 @@ private struct SoftKey: View {
 
     var body: some View {
         Text(label)
-            .font(.subheadline)
-            .foregroundStyle(Palette.text)
+            .font(.footnote)
+            .foregroundStyle(tint)
             .frame(maxWidth: .infinity)
-            .frame(height: 46)
+            .frame(height: 38)
             .background(held ? Palette.accentDim : Palette.surfaceAlt,
-                        in: RoundedRectangle(cornerRadius: 12))
+                        in: RoundedRectangle(cornerRadius: 10))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 10)
                     .stroke(held ? Palette.accent : Palette.border, lineWidth: 1)
             )
             .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))

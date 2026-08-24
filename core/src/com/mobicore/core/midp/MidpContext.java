@@ -59,6 +59,9 @@ public final class MidpContext {
     private int keyStates;
     private boolean repaintRequested = true;
     private boolean fullScreen;
+    /** Height reserved by the system chrome; see {@link #canvasHeight()}. */
+    private int titleBarHeight;
+    private int softKeyBarHeight;
     private boolean destroyed;
     private String title;
     private int frames;
@@ -103,6 +106,89 @@ public final class MidpContext {
     public List<VmObject> commandsOf(VmObject displayable) {
         List<VmObject> list = commands.get(displayable);
         return list == null ? new ArrayList<VmObject>() : list;
+    }
+
+    /** Commands on the screen currently shown. */
+    public List<VmObject> currentCommands() {
+        return commandsOf(current);
+    }
+
+    /**
+     * The command the left softkey triggers, or {@code null}.
+     *
+     * <p>MIDP does not dictate the mapping, but every handset settled on the
+     * same convention: anything that goes back or gets out sits on the right,
+     * everything else on the left. A player who has used a J2ME phone reaches
+     * for the right key to quit without reading the label.</p>
+     */
+    public VmObject leftCommand() {
+        List<VmObject> positive = commandsByPlacement(false);
+        return positive.isEmpty() ? null : positive.get(0);
+    }
+
+    public VmObject rightCommand() {
+        List<VmObject> negative = commandsByPlacement(true);
+        return negative.isEmpty() ? null : negative.get(0);
+    }
+
+    /**
+     * Commands that do not fit on the two softkeys, which a handset would put
+     * behind an "Options" menu.
+     */
+    public List<VmObject> menuCommands() {
+        List<VmObject> positive = commandsByPlacement(false);
+        return positive.size() <= 1 ? new ArrayList<VmObject>()
+                : new ArrayList<VmObject>(positive.subList(1, positive.size()));
+    }
+
+    /** Command types a handset puts on the right softkey. */
+    private static boolean isNegative(int commandType) {
+        return commandType == COMMAND_BACK || commandType == COMMAND_CANCEL
+                || commandType == COMMAND_EXIT || commandType == COMMAND_STOP;
+    }
+
+    public static final int COMMAND_SCREEN = 1;
+    public static final int COMMAND_BACK = 2;
+    public static final int COMMAND_CANCEL = 3;
+    public static final int COMMAND_OK = 4;
+    public static final int COMMAND_HELP = 5;
+    public static final int COMMAND_STOP = 6;
+    public static final int COMMAND_EXIT = 7;
+    public static final int COMMAND_ITEM = 8;
+
+    private List<VmObject> commandsByPlacement(boolean negative) {
+        List<VmObject> matching = new ArrayList<VmObject>();
+        for (VmObject command : commandsOf(current)) {
+            int type = ((Integer) command.get("commandType")).intValue();
+            if (isNegative(type) == negative) {
+                matching.add(command);
+            }
+        }
+        // Lower priority wins the softkey, as the specification defines it.
+        for (int i = 1; i < matching.size(); i++) {
+            VmObject value = matching.get(i);
+            int priority = priorityOf(value);
+            int j = i - 1;
+            while (j >= 0 && priorityOf(matching.get(j)) > priority) {
+                matching.set(j + 1, matching.get(j));
+                j--;
+            }
+            matching.set(j + 1, value);
+        }
+        return matching;
+    }
+
+    private static int priorityOf(VmObject command) {
+        return ((Integer) command.get("priority")).intValue();
+    }
+
+    /** Label a softkey should show for a command. */
+    public String labelOf(VmObject command) {
+        if (command == null) {
+            return null;
+        }
+        Object label = command.get("label");
+        return label == null ? null : vm.stringOf(label);
     }
 
     public Framebuffer screen() {
@@ -158,6 +244,60 @@ public final class MidpContext {
 
     public void setFullScreen(boolean fullScreen) {
         this.fullScreen = fullScreen;
+        requestRepaint();
+    }
+
+    /**
+     * Reserves the strips the system draws in, in device pixels.
+     *
+     * <p>Set once by the emulator from the font it draws the chrome with, so
+     * the core does not have to know how the chrome looks.</p>
+     */
+    public void setChromeHeights(int titleBar, int softKeyBar) {
+        this.titleBarHeight = Math.max(0, titleBar);
+        this.softKeyBarHeight = Math.max(0, softKeyBar);
+    }
+
+    /**
+     * Left edge of the area the game draws into. Always zero today; kept so
+     * callers do not assume a full-width canvas.
+     */
+    public int canvasLeft() {
+        return 0;
+    }
+
+    /**
+     * Top of the game's drawing area.
+     *
+     * <p>A MIDlet that has not asked for full screen mode gets a smaller canvas
+     * than the display, exactly as a handset gives it: the system keeps a strip
+     * at the top for the screen title and one at the bottom for the softkey
+     * labels. A game reads {@code getHeight()} and lays its whole screen out
+     * from it, so getting this wrong pushes its HUD off the display.</p>
+     */
+    public int canvasTop() {
+        return fullScreen || !hasTitle() ? 0 : titleBarHeight;
+    }
+
+    public int canvasWidth() {
+        return width();
+    }
+
+    public int canvasHeight() {
+        if (fullScreen) {
+            return height();
+        }
+        return height() - canvasTop() - (hasSoftKeys() ? softKeyBarHeight : 0);
+    }
+
+    /** True when the current screen has a title the system should show. */
+    public boolean hasTitle() {
+        return title != null && title.length() > 0;
+    }
+
+    /** True when the system should reserve room for softkey labels. */
+    public boolean hasSoftKeys() {
+        return !fullScreen && !commandsOf(current).isEmpty();
     }
 
     public boolean isDestroyed() {
@@ -178,8 +318,35 @@ public final class MidpContext {
 
     // ------------------------------------------------------------ repainting
 
+    private boolean chromeDirty = true;
+
     public void requestRepaint() {
         repaintRequested = true;
+        chromeDirty = true;
+    }
+
+    /** The system chrome needs redrawing over the freshly painted screen. */
+    public void markChromeDirty() {
+        chromeDirty = true;
+    }
+
+    public boolean consumeChromeDirty() {
+        boolean dirty = chromeDirty;
+        chromeDirty = false;
+        return dirty;
+    }
+
+    /**
+     * Tells a Canvas its drawing area changed size, as MIDP requires whenever
+     * the system takes room away or gives it back.
+     */
+    public void notifySizeChanged(VmObject displayable) {
+        requestRepaint();
+        if (displayable == null) {
+            return;
+        }
+        vm.callVirtual(displayable, "sizeChanged", "(II)V",
+                Integer.valueOf(canvasWidth()), Integer.valueOf(canvasHeight()));
     }
 
     public boolean consumeRepaint() {

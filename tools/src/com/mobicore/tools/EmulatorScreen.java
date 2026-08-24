@@ -61,8 +61,6 @@ public final class EmulatorScreen {
 
         int barHeight = ui.medium().height() + 22;
         int gameHeight = GAME_HEIGHT * SCALE;
-        // Smooth, not nearest: see GameProfile.smoothing for why blowing a
-        // handset screen up as hard blocks looks worse than the real thing.
         Framebuffer scaled = session.profile().smoothing()
                 ? session.screen().scaleSmooth(GAME_WIDTH * SCALE, gameHeight)
                 : session.screen().scaleNearest(GAME_WIDTH * SCALE, gameHeight);
@@ -71,42 +69,35 @@ public final class EmulatorScreen {
         frame.setBlendMode(Framebuffer.BLEND_SRC_OVER);
 
         topBar(ui, barHeight);
-        int stripHeight = statusStrip(ui, barHeight + gameHeight);
-        int controlsTop = barHeight + gameHeight + stripHeight;
-        controls(ui, controlsTop, frame.height() - controlsTop);
+        controls(ui, barHeight + gameHeight, frame.height() - barHeight - gameHeight);
         return frame;
     }
 
     /**
-     * The emulator's own controls sit above the game rather than on top of it.
-     * A MIDlet draws its score and lives along the top edge, and floating a
-     * translucent bar over that hides exactly what the player is watching.
+     * The emulator's own bar, kept clearly distinct from the handset chrome
+     * below it. It deliberately does not repeat the game's title or offer a
+     * second "pause": the MIDlet has its own title bar and its own softkeys,
+     * and two sets of the same word is how a player ends up pressing the wrong
+     * one.
      */
     private void topBar(Ui ui, int barHeight) {
         Framebuffer frame = ui.frame();
         frame.setColor(Theme.SURFACE);
         frame.fillRect(0, 0, frame.width(), barHeight);
         int textY = (barHeight - ui.medium().height()) / 2;
-        ui.text(ui.medium(), "‹  Thoát", Ui.PAD, textY, Theme.ACCENT);
-        ui.textCenter(ui.mediumBold(), session.info().title(), frame.width() / 2, textY, Theme.TEXT);
-        ui.textRight(ui.medium(), "Tạm dừng", frame.width() - Ui.PAD, textY, Theme.ACCENT);
+        ui.text(ui.medium(), "‹  Thư viện", Ui.PAD, textY, Theme.ACCENT);
+        ui.textCenter(ui.small(), GAME_WIDTH + "×" + GAME_HEIGHT + "  ·  " + SCALE
+                        + "×  ·  30 hình/giây",
+                frame.width() / 2, (barHeight - ui.small().height()) / 2, Theme.TEXT_DIM);
+        ui.textRight(ui.medium(), "Menu", frame.width() - Ui.PAD, textY, Theme.ACCENT);
     }
 
-    /** Scale, frame count and resolution: what is worth checking at a glance. */
-    private int statusStrip(Ui ui, int y) {
-        Framebuffer frame = ui.frame();
-        int height = ui.small().height() + 12;
-        frame.setColor(Theme.SURFACE_ALT);
-        frame.fillRect(0, y, frame.width(), height);
-        int textY = y + 6;
-        ui.text(ui.small(), GAME_WIDTH + "×" + GAME_HEIGHT + "  ·  phóng " + SCALE + "×  ·  "
-                + (session.profile().smoothing() ? "làm mượt" : "sắc cạnh"),
-                Ui.PAD, textY, Theme.TEXT_DIM);
-        ui.textRight(ui.small(), session.context().frames() + " khung  ·  30 hình/giây",
-                frame.width() - Ui.PAD, textY, Theme.GOOD);
-        return height;
-    }
-
+    /**
+     * The keypad, laid out as a handset laid it out: the softkeys sit directly
+     * under the screen so they line up with the labels the system draws there,
+     * then the call and clear row, then the numbers. The directional pad is on
+     * the right at the user's request; a handset put it in the middle.
+     */
     private void controls(Ui ui, int top, int height) {
         Framebuffer frame = ui.frame();
         frame.setColor(Theme.SURFACE);
@@ -114,50 +105,72 @@ public final class EmulatorScreen {
         frame.setColor(Theme.BORDER);
         frame.fillRect(0, top, frame.width(), 1);
 
-        int y = top + 14;
-        int softWidth = (frame.width() - Ui.PAD * 2 - 16) / 3;
-        softKey(ui, Ui.PAD, y, softWidth, "Phím mềm 1");
-        softKey(ui, Ui.PAD + softWidth + 8, y, softWidth, "Xóa");
-        softKey(ui, Ui.PAD + (softWidth + 8) * 2, y, softWidth, "Phím mềm 2");
+        int y = top + 12;
+        int softWidth = (frame.width() - Ui.PAD * 2 - 12) / 2;
+        int softHeight = ui.medium().height() + 18;
+        softKey(ui, Ui.PAD, y, softWidth, session.leftSoftKeyLabel(), true);
+        softKey(ui, Ui.PAD + softWidth + 12, y, softWidth, session.rightSoftKeyLabel(), false);
 
-        int padTop = y + ui.medium().height() + 22 + 14;
+        y += softHeight + 10;
+        int callHeight = ui.medium().height() + 14;
+        int callWidth = (frame.width() - Ui.PAD * 2 - 12) / 3;
+        phoneKey(ui, Ui.PAD, y, callWidth, callHeight, "Gọi", Theme.GOOD);
+        phoneKey(ui, Ui.PAD + callWidth + 6, y, callWidth, callHeight, "Xóa", Theme.TEXT);
+        phoneKey(ui, Ui.PAD + (callWidth + 6) * 2, y, callWidth, callHeight, "Kết thúc", Theme.BAD);
+
+        int padTop = y + callHeight + 12;
         numericPad(ui, Ui.PAD + 4, padTop);
-        directionalPad(ui, frame.width() - Ui.PAD - 208, padTop + 20);
+        directionalPad(ui, frame.width() - Ui.PAD - 208, padTop + 16);
     }
 
-    private void softKey(Ui ui, int x, int y, int width, String label) {
-        int height = ui.medium().height() + 22;
-        ui.panel(x, y, width, height, Theme.SURFACE_ALT, Theme.BORDER);
-        ui.textCenter(ui.medium(), label, x + width / 2, y + 11, Theme.TEXT);
+    /**
+     * A softkey button showing whatever label the running screen has mapped to
+     * it, which is the whole point of the pair: on a handset these are blank
+     * until a MIDlet registers a Command.
+     */
+    private void softKey(Ui ui, int x, int y, int width, String label, boolean left) {
+        int height = ui.medium().height() + 18;
+        boolean bound = label != null && label.length() > 0;
+        ui.panel(x, y, width, height, bound ? Theme.SURFACE_ALT : Theme.BG, Theme.BORDER);
+        String text = bound ? label : "—";
+        int textY = y + (height - ui.mediumBold().height()) / 2;
+        if (left) {
+            ui.text(ui.mediumBold(), text, x + 14, textY, bound ? Theme.TEXT : Theme.TEXT_DIM);
+        } else {
+            ui.textRight(ui.mediumBold(), text, x + width - 14, textY,
+                    bound ? Theme.TEXT : Theme.TEXT_DIM);
+        }
+    }
+
+    private void phoneKey(Ui ui, int x, int y, int w, int h, String label, int color) {
+        ui.panel(x, y, w, h, Theme.SURFACE_ALT, Theme.BORDER);
+        ui.textCenter(ui.small(), label, x + w / 2, y + (h - ui.small().height()) / 2, color);
     }
 
     /** The 3x4 grid, in the order a handset lays it out. */
     private void numericPad(Ui ui, int x, int y) {
         String[] labels = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
-        String[] hints = {"", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz", "", "␣", ""};
+        String[] hints = {"", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz", "", "+", ""};
         int keyWidth = 62;
-        int keyHeight = 48;
-        int gap = 7;
+        int keyHeight = 44;
+        int gap = 6;
         for (int i = 0; i < labels.length; i++) {
             int column = i % 3;
             int row = i / 3;
             int keyX = x + column * (keyWidth + gap);
             int keyY = y + row * (keyHeight + gap);
             ui.panel(keyX, keyY, keyWidth, keyHeight, Theme.SURFACE_ALT, Theme.BORDER);
-            boolean hasHint = hints[i].length() > 0 && !"␣".equals(hints[i]);
-            int labelY = hasHint ? keyY + 6 : keyY + (keyHeight - ui.large().height()) / 2;
+            boolean hasHint = hints[i].length() > 0;
+            int labelY = hasHint ? keyY + 3 : keyY + (keyHeight - ui.large().height()) / 2;
             ui.textCenter(ui.large(), labels[i], keyX + keyWidth / 2, labelY, Theme.TEXT);
             if (hasHint) {
                 ui.textCenter(ui.small(), hints[i], keyX + keyWidth / 2,
-                        keyY + keyHeight - ui.small().height() - 5, Theme.TEXT_DIM);
+                        keyY + keyHeight - ui.small().height() - 3, Theme.TEXT_DIM);
             }
         }
     }
 
-    /**
-     * The directional pad, on the right hand side. Centre key is the fire
-     * button, which is what MIDP calls the select action.
-     */
+    /** The directional pad, with fire in the middle as MIDP's select action. */
     private void directionalPad(Ui ui, int x, int y) {
         int keyWidth = 66;
         int keyHeight = 54;

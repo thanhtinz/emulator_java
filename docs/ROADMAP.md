@@ -194,3 +194,27 @@ Ba nguyên nhân, sửa cả ba:
 
 Cũng sửa một lỗi trong `build.sh`: lỗi biên dịch từng bị nuốt mất và bộ test
 chạy lại class cũ. Giờ biên dịch hỏng là dừng hẳn.
+
+## Màn hình chơi đúng mô hình MIDP
+
+Trước đây màn chơi chỉ là "khung hình game + bàn phím", thiếu hẳn phần hệ
+thống mà mọi máy J2ME đều có. Hai chỗ sai về **chức năng**, không phải thẩm mỹ:
+
+- **Lệnh của game không hiển thị ở đâu.** MIDP không cho MIDlet tự vẽ
+  `Command` của nó — thiết bị bắt buộc phải vẽ. Game demo đăng ký "Tạm dừng"
+  và "Thoát", emulator đọc và lưu lại rồi… không hiện ra, nên người chơi
+  không có cách nào bấm được. Nay `SystemChrome` vẽ nhãn phím mềm ở đáy màn
+  hình, và hai nút phím mềm dưới bàn phím hiện đúng nhãn đó, bấm là chạy lệnh.
+  Quy ước đặt phím theo đúng thói quen máy thật: lệnh BACK/CANCEL/EXIT/STOP
+  nằm bên phải, còn lại bên trái; nhiều hơn một lệnh bên trái thì gộp thành
+  "Tuỳ chọn".
+- **`setFullScreenMode()` bị bỏ qua.** `getWidth()/getHeight()` luôn trả về
+  nguyên màn hình. Máy thật ở chế độ thường thu nhỏ canvas để nhường chỗ cho
+  thanh tiêu đề và thanh phím mềm. Nay canvas đúng kích thước, `sizeChanged`
+  được gọi khi đổi, toạ độ chạm quy đổi về hệ toạ độ canvas, và vùng vẽ bị
+  clip nên game không vẽ đè lên phần của hệ thống.
+
+Ngoài ra: bàn phím có thêm hàng Gọi / Xóa / Kết thúc như mọi máy J2ME
+(`KEY_SEND`, `KEY_END`), và thanh của emulator không còn lặp lại tên game hay
+chữ "Tạm dừng" — trùng chữ với lệnh của chính game là cách nhanh nhất khiến
+người chơi bấm nhầm.

@@ -56,9 +56,6 @@ fun EmulatorScreen(
     val profiles by library.profiles.collectAsState()
     val profile = profiles[suiteId]
     val context = LocalContext.current
-    val title = library.games.collectAsState().value
-        .firstOrNull { it.suiteId() == suiteId }?.title() ?: "Trò chơi"
-
     LaunchedEffect(suiteId) {
         val loaded = library.load(suiteId)
         val active = library.profile(suiteId) ?: return@LaunchedEffect
@@ -90,14 +87,22 @@ fun EmulatorScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = "‹  Thoát",
+                text = "‹  Thư viện",
                 color = MobiColors.Accent,
                 fontSize = 15.sp,
                 modifier = Modifier.clickable { engine.stop(); onExit() },
             )
-            Text(title, color = MobiColors.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            // Deliberately not the game's title: the MIDlet has its own title
+            // bar inside the screen, and repeating it invites confusion with
+            // the game's own commands.
             Text(
-                text = if (engine.paused) "Tiếp tục" else "Tạm dừng",
+                text = "${engine.screenWidth()}×${engine.screenHeight()}  ·  " +
+                    "${engine.measuredFps} hình/giây",
+                color = MobiColors.TextDim,
+                fontSize = 12.sp,
+            )
+            Text(
+                text = if (engine.paused) "Tiếp tục" else "Tạm ngưng",
                 color = MobiColors.Accent,
                 fontSize = 15.sp,
                 modifier = Modifier.clickable {
@@ -110,23 +115,6 @@ fun EmulatorScreen(
             GameSurface(engine, library, suiteId)
         }
 
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(MobiColors.SurfaceAlt)
-                .padding(horizontal = 16.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = "${engine.screenWidth()}×${engine.screenHeight()}  ·  " +
-                    (profile?.scaleModeName() ?: "—") + "  ·  " +
-                    (profile?.smoothingName() ?: "Mượt"),
-                color = MobiColors.TextDim,
-                fontSize = 11.sp,
-            )
-            Text("${engine.measuredFps} hình/giây", color = MobiColors.Good, fontSize = 11.sp)
-        }
-
         val error = engine.lastError
         if (error != null) {
             Text(
@@ -137,10 +125,16 @@ fun EmulatorScreen(
             )
         }
 
+        // Reading the revision ties the labels to the running screen: a command
+        // that swaps screens swaps the softkeys with it.
+        @Suppress("UNUSED_EXPRESSION")
+        engine.commandRevision
         Keypad(
             onPress = { engine.pressButton(it) },
             onRelease = { engine.releaseButton(it) },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            leftSoftKey = engine.leftSoftKeyLabel(),
+            rightSoftKey = engine.rightSoftKeyLabel(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
         )
         Spacer(Modifier.height(6.dp))
     }
