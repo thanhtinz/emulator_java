@@ -20,6 +20,7 @@ public final class Runner {
         tests.add(new ProfileTest());
         tests.add(new LibraryTest(fixtures));
         tests.add(new FacadeTest(fixtures));
+        tests.add(new ToolsTest(fixtures));
 
         int failed = 0;
         int totalChecks = 0;
@@ -31,7 +32,9 @@ public final class Runner {
                 test.run();
                 status = test.failures().isEmpty() ? "PASS" : "FAIL";
             } catch (Exception e) {
-                test.failures().add("threw " + e);
+                java.io.StringWriter trace = new java.io.StringWriter();
+                e.printStackTrace(new java.io.PrintWriter(trace));
+                test.failures().add("threw " + e + "\n" + trace);
                 status = "FAIL";
             }
             totalChecks += test.checks();

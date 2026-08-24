@@ -9,8 +9,14 @@ import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.InputProfile;
+import com.mobicore.core.mod.ModManager;
+import com.mobicore.core.mod.ModPackage;
 import com.mobicore.core.model.MidletEntry;
+import com.mobicore.core.net.NetworkMonitor;
 import com.mobicore.core.rms.RecordStoreManager;
+import com.mobicore.core.tools.CrashReport;
+import com.mobicore.core.tools.JadEditor;
+import com.mobicore.core.tools.RmsEditor;
 import com.mobicore.core.storage.Json;
 import com.mobicore.core.storage.LocalVfs;
 import com.mobicore.core.storage.StorageLayout;
@@ -532,6 +538,169 @@ public final class MobiCoreFacade {
         }
         root.put("lines", lines);
         return Json.write(root);
+    }
+
+    // -------------------------------------------------------------- network
+
+    /** Recorded connections plus the current policy, for the network monitor. */
+    public String networkJson() {
+        if (session == null) {
+            return Json.write(Json.object());
+        }
+        Map<String, Object> root = Json.object();
+        List<Object> exchanges = new ArrayList<Object>();
+        for (NetworkMonitor.Exchange exchange : session.network().monitor().exchanges()) {
+            exchanges.add(exchange.toJson());
+        }
+        root.put("exchanges", exchanges);
+        root.put("policy", session.network().policy().toJson());
+        int[] totals = session.network().monitor().totals();
+        root.put("bytesSent", Integer.valueOf(totals[0]));
+        root.put("bytesReceived", Integer.valueOf(totals[1]));
+        return Json.write(root);
+    }
+
+    public String allowHost(String host) {
+        if (session == null) {
+            return error("No game is running");
+        }
+        session.network().policy().allowHost(host);
+        return ok("allowed", host);
+    }
+
+    public String denyHost(String host) {
+        if (session == null) {
+            return error("No game is running");
+        }
+        session.network().policy().denyHost(host);
+        return ok("denied", host);
+    }
+
+    // ----------------------------------------------------------------- mods
+
+    public String modsJson(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return new ModManager(library, suiteId).toJson();
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String installMod(String suiteId, String modId, byte[] archive) {
+        try {
+            ModPackage mod = new ModManager(library, suiteId).install(modId, archive);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("mod", mod.toJson());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String setModEnabled(String suiteId, String modId, boolean enabled) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        new ModManager(library, suiteId).setEnabled(modId, enabled);
+        return ok("modId", modId);
+    }
+
+    public String uninstallMod(String suiteId, String modId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        return ok("removed", String.valueOf(new ModManager(library, suiteId).uninstall(modId)));
+    }
+
+    // ---------------------------------------------------------- JAD and RMS
+
+    /** The descriptor plus any problems the validator found. */
+    public String descriptorJson(String suiteId) {
+        try {
+            JadEditor editor = new JadEditor(library.load(suiteId).info().attributes());
+            Map<String, Object> root = Json.object();
+            Map<String, Object> attributes = Json.object();
+            for (String key : editor.keys()) {
+                attributes.put(key, editor.get(key));
+            }
+            root.put("attributes", attributes);
+            List<Object> problems = new ArrayList<Object>();
+            for (JadEditor.Problem problem : editor.validate()) {
+                Map<String, Object> entry = Json.object();
+                entry.put("severity", problem.isError() ? "error" : "warning");
+                entry.put("attribute", problem.attribute());
+                entry.put("message", problem.message());
+                problems.add(entry);
+            }
+            root.put("problems", problems);
+            root.put("valid", Boolean.valueOf(editor.isValid()));
+            root.put("text", editor.toDescriptor());
+            return Json.write(root);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Records of one store, rendered for the RMS editor. */
+    public String recordsJson(String suiteId, String storeName) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            RmsEditor editor = new RmsEditor(library.records(suiteId), now());
+            Map<String, Object> root = Json.object();
+            List<Object> records = new ArrayList<Object>();
+            for (RmsEditor.Record record : editor.records(storeName)) {
+                Map<String, Object> entry = Json.object();
+                entry.put("id", Integer.valueOf(record.id()));
+                entry.put("size", Integer.valueOf(record.size()));
+                entry.put("hex", record.asHex());
+                entry.put("text", record.asText());
+                entry.put("int", Integer.valueOf(record.asInt()));
+                records.add(entry);
+            }
+            root.put("store", storeName);
+            root.put("records", records);
+            return Json.write(root);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Rewrites one record from hex, as typed into the editor. */
+    public String setRecordHex(String suiteId, String storeName, int recordId, String hex) {
+        try {
+            RmsEditor editor = new RmsEditor(library.records(suiteId), now());
+            boolean changed = editor.setRecord(storeName, recordId, RmsEditor.parseHex(hex));
+            return changed ? ok("recordId", String.valueOf(recordId))
+                    : error("No record " + recordId + " in " + storeName);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String deleteRecord(String suiteId, String storeName, int recordId) {
+        try {
+            RmsEditor editor = new RmsEditor(library.records(suiteId), now());
+            return editor.deleteRecord(storeName, recordId)
+                    ? ok("recordId", String.valueOf(recordId))
+                    : error("No record " + recordId + " in " + storeName);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Builds a crash report for the running session. */
+    public String crashReportText(String message) {
+        if (session == null) {
+            return "";
+        }
+        return CrashReport.from(session,
+                new VmError(message == null ? "Reported by the user" : message)).render();
     }
 
     // ------------------------------------------------------------- helpers

@@ -11,6 +11,8 @@ import javax.microedition.lcdui.Image;
 import javax.microedition.lcdui.game.LayerManager;
 import javax.microedition.lcdui.game.Sprite;
 import javax.microedition.lcdui.game.TiledLayer;
+import javax.microedition.io.Connector;
+import javax.microedition.io.HttpConnection;
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.rms.RecordComparator;
 import javax.microedition.rms.RecordEnumeration;
@@ -113,6 +115,34 @@ public class SkyRunner extends MIDlet implements CommandListener {
                 return EQUIVALENT;
             }
             return a > b ? PRECEDES : FOLLOWS;
+        }
+    }
+
+    /**
+     * Posts a score to a leaderboard, the way a late J2ME game would. The
+     * emulator's network layer decides whether this is allowed to leave the
+     * device at all.
+     */
+    public String submitScore(String url, int score) throws Exception {
+        HttpConnection connection = (HttpConnection) Connector.open(url);
+        try {
+            connection.setRequestMethod(HttpConnection.POST);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            java.io.OutputStream out = connection.openOutputStream();
+            out.write(("score=" + score).getBytes());
+            out.close();
+
+            int status = connection.getResponseCode();
+            java.io.InputStream in = connection.openInputStream();
+            StringBuffer body = new StringBuffer();
+            int b;
+            while ((b = in.read()) >= 0) {
+                body.append((char) b);
+            }
+            in.close();
+            return status + " " + body.toString();
+        } finally {
+            connection.close();
         }
     }
 

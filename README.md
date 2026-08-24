@@ -16,10 +16,19 @@ runtime duy nhất phục vụ được mọi nền tảng:
 | Desktop tools | `tools/` | Preview harness, sample suite, screenshot |
 | Test suite | `tests/` | Bộ test không phụ thuộc framework ngoài |
 | Codegen | `codegen/` | Sinh dữ liệu font bitmap (chạy offline) |
+| Fixtures | `fixtures/` | MIDlet thật dùng để test (kèm stub API để biên dịch) |
+| Android | `android/` | Ứng dụng Kotlin + Jetpack Compose |
+| iOS | `ios/` | Ứng dụng SwiftUI + cầu nối J2ObjC |
 
 Android dùng core trực tiếp (cùng ngôn ngữ JVM); iOS dùng core sau khi dịch
 bằng J2ObjC. Vì vậy core tránh mọi API riêng của JDK ngoài `java.lang`,
-`java.util`, `java.io` và `java.util.zip`.
+`java.util`, `java.io`, `java.util.zip` và `java.net`.
+
+Một bản runtime duy nhất phục vụ cả hai nền tảng: viết lại trình thông dịch
+JVM lần thứ hai bằng Swift đồng nghĩa với hai tập lỗi tương thích và những
+game chạy đúng bên này nhưng sai bên kia.
+
+Chi tiết: `docs/ANDROID.md`, `docs/IOS.md`, `docs/ROADMAP.md`.
 
 ## Build & test
 
@@ -47,6 +56,20 @@ MobiCore/
 
 Mỗi game có sandbox riêng: một game không bao giờ đọc hay ghi đè dữ liệu của
 game khác.
+
+## Những gì đã chạy được
+
+- Nạp và chạy **bytecode Java thật**: trình thông dịch phủ tập lệnh CLDC,
+  thư viện `java.lang`/`java.io`/`java.util` viết bằng native.
+- Thư viện MIDP: `Canvas`, `GameCanvas`, `Graphics`, `Image`, `Font`,
+  `Sprite`, `TiledLayer`, `LayerManager`, vòng đời MIDlet.
+- Thư viện game, profile theo từng game, RMS lưu vĩnh viễn, backup/restore.
+- Lớp mạng có policy theo host và network monitor.
+- Modding không đụng tới file gốc; JAD editor, RMS editor, crash report.
+- Ứng dụng Android và iOS dựng trên cùng một core.
+
+Bộ test: **368 checks**, trong đó phần thông dịch được kiểm tra vi sai với
+chính JVM thật.
 
 ## Trạng thái
 

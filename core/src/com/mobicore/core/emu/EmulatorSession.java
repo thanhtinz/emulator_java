@@ -9,10 +9,13 @@ import com.mobicore.core.midp.Midp;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.midp.MidpGfx;
 import com.mobicore.core.midp.MidpUi;
+import com.mobicore.core.midp.MidpNet;
 import com.mobicore.core.midp.MidpRms;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.model.MidletSuiteInfo;
+import com.mobicore.core.net.NetworkPolicy;
+import com.mobicore.core.net.NetworkStack;
 import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.rt.Cldc;
 import com.mobicore.core.storage.MemoryVfs;
@@ -52,6 +55,7 @@ public final class EmulatorSession {
     private final EmulatorLog log;
     private final RecordStoreManager rms;
     private final GameProfile profile;
+    private final NetworkStack network;
 
     private VmObject midlet;
     private int state = STATE_NEW;
@@ -59,7 +63,7 @@ public final class EmulatorSession {
 
     private EmulatorSession(Vm vm, MidpContext context, MidletSuiteInfo info,
                             JarClassSource source, EmulatorLog log,
-                            RecordStoreManager rms, GameProfile profile) {
+                            RecordStoreManager rms, GameProfile profile, NetworkStack network) {
         this.vm = vm;
         this.context = context;
         this.info = info;
@@ -67,6 +71,7 @@ public final class EmulatorSession {
         this.log = log;
         this.rms = rms;
         this.profile = profile;
+        this.network = network;
     }
 
     /**
@@ -90,13 +95,23 @@ public final class EmulatorSession {
         StorageLayout paths = layout == null ? new StorageLayout("MobiCore") : layout;
         RecordStoreManager rms = new RecordStoreManager(vfs, paths, profile.suiteId());
 
+        NetworkPolicy policy = new NetworkPolicy();
+        policy.setMode(profile.networkMode());
+        NetworkStack network = new NetworkStack(policy);
+        network.setClock(new NetworkStack.Clock() {
+            public long now() {
+                return vm.host().currentTimeMillis();
+            }
+        });
+
         Cldc.install(vm);
         Midp.install(vm, context);
         MidpRms.install(vm, rms, context);
+        MidpNet.install(vm, network);
 
         JarClassSource source = new JarClassSource(suite.archive());
         vm.addSource(source);
-        return new EmulatorSession(vm, context, suite.info(), source, log, rms, profile);
+        return new EmulatorSession(vm, context, suite.info(), source, log, rms, profile, network);
     }
 
     /** Convenience for previews and tests: default profile at a fixed size. */
@@ -132,6 +147,14 @@ public final class EmulatorSession {
 
     public GameProfile profile() {
         return profile;
+    }
+
+    /**
+     * The connection layer this game sees. The UI installs a transport and a
+     * permission prompt here; until it does, every connection is refused.
+     */
+    public NetworkStack network() {
+        return network;
     }
 
     /**

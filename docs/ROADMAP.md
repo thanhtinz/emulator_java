@@ -8,8 +8,8 @@
 | 4 | Device profile, input mapping, RMS + backup/restore | Xong |
 | 5 | Ứng dụng Android (Kotlin) | Xong (chưa biên dịch được ở CI) |
 | 6 | Ứng dụng iOS (SwiftUI + J2ObjC) | Xong (chưa biên dịch được ở CI) |
-| 7 | Developer tools, network layer, modding | Đang làm |
-| 8 | Tối ưu tương thích và hiệu năng | |
+| 7 | Developer tools, network layer, modding | Xong |
+| 8 | Tối ưu tương thích và hiệu năng | Kế tiếp |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -120,3 +120,38 @@ nên chưa chạy được `gradlew` để biên dịch module Android.
   XcodeGen.
 
 Xem `docs/IOS.md`.
+
+## Giai đoạn 7 — đã hoàn thành
+
+**Lớp mạng.** Mọi kết nối đều đi qua `NetworkStack`:
+
+- `NetworkPolicy`: chế độ chặn/hỏi/cho phép, allowlist và denylist theo host.
+  Mặc định là **hỏi** — đúng yêu cầu "cảnh báo khi game yêu cầu network".
+  Nếu không có ai để hỏi, lần gọi đó bị từ chối nhưng **không** ghi nhớ là
+  cấm: người dùng chưa nói không.
+- `NetworkMonitor`: ghi lại từng request/response, kể cả lần bị chặn, kèm
+  preview nội dung (payload nhị phân chỉ tóm tắt, không đổ ra).
+- `NetworkTransport`: `HttpTransport` (dùng `HttpURLConnection`, chạy được cả
+  Android lẫn iOS sau khi dịch), `BlockedTransport` (mặc định),
+  `LoopbackTransport` (local server testing và là nửa đầu của server bridge —
+  game có backend đã chết vẫn chơi được).
+- `javax.microedition.io`: `Connector`, `HttpConnection`, `ContentConnection`.
+  Request được gửi trễ, đúng lúc game cần câu trả lời — vừa đúng đặc tả MIDP
+  vừa cho phép lớp policy nhìn thấy trọn vẹn request trước khi nó rời máy.
+
+**Modding.**
+
+- `ModPackage`: manifest `mod.json`, danh sách resource thay thế, cờ cảnh báo
+  khi mod mang theo `.class`.
+- `ModManager`: cài (luôn backup game trước), bật/tắt, gỡ, và xếp lớp mod lên
+  phiên chạy. **File JAR gốc không bao giờ bị sửa** — tắt mod là game trở lại
+  nguyên trạng chính xác.
+
+**Developer tools.**
+
+- `JadEditor`: sửa thuộc tính, round-trip nguyên vẹn, và validate (thiếu
+  vendor là lỗi, version vô nghĩa là cảnh báo, `MIDlet-n` thiếu tên lớp là lỗi).
+- `RmsEditor`: xem/sửa/xóa record dạng hex và text, giải mã int big-endian
+  như cách game ghi; mọi thay đổi được flush xuống đĩa ngay.
+- `CrashReport`: gộp loại exception, stack trace giả lập, log và metadata
+  suite. Cố tình không kèm bất kỳ thông tin nào về thiết bị hay người dùng.
