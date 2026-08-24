@@ -42,17 +42,42 @@ public final class SampleSuite {
     }
 
     public static byte[] jar() throws IOException {
+        return jar(null);
+    }
+
+    /**
+     * Packages the demo suite. When {@code fixtureDir} points at the compiled
+     * fixtures the JAR contains real bytecode and the emulator can run it;
+     * otherwise placeholders keep the metadata previews working.
+     */
+    public static byte[] jar(String fixtureDir) throws IOException {
         Map<String, byte[]> entries = new LinkedHashMap<String, byte[]>();
         entries.put("META-INF/MANIFEST.MF", utf8(MANIFEST));
         entries.put("icon.png", iconPng());
-        entries.put("demo/SkyRunner.class", new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE});
-        entries.put("demo/Editor.class", new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE});
-        entries.put("demo/Sprites.class", new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE});
+        if (fixtureDir != null) {
+            addCompiledClasses(entries, fixtureDir, "demo");
+        }
+        if (!entries.containsKey("demo/SkyRunner.class")) {
+            entries.put("demo/SkyRunner.class", new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE});
+        }
         entries.put("res/level1.dat", new byte[1024]);
         entries.put("res/level2.dat", new byte[2048]);
-        entries.put("res/tiles.png", new byte[3072]);
         entries.put("res/theme.mid", new byte[5120]);
         return zip(entries);
+    }
+
+    private static void addCompiledClasses(Map<String, byte[]> entries, String root, String packageDir)
+            throws IOException {
+        com.mobicore.core.storage.Vfs vfs = new com.mobicore.core.storage.LocalVfs();
+        String directory = root + "/" + packageDir;
+        if (!vfs.isDirectory(directory)) {
+            return;
+        }
+        for (String name : vfs.list(directory)) {
+            if (name.endsWith(".class")) {
+                entries.put(packageDir + "/" + name, vfs.read(directory + "/" + name));
+            }
+        }
     }
 
     public static byte[] jad() {

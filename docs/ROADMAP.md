@@ -4,8 +4,8 @@
 | --- | --- | --- |
 | 1 | JAR/JAD parser, metadata suite, bố cục lưu trữ, framebuffer + PNG | Xong |
 | 2 | JVM bytecode interpreter (CLDC runtime) | Xong |
-| 3 | Thư viện MIDP: Display, Canvas, Graphics, Image, Sprite | Đang làm |
-| 4 | Device profile, input mapping, RMS + backup/restore | |
+| 3 | Thư viện MIDP: Display, Canvas, Graphics, Image, Sprite | Xong |
+| 4 | Device profile, input mapping, RMS + backup/restore | Đang làm |
 | 5 | Ứng dụng Android (Kotlin) | |
 | 6 | Ứng dụng iOS (SwiftUI + J2ObjC) | |
 | 7 | Developer tools, network layer, modding | |
@@ -48,3 +48,25 @@
 - Kiểm thử vi sai: chương trình `fixtures/demo/VmProbe.java` được biên dịch
   thật rồi chạy song song trên JVM host và trên interpreter; mọi kết quả
   phải trùng khớp.
+
+## Giai đoạn 3 — đã hoàn thành
+
+- `PngReader`: giải mã PNG greyscale/truecolour/palette/alpha ở 1/2/4/8 bit,
+  đủ năm bộ lọc scanline và chunk `tRNS`.
+- `Transforms`: tám phép biến đổi sprite của MIDP.
+- `javax.microedition.lcdui`: `Graphics` (toàn bộ primitive, clip, translate,
+  anchor, `drawRegion`, `drawRGB`), `Image` (mutable/immutable, tạo từ PNG,
+  từ resource, từ mảng RGB, cắt + transform), `Font` ba cỡ với
+  bold/italic/underline.
+- `javax.microedition.lcdui.game`: `Layer`, `Sprite` (frame sequence,
+  transform, reference pixel, collision rectangle), `TiledLayer` (kể cả
+  animated tile), `LayerManager` (view window, thứ tự vẽ).
+- Vòng đời MIDlet: `MIDlet`, `Display`, `Displayable`, `Canvas`,
+  `GameCanvas` (back buffer + `flushGraphics` + `getKeyStates`), `Command`,
+  `CommandListener`.
+- `EmulatorSession`: khởi động suite, vẽ từng khung, đưa phím/chạm vào game,
+  chụp màn hình PNG, pause/resume/destroy. Đây là toàn bộ API mà lớp UI của
+  Android/iOS cần.
+- `EmulatorLog`: ring buffer cho console và crash report.
+- MIDlet demo `demo/SkyRunner.java` là chương trình J2ME thật, được biên dịch
+  ra bytecode và chạy bằng chính interpreter.

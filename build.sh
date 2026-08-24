@@ -41,8 +41,14 @@ build_tools() {
 # feeds them to the interpreter, so they must be built for the class file
 # version the emulator targets, not for the host JDK.
 build_fixtures() {
+  # The MIDP stubs exist only to satisfy javac. At run time the emulator
+  # supplies these classes natively, so the stub output is never on the VM's
+  # class path.
+  if [ -d "$ROOT/fixtures/stubs" ]; then
+    compile "$OUT/stubs" "" "$ROOT/fixtures/stubs"
+  fi
   if [ -d "$ROOT/fixtures/src" ]; then
-    compile "$OUT/fixtures" "" "$ROOT/fixtures/src"
+    compile "$OUT/fixtures" "$OUT/stubs" "$ROOT/fixtures/src"
   fi
 }
 

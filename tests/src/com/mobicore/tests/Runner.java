@@ -13,7 +13,10 @@ public final class Runner {
         tests.add(new JarArchiveTest());
         tests.add(new SuiteLoaderTest());
         tests.add(new StorageTest());
-        tests.add(new VmTest(args.length > 0 ? args[0] : "build/classes/fixtures"));
+        String fixtures = args.length > 0 ? args[0] : "build/classes/fixtures";
+        tests.add(new VmTest(fixtures));
+        tests.add(new GfxTest());
+        tests.add(new MidpTest(fixtures));
 
         int failed = 0;
         int totalChecks = 0;
