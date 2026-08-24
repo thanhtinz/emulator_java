@@ -108,6 +108,17 @@ public final class MidpContext {
         }
     }
 
+    /**
+     * Every screen that has commands registered.
+     *
+     * <p>For save states: the registrations live here rather than on the
+     * screen object, so restoring a heap without them gives a game whose
+     * softkeys have quietly gone blank.</p>
+     */
+    public List<VmObject> commandOwners() {
+        return new ArrayList<VmObject>(commands.keySet());
+    }
+
     public List<VmObject> commandsOf(VmObject displayable) {
         List<VmObject> list = commands.get(displayable);
         return list == null ? new ArrayList<VmObject>() : list;
@@ -533,6 +544,11 @@ public final class MidpContext {
     }
 
     // ----------------------------------------------------------------- input
+
+    /** Puts back the latched key state a save state captured. */
+    public void restoreKeyStates(int states) {
+        this.keyStates = states;
+    }
 
     public int keyStates() {
         return keyStates;

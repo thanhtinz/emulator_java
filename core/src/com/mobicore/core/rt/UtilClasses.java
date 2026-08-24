@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 /**
  * The {@code java.util} subset CLDC defines.
@@ -357,25 +356,25 @@ public final class UtilClasses {
         vm.builtin("java/util/Random", Vm.OBJECT)
                 .method("<init>", "()V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        self.host = new Random(vm.host().currentTimeMillis());
+                        self.host = new JavaRandom(vm.host().currentTimeMillis());
                         return null;
                     }
                 })
                 .method("<init>", "(J)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        self.host = new Random(Rt.l(args, 0));
+                        self.host = new JavaRandom(Rt.l(args, 0));
                         return null;
                     }
                 })
                 .method("setSeed", "(J)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        ((Random) self.host).setSeed(Rt.l(args, 0));
+                        ((JavaRandom) self.host).setSeed(Rt.l(args, 0));
                         return null;
                     }
                 })
                 .method("nextInt", "()I", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Integer.valueOf(((Random) self.host).nextInt());
+                        return Integer.valueOf(((JavaRandom) self.host).nextInt());
                     }
                 })
                 .method("nextInt", "(I)I", new NativeMethod() {
@@ -384,27 +383,27 @@ public final class UtilClasses {
                         if (bound <= 0) {
                             throw vm.raise("java/lang/IllegalArgumentException", "bound must be positive");
                         }
-                        return Integer.valueOf(((Random) self.host).nextInt(bound));
+                        return Integer.valueOf(((JavaRandom) self.host).nextInt(bound));
                     }
                 })
                 .method("nextLong", "()J", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Long.valueOf(((Random) self.host).nextLong());
+                        return Long.valueOf(((JavaRandom) self.host).nextLong());
                     }
                 })
                 .method("nextBoolean", "()Z", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Rt.box(((Random) self.host).nextBoolean());
+                        return Rt.box(((JavaRandom) self.host).nextBoolean());
                     }
                 })
                 .method("nextFloat", "()F", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Float.valueOf(((Random) self.host).nextFloat());
+                        return Float.valueOf(((JavaRandom) self.host).nextFloat());
                     }
                 })
                 .method("nextDouble", "()D", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Double.valueOf(((Random) self.host).nextDouble());
+                        return Double.valueOf(((JavaRandom) self.host).nextDouble());
                     }
                 })
                 .define();

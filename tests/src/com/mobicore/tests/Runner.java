@@ -20,6 +20,7 @@ public final class Runner {
         tests.add(new FormsTest(fixtures));
         tests.add(new AudioTest(fixtures));
         tests.add(new CompatibilityTest(fixtures));
+        tests.add(new SaveStateTest(fixtures));
         tests.add(new ProfileTest());
         tests.add(new LibraryTest(fixtures));
         tests.add(new FacadeTest(fixtures));

@@ -67,6 +67,140 @@ public final class MidpGame {
         int viewHeight = Integer.MAX_VALUE;
     }
 
+    /**
+     * A host state written down as plain numbers and references.
+     *
+     * <p>A save state has to write a sprite's frame, a tiled layer's cells
+     * and a layer manager's list, but nothing outside this file should know
+     * how those are held. So they come out as numbers and references and go
+     * back in the same way, and the shapes stay private.</p>
+     */
+    public static final class HostState {
+
+        public static final String SPRITE = "sprite";
+        public static final String TILED = "tiled";
+        public static final String LAYERS = "layers";
+
+        public final String kind;
+        public final int[] numbers;
+        /** Either {@link VmObject} layers or a {@link Framebuffer} source. */
+        public final Object[] refs;
+
+        public HostState(String kind, int[] numbers, Object[] refs) {
+            this.kind = kind;
+            this.numbers = numbers;
+            this.refs = refs;
+        }
+    }
+
+    /** @return the state as plain data, or null if this is not game state */
+    public static HostState capture(Object host) {
+        if (host instanceof SpriteState) {
+            SpriteState sprite = (SpriteState) host;
+            int[] sequence = sprite.sequence == null ? new int[0] : sprite.sequence;
+            int[] numbers = new int[12 + sequence.length];
+            numbers[0] = sprite.frameWidth;
+            numbers[1] = sprite.frameHeight;
+            numbers[2] = sprite.columns;
+            numbers[3] = sprite.frameCount;
+            numbers[4] = sprite.sequenceIndex;
+            numbers[5] = sprite.transform;
+            numbers[6] = sprite.refX;
+            numbers[7] = sprite.refY;
+            numbers[8] = sprite.collisionX;
+            numbers[9] = sprite.collisionY;
+            numbers[10] = sprite.collisionWidth;
+            numbers[11] = sprite.collisionHeight;
+            System.arraycopy(sequence, 0, numbers, 12, sequence.length);
+            return new HostState(HostState.SPRITE, numbers, new Object[]{sprite.source});
+        }
+        if (host instanceof TiledState) {
+            TiledState tiled = (TiledState) host;
+            int[] cells = tiled.cells == null ? new int[0] : tiled.cells;
+            int animatedLength = 0;
+            for (int i = 0; i < tiled.animated.size(); i++) {
+                animatedLength += 1 + tiled.animated.get(i).length;
+            }
+            int[] numbers = new int[6 + cells.length + animatedLength];
+            numbers[0] = tiled.tileWidth;
+            numbers[1] = tiled.tileHeight;
+            numbers[2] = tiled.columns;
+            numbers[3] = tiled.rows;
+            numbers[4] = cells.length;
+            System.arraycopy(cells, 0, numbers, 5, cells.length);
+            int at = 5 + cells.length;
+            numbers[at++] = tiled.animated.size();
+            for (int i = 0; i < tiled.animated.size(); i++) {
+                int[] entry = tiled.animated.get(i);
+                numbers[at++] = entry.length;
+                System.arraycopy(entry, 0, numbers, at, entry.length);
+                at += entry.length;
+            }
+            return new HostState(HostState.TILED, numbers, new Object[]{tiled.source});
+        }
+        if (host instanceof LayerList) {
+            LayerList list = (LayerList) host;
+            int[] numbers = {list.viewX, list.viewY, list.viewWidth, list.viewHeight};
+            return new HostState(HostState.LAYERS, numbers,
+                    list.layers.toArray(new Object[list.layers.size()]));
+        }
+        return null;
+    }
+
+    /** Rebuilds what {@link #capture} wrote down. */
+    public static Object restore(HostState state) {
+        int[] numbers = state.numbers;
+        if (HostState.SPRITE.equals(state.kind)) {
+            SpriteState sprite = new SpriteState();
+            sprite.source = (Framebuffer) state.refs[0];
+            sprite.frameWidth = numbers[0];
+            sprite.frameHeight = numbers[1];
+            sprite.columns = numbers[2];
+            sprite.frameCount = numbers[3];
+            sprite.sequenceIndex = numbers[4];
+            sprite.transform = numbers[5];
+            sprite.refX = numbers[6];
+            sprite.refY = numbers[7];
+            sprite.collisionX = numbers[8];
+            sprite.collisionY = numbers[9];
+            sprite.collisionWidth = numbers[10];
+            sprite.collisionHeight = numbers[11];
+            sprite.sequence = new int[numbers.length - 12];
+            System.arraycopy(numbers, 12, sprite.sequence, 0, sprite.sequence.length);
+            return sprite;
+        }
+        if (HostState.TILED.equals(state.kind)) {
+            TiledState tiled = new TiledState();
+            tiled.source = (Framebuffer) state.refs[0];
+            tiled.tileWidth = numbers[0];
+            tiled.tileHeight = numbers[1];
+            tiled.columns = numbers[2];
+            tiled.rows = numbers[3];
+            int cellCount = numbers[4];
+            tiled.cells = new int[cellCount];
+            System.arraycopy(numbers, 5, tiled.cells, 0, cellCount);
+            int at = 5 + cellCount;
+            int animatedCount = numbers[at++];
+            for (int i = 0; i < animatedCount; i++) {
+                int length = numbers[at++];
+                int[] entry = new int[length];
+                System.arraycopy(numbers, at, entry, 0, length);
+                at += length;
+                tiled.animated.add(entry);
+            }
+            return tiled;
+        }
+        LayerList list = new LayerList();
+        list.viewX = numbers[0];
+        list.viewY = numbers[1];
+        list.viewWidth = numbers[2];
+        list.viewHeight = numbers[3];
+        for (int i = 0; i < state.refs.length; i++) {
+            list.layers.add((VmObject) state.refs[i]);
+        }
+        return list;
+    }
+
     public static void install(final Vm vm) {
         layer(vm);
         sprite(vm);
