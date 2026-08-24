@@ -98,6 +98,41 @@ public final class GfxTest extends Test {
         check(BitmapFont.of(BitmapFont.SIZE_LARGE, 0).height()
                 > BitmapFont.of(BitmapFont.SIZE_SMALL, 0).height(), "large is taller than small");
 
+        // Vietnamese has to render, not fall back to question marks: the whole
+        // interface and any Vietnamese game text depends on it.
+        String vietnamese = "Thư viện trò chơi — Cài đặt bộ giả lập";
+        for (int i = 0; i < vietnamese.length(); i++) {
+            char c = vietnamese.charAt(i);
+            check(BitmapFont.supports(c), "the face has a glyph for '" + c + "'");
+        }
+        String stacked = "ỶẴỠỰẪỘỀỔỳẵữựậộềổĐđĂăƠơƯư";
+        for (int i = 0; i < stacked.length(); i++) {
+            check(BitmapFont.supports(stacked.charAt(i)),
+                    "stacked tone marks are covered: '" + stacked.charAt(i) + "'");
+        }
+        check(!BitmapFont.supports('\u4E2D'), "characters outside the set are reported unsupported");
+        eq(small.charWidth('?'), small.charWidth('\u4E2D'),
+                "an unsupported character falls back to the question mark glyph");
+        check(small.stringWidth("Thư viện") > small.stringWidth("Thu vien") - 4,
+                "accented text is measured, not skipped");
+
+        BitmapFont title = BitmapFont.of(BitmapFont.SIZE_TITLE, BitmapFont.STYLE_PLAIN);
+        check(title.height() > BitmapFont.of(BitmapFont.SIZE_LARGE, 0).height(),
+                "the title face is the tallest");
+        check(title.ascent() < title.height(), "the title face leaves room for descenders");
+
+        // A stacked mark must survive: Ẫ has to light more rows than A does.
+        Framebuffer plain = new Framebuffer(60, title.height() + 4);
+        Framebuffer marked = new Framebuffer(60, title.height() + 4);
+        plain.fill(0xFF000000);
+        marked.fill(0xFF000000);
+        plain.setColor(0xFFFFFFFF);
+        marked.setColor(0xFFFFFFFF);
+        title.draw(plain, "A", 2, 2);
+        title.draw(marked, "\u1EAA", 2, 2);
+        check(topmostRow(marked) < topmostRow(plain),
+                "the tone marks above a capital are not clipped");
+
         Framebuffer text = new Framebuffer(80, 20);
         text.fill(0xFF000000);
         text.setColor(0xFFFFFFFF);
@@ -110,5 +145,17 @@ public final class GfxTest extends Test {
             }
         }
         check(lit > 20, "drawing text actually lights pixels, was " + lit);
+    }
+
+    /** Row index of the highest lit pixel, or the height when nothing is lit. */
+    private static int topmostRow(Framebuffer frame) {
+        for (int y = 0; y < frame.height(); y++) {
+            for (int x = 0; x < frame.width(); x++) {
+                if (frame.pixel(x, y) == 0xFFFFFFFF) {
+                    return y;
+                }
+            }
+        }
+        return frame.height();
     }
 }
