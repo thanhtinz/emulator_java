@@ -20,7 +20,6 @@ public final class EmulatorScreen {
 
     private static final int GAME_WIDTH = 240;
     private static final int GAME_HEIGHT = 320;
-    /** Exactly 2x, so no emulated pixel is stretched unevenly. */
     private static final int SCALE = 2;
 
     private final String fixtureDir;
@@ -62,7 +61,11 @@ public final class EmulatorScreen {
 
         int barHeight = ui.medium().height() + 22;
         int gameHeight = GAME_HEIGHT * SCALE;
-        Framebuffer scaled = session.screen().scaleNearest(GAME_WIDTH * SCALE, gameHeight);
+        // Smooth, not nearest: see GameProfile.smoothing for why blowing a
+        // handset screen up as hard blocks looks worse than the real thing.
+        Framebuffer scaled = session.profile().smoothing()
+                ? session.screen().scaleSmooth(GAME_WIDTH * SCALE, gameHeight)
+                : session.screen().scaleNearest(GAME_WIDTH * SCALE, gameHeight);
         frame.setBlendMode(Framebuffer.BLEND_REPLACE);
         frame.drawFramebuffer(scaled, 0, barHeight);
         frame.setBlendMode(Framebuffer.BLEND_SRC_OVER);
@@ -96,8 +99,9 @@ public final class EmulatorScreen {
         frame.setColor(Theme.SURFACE_ALT);
         frame.fillRect(0, y, frame.width(), height);
         int textY = y + 6;
-        ui.text(ui.small(), GAME_WIDTH + "×" + GAME_HEIGHT + "  ·  phóng " + SCALE
-                + "×  ·  không làm mượt", Ui.PAD, textY, Theme.TEXT_DIM);
+        ui.text(ui.small(), GAME_WIDTH + "×" + GAME_HEIGHT + "  ·  phóng " + SCALE + "×  ·  "
+                + (session.profile().smoothing() ? "làm mượt" : "sắc cạnh"),
+                Ui.PAD, textY, Theme.TEXT_DIM);
         ui.textRight(ui.small(), session.context().frames() + " khung  ·  30 hình/giây",
                 frame.width() - Ui.PAD, textY, Theme.GOOD);
         return height;

@@ -52,6 +52,25 @@ public final class GfxTest extends Test {
         eq(0xFFFFFFFF, line.pixel(5, 5), "a diagonal line covers the diagonal");
         eq(0, line.pixel(0, 9), "a diagonal line misses the corner");
 
+        // Bilinear scaling is what the emulator shows by default; a flat block
+        // must stay flat, and an edge must gain intermediate values.
+        Framebuffer flat = new Framebuffer(4, 4);
+        flat.fill(0xFF204060);
+        Framebuffer flatBig = flat.scaleSmooth(16, 16);
+        eq(0xFF204060, flatBig.pixel(8, 8), "smooth scaling leaves a flat area untouched");
+        eq(0xFF204060, flatBig.pixel(0, 0), "smooth scaling clamps at the edges");
+
+        Framebuffer edge = new Framebuffer(2, 1);
+        edge.blend(0, 0, 0xFF000000);
+        edge.blend(1, 0, 0xFFFFFFFF);
+        Framebuffer edgeBig = edge.scaleSmooth(8, 1);
+        int midTone = edgeBig.pixel(4, 0) & 0xFF;
+        check(midTone > 40 && midTone < 215,
+                "smooth scaling blends across an edge instead of stepping, was " + midTone);
+        eq(0xFF000000, edgeBig.pixel(0, 0), "the dark end stays dark");
+        eq(0xFFFFFFFF, edgeBig.pixel(7, 0), "the light end stays light");
+        eq(0xFF204060, flat.scaleNearest(16, 16).pixel(8, 8), "nearest scaling still works");
+
         Framebuffer scaled = frame.scaleNearest(80, 60);
         eq(80, scaled.width(), "nearest scale resizes");
         eq(frame.pixel(12, 12), scaled.pixel(24, 24), "nearest scale keeps exact pixels");
@@ -78,6 +97,29 @@ public final class GfxTest extends Test {
             }
         }
         check(identical, "PNG round-trips every pixel exactly");
+
+        // Anti-aliasing must soften a diagonal edge and leave a flat fill and
+        // an axis-aligned rectangle alone.
+        Framebuffer hard = new Framebuffer(24, 24);
+        Framebuffer soft = new Framebuffer(24, 24);
+        hard.fill(0xFF000000);
+        soft.fill(0xFF000000);
+        soft.setAntialias(true);
+        check(soft.antialias() && !hard.antialias(), "anti-aliasing is per surface");
+        hard.setColor(0xFFFFFFFF);
+        soft.setColor(0xFFFFFFFF);
+        hard.fillTriangle(2, 2, 20, 6, 4, 20);
+        soft.fillTriangle(2, 2, 20, 6, 4, 20);
+        eq(0, partialPixels(hard), "a hard triangle has only fully lit or unlit pixels");
+        check(partialPixels(soft) > 8,
+                "a smoothed triangle has partly lit edge pixels, was " + partialPixels(soft));
+
+        Framebuffer rect = new Framebuffer(24, 24);
+        rect.fill(0xFF000000);
+        rect.setAntialias(true);
+        rect.setColor(0xFFFFFFFF);
+        rect.fillRect(4, 4, 10, 10);
+        eq(0, partialPixels(rect), "an axis-aligned rectangle is never softened");
 
         int[] block = {1, 2, 3, 4, 5, 6};
         int[] mirrored = Transforms.apply(block, 3, 2, 0, 0, 3, 2, Transforms.MIRROR);
@@ -116,20 +158,27 @@ public final class GfxTest extends Test {
         check(small.stringWidth("Thư viện") > small.stringWidth("Thu vien") - 4,
                 "accented text is measured, not skipped");
 
-        BitmapFont title = BitmapFont.of(BitmapFont.SIZE_TITLE, BitmapFont.STYLE_PLAIN);
-        check(title.height() > BitmapFont.of(BitmapFont.SIZE_LARGE, 0).height(),
-                "the title face is the tallest");
-        check(title.ascent() < title.height(), "the title face leaves room for descenders");
+        BitmapFont large = BitmapFont.of(BitmapFont.SIZE_LARGE, BitmapFont.STYLE_PLAIN);
+        check(large.height() > BitmapFont.of(BitmapFont.SIZE_SMALL, 0).height(),
+                "large is the tallest MIDP face");
+        check(large.ascent() < large.height(), "the face leaves room for descenders");
+        // A MIDlet lays its screen out around Font.getHeight(), so the faces
+        // have to stay close to what a handset offered rather than being
+        // enlarged for the sake of the emulator's own interface.
+        check(BitmapFont.of(BitmapFont.SIZE_SMALL, 0).height() <= 15,
+                "the small MIDP face stays handset sized, was "
+                        + BitmapFont.of(BitmapFont.SIZE_SMALL, 0).height());
+        check(large.height() <= 22, "the large MIDP face stays handset sized, was " + large.height());
 
         // A stacked mark must survive: Ẫ has to light more rows than A does.
-        Framebuffer plain = new Framebuffer(60, title.height() + 4);
-        Framebuffer marked = new Framebuffer(60, title.height() + 4);
+        Framebuffer plain = new Framebuffer(60, large.height() + 4);
+        Framebuffer marked = new Framebuffer(60, large.height() + 4);
         plain.fill(0xFF000000);
         marked.fill(0xFF000000);
         plain.setColor(0xFFFFFFFF);
         marked.setColor(0xFFFFFFFF);
-        title.draw(plain, "A", 2, 2);
-        title.draw(marked, "\u1EAA", 2, 2);
+        large.draw(plain, "A", 2, 2);
+        large.draw(marked, "\u1EAA", 2, 2);
         check(topmostRow(marked) < topmostRow(plain),
                 "the tone marks above a capital are not clipped");
 
@@ -145,6 +194,18 @@ public final class GfxTest extends Test {
             }
         }
         check(lit > 20, "drawing text actually lights pixels, was " + lit);
+    }
+
+    /** Pixels that are neither fully lit nor fully unlit. */
+    private static int partialPixels(Framebuffer frame) {
+        int count = 0;
+        for (int pixel : frame.pixels()) {
+            int value = pixel & 0xFF;
+            if (value > 0 && value < 255) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /** Row index of the highest lit pixel, or the height when nothing is lit. */

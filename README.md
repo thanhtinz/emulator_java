@@ -64,7 +64,11 @@ về cho trò chơi. Font bitmap trong core phủ đủ mọi tổ hợp dấu t
 chữ có dấu hiển thị đúng cả trong giao diện lẫn bên trong game đang chạy.
 
 Khi vào một trò chơi, ứng dụng chạy toàn màn hình: ẩn thanh trạng thái và
-thanh điều hướng, khung hình game phóng theo bội số nguyên và không làm mượt.
+thanh điều hướng. Khung hình được **làm mượt** theo mặc định — máy J2ME thật
+nhét 240×320 vào màn hình chừng 2 inch nên không ai thấy được từng điểm ảnh;
+vẽ lại đúng những điểm ảnh đó thành ô vuông to trên màn hình hiện đại còn
+trông vỡ hơn cả máy thật. Ai thích kiểu sắc cạnh vẫn tắt được trong cài đặt
+từng game.
 Bàn phím ảo đặt **cụm mũi tên bên phải**, bàn số 3×4 bên trái, hàng phím mềm ở
 trên — theo cách cầm một chiếc điện thoại J2ME.
 

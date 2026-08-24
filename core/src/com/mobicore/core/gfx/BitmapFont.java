@@ -1,31 +1,30 @@
 package com.mobicore.core.gfx;
 
 /**
- * Renderer for the baked {@link FontData} faces.
+ * Renderer for the three MIDP faces baked into {@link FontData}.
+ *
+ * <p>These are the fonts an emulated game sees, so they are sized like the ones
+ * a real handset shipped — around 14, 17 and 20 pixels tall on a QVGA screen —
+ * and are one bit per pixel. A MIDlet lays its whole screen out around
+ * {@code Font.getHeight()}, and an oversized font pushes its score display and
+ * menus out of shape.</p>
  *
  * <p>The character set is not a contiguous range — Vietnamese takes letters
  * from Latin-1, Latin Extended-A and Latin Extended Additional — so a lookup
- * table maps a character to its glyph index in one array read rather than a
- * search.</p>
- *
- * <p>Bold is synthesised by drawing each glyph twice one pixel apart, and
- * italic by shearing the rows. That keeps the data to one face per size while
- * still offering the style combinations MIDP exposes.</p>
+ * table maps a character to its glyph index in one array read.</p>
  */
 public final class BitmapFont {
 
     public static final int SIZE_SMALL = 0;
     public static final int SIZE_MEDIUM = 1;
     public static final int SIZE_LARGE = 2;
-    /** Interface headings; not offered to emulated games. */
-    public static final int SIZE_TITLE = 3;
 
     public static final int STYLE_PLAIN = 0;
     public static final int STYLE_BOLD = 1;
     public static final int STYLE_ITALIC = 2;
     public static final int STYLE_UNDERLINED = 4;
 
-    private static final int FACE_COUNT = 4;
+    private static final int FACE_COUNT = 3;
     private static final BitmapFont[] PLAIN_FACES = new BitmapFont[FACE_COUNT];
 
     /** Character to glyph index; -1 where the face has no glyph. */
@@ -36,6 +35,7 @@ public final class BitmapFont {
     private final int style;
     private final int height;
     private final int ascent;
+    private final int wordsPerRow;
     private final byte[] advances;
     private final byte[] tops;
     private final byte[] rowCounts;
@@ -47,43 +47,33 @@ public final class BitmapFont {
         this.size = size;
         this.style = style;
         String bits;
-        int hexDigits;
         switch (size) {
             case SIZE_SMALL:
                 height = FontData.SMALL_HEIGHT;
                 ascent = FontData.SMALL_ASCENT;
+                wordsPerRow = FontData.SMALL_WORDS;
                 advances = FontData.SMALL_ADVANCE;
                 tops = FontData.SMALL_TOP;
                 rowCounts = FontData.SMALL_ROWS;
                 bits = FontData.SMALL_BITS;
-                hexDigits = FontData.SMALL_HEX;
                 break;
             case SIZE_LARGE:
                 height = FontData.LARGE_HEIGHT;
                 ascent = FontData.LARGE_ASCENT;
+                wordsPerRow = FontData.LARGE_WORDS;
                 advances = FontData.LARGE_ADVANCE;
                 tops = FontData.LARGE_TOP;
                 rowCounts = FontData.LARGE_ROWS;
                 bits = FontData.LARGE_BITS;
-                hexDigits = FontData.LARGE_HEX;
-                break;
-            case SIZE_TITLE:
-                height = FontData.TITLE_HEIGHT;
-                ascent = FontData.TITLE_ASCENT;
-                advances = FontData.TITLE_ADVANCE;
-                tops = FontData.TITLE_TOP;
-                rowCounts = FontData.TITLE_ROWS;
-                bits = FontData.TITLE_BITS;
-                hexDigits = FontData.TITLE_HEX;
                 break;
             default:
                 height = FontData.MEDIUM_HEIGHT;
                 ascent = FontData.MEDIUM_ASCENT;
+                wordsPerRow = FontData.MEDIUM_WORDS;
                 advances = FontData.MEDIUM_ADVANCE;
                 tops = FontData.MEDIUM_TOP;
                 rowCounts = FontData.MEDIUM_ROWS;
                 bits = FontData.MEDIUM_BITS;
-                hexDigits = FontData.MEDIUM_HEX;
                 break;
         }
 
@@ -91,18 +81,16 @@ public final class BitmapFont {
         // hex per pixel row would dominate the cost of every frame.
         int glyphs = advances.length;
         rowStart = new int[glyphs + 1];
-        int total = 0;
+        int totalRows = 0;
         for (int i = 0; i < glyphs; i++) {
-            rowStart[i] = total;
-            total += rowCounts[i] & 0xFF;
+            rowStart[i] = totalRows;
+            totalRows += rowCounts[i] & 0xFF;
         }
-        rowStart[glyphs] = total;
-        rowData = new int[total];
-        int shift = hexDigits == 4 ? 16 : 0;
-        for (int i = 0; i < total; i++) {
-            int offset = i * hexDigits;
-            long value = Long.parseLong(bits.substring(offset, offset + hexDigits), 16);
-            rowData[i] = (int) (value << shift);
+        rowStart[glyphs] = totalRows;
+        rowData = new int[totalRows * wordsPerRow];
+        for (int i = 0; i < rowData.length; i++) {
+            int offset = i * 8;
+            rowData[i] = (int) Long.parseLong(bits.substring(offset, offset + 8), 16);
         }
     }
 
@@ -222,22 +210,25 @@ public final class BitmapFont {
         int glyph = glyphFor(c);
         int top = tops[glyph] & 0xFF;
         int count = rowCounts[glyph] & 0xFF;
-        int start = rowStart[glyph];
+        int start = rowStart[glyph] * wordsPerRow;
         int shearDivisor = Math.max(1, height / 3);
         for (int row = 0; row < count; row++) {
-            int mask = rowData[start + row];
-            if (mask == 0) {
-                continue;
-            }
             int line = top + row;
             int shear = isItalic() ? (ascent - line) / shearDivisor : 0;
-            for (int column = 0; column < 32; column++) {
-                if ((mask & (1 << (31 - column))) == 0) {
+            for (int word = 0; word < wordsPerRow; word++) {
+                int mask = rowData[start + row * wordsPerRow + word];
+                if (mask == 0) {
                     continue;
                 }
-                frame.setPixel(x + column + shear, y + line);
-                if (isBold()) {
-                    frame.setPixel(x + column + shear + 1, y + line);
+                int base = word * 32;
+                for (int bit = 0; bit < 32; bit++) {
+                    if ((mask & (1 << (31 - bit))) == 0) {
+                        continue;
+                    }
+                    frame.setPixel(x + base + bit + shear, y + line);
+                    if (isBold()) {
+                        frame.setPixel(x + base + bit + shear + 1, y + line);
+                    }
                 }
             }
         }

@@ -119,7 +119,8 @@ fun EmulatorScreen(
         ) {
             Text(
                 text = "${engine.screenWidth()}×${engine.screenHeight()}  ·  " +
-                    (profile?.scaleModeName() ?: "—") + "  ·  không làm mượt",
+                    (profile?.scaleModeName() ?: "—") + "  ·  " +
+                    (profile?.smoothingName() ?: "Mượt"),
                 color = MobiColors.TextDim,
                 fontSize = 11.sp,
             )
@@ -184,8 +185,12 @@ private fun GameSurface(engine: EmulatorEngine, library: LibraryRepository, suit
             ?: intArrayOf(0, 0, bitmap.width, bitmap.height)
 
         drawIntoCanvas { canvas ->
+            // Smoothing is on by default. A handset packed this many pixels
+            // into about two inches; drawing them as hard blocks on a modern
+            // display looks more pixelated than the hardware ever did.
+            val smooth = profile?.smoothing() ?: true
             val paint = android.graphics.Paint().apply {
-                isFilterBitmap = false
+                isFilterBitmap = smooth
                 isAntiAlias = false
                 isDither = false
             }

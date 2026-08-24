@@ -10,37 +10,55 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Offline generator for the bitmap font baked into the core.
+ * Offline generator for the bitmap fonts.
  *
- * The emulator cannot depend on AWT (it has to run on Android and translate for
- * iOS), so glyphs are rasterised here once and committed as plain data.
+ * Two very different fonts come out of the same rasteriser:
+ *
+ *   midp  the three sizes an emulated game sees. These match what a real
+ *         handset offered — roughly 13, 16 and 19 pixels tall on a QVGA
+ *         screen — and are one bit per pixel, because that is what MIDP
+ *         fonts were. Goes into the portable core.
+ *
+ *   ui    the faces the interface itself draws with. Larger, and two bits of
+ *         coverage per pixel so edges are smooth instead of jagged. Desktop
+ *         preview only, so it never adds weight to a mobile build.
  *
  *   javac -encoding UTF-8 -d /tmp/fontgen codegen/FontGen.java
- *   java -Djava.awt.headless=true -cp /tmp/fontgen FontGen \
+ *   java -Djava.awt.headless=true -cp /tmp/fontgen FontGen midp \
  *       > core/src/com/mobicore/core/gfx/FontData.java
+ *   java -Djava.awt.headless=true -cp /tmp/fontgen FontGen ui \
+ *       > tools/src/com/mobicore/tools/ui/UiFontData.java
  *
- * The character set covers ASCII plus the whole of Vietnamese: the base
- * letters, the seven extra letters (ă â đ ê ô ơ ư) and every tone mark
- * combination in Latin Extended Additional. Without those, the interface and
- * any Vietnamese game text would render as question marks.
+ * The character set covers ASCII plus the whole of Vietnamese, including every
+ * tone mark combination. Without it, interface text and Vietnamese game text
+ * would render as question marks.
  */
 public final class FontGen {
 
-    /** Faces: the three MIDP sizes plus one the interface uses for headings. */
-    private static final String[] NAMES = {"SMALL", "MEDIUM", "LARGE", "TITLE"};
-    private static final int[] SIZES = {13, 16, 20, 28};
+    private static final String[] MIDP_NAMES = {"SMALL", "MEDIUM", "LARGE"};
+    private static final int[] MIDP_SIZES = {10, 12, 15};
+
+    private static final String[] UI_NAMES = {"SMALL", "BODY", "LARGE", "TITLE"};
+    private static final int[] UI_SIZES = {14, 17, 21, 28};
 
     /** DejaVu Sans is legible at small sizes and covers Vietnamese completely. */
     private static final String[] FAMILIES = {"DejaVu Sans", "Liberation Sans", "SansSerif"};
 
+    private static boolean antiAliased;
+
     public static void main(String[] args) throws Exception {
+        String mode = args.length > 0 ? args[0] : "midp";
+        antiAliased = "ui".equals(mode);
+        String[] names = antiAliased ? UI_NAMES : MIDP_NAMES;
+        int[] sizes = antiAliased ? UI_SIZES : MIDP_SIZES;
+
         String family = pickFamily();
         char[] charset = buildCharset(family);
 
         PrintWriter out = new PrintWriter(new java.io.OutputStreamWriter(System.out, "UTF-8"));
         header(out, family, charset);
-        for (int i = 0; i < NAMES.length; i++) {
-            emitFace(out, family, NAMES[i], SIZES[i], charset);
+        for (int i = 0; i < names.length; i++) {
+            emitFace(out, family, names[i], sizes[i], charset);
         }
         out.println("}");
         out.flush();
@@ -56,16 +74,14 @@ public final class FontGen {
         return "SansSerif";
     }
 
-    /** ASCII, then Vietnamese, then the handful of symbols the interface uses. */
+    /** ASCII, then Vietnamese, then the symbols the interface draws as text. */
     private static char[] buildCharset(String family) {
         Font probe = new Font(family, Font.PLAIN, 16);
         List<Character> chars = new ArrayList<Character>();
         for (char c = 32; c <= 126; c++) {
             chars.add(Character.valueOf(c));
         }
-        // Vietnamese base letters carrying tone marks in Latin-1.
         String latin1 = "ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝàáâãèéêìíòóôõùúýÄÖÜäöüÑñÇç";
-        // The seven letters Vietnamese adds to the Latin alphabet.
         String extended = "ĂăĐđĨĩŨũƠơƯư";
         for (int i = 0; i < latin1.length(); i++) {
             chars.add(Character.valueOf(latin1.charAt(i)));
@@ -73,11 +89,9 @@ public final class FontGen {
         for (int i = 0; i < extended.length(); i++) {
             chars.add(Character.valueOf(extended.charAt(i)));
         }
-        // Latin Extended Additional: every remaining tone combination.
         for (char c = 0x1EA0; c <= 0x1EF9; c++) {
             chars.add(Character.valueOf(c));
         }
-        // Arrows and marks the interface draws as text rather than as shapes.
         String symbols = "·…–—×°«»‹›“”‘’€₫←→↑↓▲▼◀▶●○✓✕★☆♪";
         for (int i = 0; i < symbols.length(); i++) {
             chars.add(Character.valueOf(symbols.charAt(i)));
@@ -97,24 +111,35 @@ public final class FontGen {
     }
 
     private static void header(PrintWriter out, String family, char[] charset) {
-        out.println("package com.mobicore.core.gfx;");
+        String className = antiAliased ? "UiFontData" : "FontData";
+        out.println(antiAliased
+                ? "package com.mobicore.tools.ui;"
+                : "package com.mobicore.core.gfx;");
         out.println();
         out.println("/**");
-        out.println(" * Bitmap glyph data for the four font faces.");
+        if (antiAliased) {
+            out.println(" * Anti-aliased glyph data for the interface faces.");
+            out.println(" *");
+            out.println(" * <p>Generated by {@code codegen/FontGen.java ui} from " + family + ";");
+            out.println(" * do not edit by hand. Two bits of coverage per pixel give four levels");
+            out.println(" * of opacity, which is enough to take the jagged edges off text without");
+            out.println(" * quadrupling the data.</p>");
+        } else {
+            out.println(" * Bitmap glyph data for the three MIDP font sizes.");
+            out.println(" *");
+            out.println(" * <p>Generated by {@code codegen/FontGen.java midp} from " + family + ";");
+            out.println(" * do not edit by hand. One bit per pixel and sized to match what a real");
+            out.println(" * handset offered, because that is what a MIDlet expects when it lays");
+            out.println(" * out a screen around {@code Font.getHeight()}.</p>");
+        }
         out.println(" *");
-        out.println(" * <p>Generated by {@code codegen/FontGen.java} from " + family + "; do not");
-        out.println(" * edit by hand. The character set covers ASCII and the whole of Vietnamese,");
-        out.println(" * including every tone mark combination, so interface text and game text");
-        out.println(" * both render correctly rather than as question marks.</p>");
-        out.println(" *");
-        out.println(" * <p>Each glyph is one bit mask per pixel row, most significant bit");
-        out.println(" * leftmost. Rows are hex encoded; a face whose widest glyph fits in 16");
-        out.println(" * pixels uses four hex digits per row instead of eight, which halves the");
-        out.println(" * data for the smaller faces.</p>");
+        out.println(" * <p>The character set covers ASCII and the whole of Vietnamese, including");
+        out.println(" * every tone mark combination, so interface text and game text both render");
+        out.println(" * correctly rather than as question marks.</p>");
         out.println(" */");
-        out.println("public final class FontData {");
+        out.println("public final class " + className + " {");
         out.println();
-        out.println("    private FontData() {");
+        out.println("    private " + className + "() {");
         out.println("    }");
         out.println();
         out.println("    /** Rejoins the chunked row data at class initialisation. */");
@@ -177,7 +202,8 @@ public final class FontGen {
         int cellHeight = Math.round(size * 3.0f);
         int count = charset.length;
         int[] advances = new int[count];
-        int[][] raw = new int[count][cellHeight];
+        int[][] coverage = new int[count][];
+        int[] cellWidths = new int[count];
         int inkTop = cellHeight;
         int inkBottom = -1;
         int maxWidth = 0;
@@ -192,9 +218,6 @@ public final class FontGen {
             int cell = Math.min(32, Math.max(advance + 6, 1));
             BufferedImage image = new BufferedImage(cell, cellHeight, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = image.createGraphics();
-            // Antialiasing on, then thresholded: this gives fuller, better
-            // shaped stems than hinting-off rendering, which matters for the
-            // dense diacritics Vietnamese stacks above its vowels.
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
                     RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -208,20 +231,25 @@ public final class FontGen {
             g.dispose();
 
             advances[index] = advance;
+            cellWidths[index] = cell;
+            int[] pixels = new int[cellHeight * cell];
             for (int y = 0; y < cellHeight; y++) {
-                int mask = 0;
+                boolean inked = false;
                 for (int x = 0; x < cell; x++) {
-                    if ((image.getRGB(x, y) & 0xFF) >= 96) {
-                        mask |= 1 << (31 - x);
+                    int grey = image.getRGB(x, y) & 0xFF;
+                    int value = antiAliased ? (grey * 3 + 127) / 255 : (grey >= 96 ? 1 : 0);
+                    pixels[y * cell + x] = value;
+                    if (value != 0) {
+                        inked = true;
                         maxWidth = Math.max(maxWidth, x + 1);
                     }
                 }
-                raw[index][y] = mask;
-                if (mask != 0) {
+                if (inked) {
                     inkTop = Math.min(inkTop, y);
                     inkBottom = Math.max(inkBottom, y);
                 }
             }
+            coverage[index] = pixels;
         }
 
         if (inkBottom < 0) {
@@ -229,7 +257,12 @@ public final class FontGen {
         }
         int ascent = baseline - inkTop;
         int height = inkBottom - inkTop + 1;
-        int hexDigits = maxWidth <= 16 ? 4 : 8;
+        // Each stored int carries 32 pixels at one bit, or 16 at two bits.
+        int pixelsPerWord = antiAliased ? 16 : 32;
+        int wordsPerRow = (maxWidth + pixelsPerWord - 1) / pixelsPerWord;
+        if (wordsPerRow < 1) {
+            wordsPerRow = 1;
+        }
 
         // Most glyphs leave the top and bottom of the cell empty, so only the
         // rows that actually carry ink are stored. That roughly halves the data
@@ -238,14 +271,18 @@ public final class FontGen {
         int[] rowCount = new int[count];
         StringBuilder bits = new StringBuilder();
         for (int i = 0; i < count; i++) {
+            int cell = cellWidths[i];
             int top = cellHeight;
             int bottom = -1;
             for (int y = 0; y < cellHeight; y++) {
-                if (raw[i][y] != 0) {
-                    if (y < top) {
-                        top = y;
+                for (int x = 0; x < cell; x++) {
+                    if (coverage[i][y * cell + x] != 0) {
+                        if (y < top) {
+                            top = y;
+                        }
+                        bottom = y;
+                        break;
                     }
-                    bottom = y;
                 }
             }
             if (bottom < 0) {
@@ -256,8 +293,19 @@ public final class FontGen {
             firstRow[i] = top - inkTop;
             rowCount[i] = bottom - top + 1;
             for (int y = top; y <= bottom; y++) {
-                int mask = raw[i][y];
-                bits.append(hex(hexDigits == 4 ? mask >>> 16 : mask, hexDigits));
+                for (int word = 0; word < wordsPerRow; word++) {
+                    int packed = 0;
+                    for (int slot = 0; slot < pixelsPerWord; slot++) {
+                        int x = word * pixelsPerWord + slot;
+                        int value = x < cell ? coverage[i][y * cell + x] : 0;
+                        if (antiAliased) {
+                            packed |= (value & 3) << (30 - slot * 2);
+                        } else {
+                            packed |= (value & 1) << (31 - slot);
+                        }
+                    }
+                    bits.append(hex(packed));
+                }
             }
         }
 
@@ -265,8 +313,8 @@ public final class FontGen {
         out.println("    public static final int " + name + "_HEIGHT = " + height + ";");
         out.println("    public static final int " + name + "_ASCENT = " + ascent + ";");
         out.println("    public static final int " + name + "_MAX_WIDTH = " + maxWidth + ";");
-        out.println("    /** Hex digits per row: four when every glyph fits in 16 pixels. */");
-        out.println("    public static final int " + name + "_HEX = " + hexDigits + ";");
+        out.println("    /** 32-bit words per pixel row. */");
+        out.println("    public static final int " + name + "_WORDS = " + wordsPerRow + ";");
         emitByteArray(out, name + "_ADVANCE", advances, "Advance width of each glyph.");
         emitByteArray(out, name + "_TOP", firstRow, "First row of each glyph that carries ink.");
         emitByteArray(out, name + "_ROWS", rowCount, "Number of stored rows per glyph.");
@@ -303,12 +351,9 @@ public final class FontGen {
         out.println("    };");
     }
 
-    private static String hex(int value, int digits) {
+    private static String hex(int value) {
         String hex = Integer.toHexString(value);
-        if (hex.length() > digits) {
-            hex = hex.substring(hex.length() - digits);
-        }
-        while (hex.length() < digits) {
+        while (hex.length() < 8) {
             hex = "0" + hex;
         }
         return hex.toUpperCase();

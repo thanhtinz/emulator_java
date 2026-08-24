@@ -14,6 +14,9 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 OUT="$ROOT/build/classes"
 SRC_LEVEL=8
 
+# Compiles a source tree. A failure here must stop the build: filtering javac's
+# output through a pipe once hid real errors and left stale classes in place,
+# which made the test suite report on code that no longer existed.
 compile() {
   local out="$1"; shift
   local cp="$1"; shift
@@ -21,9 +24,22 @@ compile() {
   local files
   files=$(find "$@" -name '*.java')
   if [ -z "$files" ]; then return 0; fi
+  local log status
+  log=$(mktemp)
+  # Guarded so that `set -e` does not abort before the log can be printed.
   # shellcheck disable=SC2086
-  javac -nowarn -encoding UTF-8 -source "$SRC_LEVEL" -target "$SRC_LEVEL" \
-    ${cp:+-cp "$cp"} -d "$out" $files 2>&1 | grep -v 'bootstrap class path\|source value 8\|target value 8\|deprecat' || true
+  if javac -nowarn -encoding UTF-8 -source "$SRC_LEVEL" -target "$SRC_LEVEL" \
+      ${cp:+-cp "$cp"} -d "$out" $files > "$log" 2>&1; then
+    status=0
+  else
+    status=$?
+  fi
+  grep -v 'bootstrap class path\|source value 8\|target value 8\|deprecat\|Picked up JAVA_TOOL_OPTIONS' "$log" >&2 || true
+  rm -f "$log"
+  if [ "$status" -ne 0 ]; then
+    echo "compile failed: $*" >&2
+    exit "$status"
+  fi
 }
 
 build_core() {

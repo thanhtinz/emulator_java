@@ -168,3 +168,29 @@ Xem `docs/IOS.md`.
   bội số nguyên, không làm mượt.
 - Bàn phím ảo: cụm mũi tên bên phải, bàn số 3×4 bên trái, hàng phím mềm trên
   cùng — đúng cách cầm một chiếc máy J2ME.
+
+## Sửa lỗi hiển thị bị vỡ hạt
+
+Ba nguyên nhân, sửa cả ba:
+
+- **Phóng ảnh cứng.** Trước đây dùng nearest-neighbour với lý do "giữ pixel
+  art". Sai: máy J2ME thật nhét 240×320 vào chừng 2 inch nên điểm ảnh bé li
+  ti; phóng 2× cứng trên màn hình hiện đại biến mỗi điểm thành một ô vuông
+  nhìn thấy rõ. Thêm `Framebuffer.scaleSmooth` (bilinear) và tuỳ chọn
+  `GameProfile.smoothing`, **mặc định bật**.
+- **Chính hình vẽ của game bị răng cưa.** MIDP không có khử răng cưa, và ở 2
+  inch thì không cần. Phóng to lên mới lộ. `Framebuffer.setAntialias` khử
+  răng cưa cho đường chéo, tam giác, cung tròn và góc bo bằng cách lấy mẫu
+  4×4 mỗi điểm ảnh. Hình chữ nhật thẳng trục thì vẽ chính xác — không có gì
+  để làm mượt. **Cố ý không áp dụng cho ảnh off-screen**: rất nhiều game vẽ
+  sprite trên một màu khoá rồi lấy đúng màu đó làm trong suốt, cạnh bị pha
+  màu sẽ để lại viền.
+- **Font trong game quá to.** Lần trước phóng to font cho giao diện dễ đọc,
+  nhưng nó cũng phóng luôn font mà game nhìn thấy — to hơn thật khoảng 40%,
+  làm bảng điểm và menu của game vỡ bố cục. Nay tách hẳn:
+  `core` giữ ba cỡ MIDP 14/17/20px, 1 bit mỗi điểm ảnh, đúng như máy thật;
+  `tools` có bộ font riêng cho giao diện, 2 bit alpha nên chữ mượt, và chỉ
+  nằm ở module desktop nên không lên máy.
+
+Cũng sửa một lỗi trong `build.sh`: lỗi biên dịch từng bị nuốt mất và bộ test
+chạy lại class cũ. Giờ biên dịch hỏng là dừng hẳn.

@@ -62,6 +62,7 @@ public final class MidpContext {
     private boolean destroyed;
     private String title;
     private int frames;
+    private boolean smoothShapes;
 
     public MidpContext(Vm vm, int width, int height) {
         this.vm = vm;
@@ -106,6 +107,16 @@ public final class MidpContext {
 
     public Framebuffer screen() {
         return screen;
+    }
+
+    /** Whether shapes the game draws get anti-aliased edges. */
+    public boolean smoothShapes() {
+        return smoothShapes;
+    }
+
+    public void setSmoothShapes(boolean smoothShapes) {
+        this.smoothShapes = smoothShapes;
+        screen.setAntialias(smoothShapes);
     }
 
     public int width() {

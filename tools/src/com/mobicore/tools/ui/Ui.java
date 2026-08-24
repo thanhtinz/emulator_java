@@ -1,6 +1,5 @@
 package com.mobicore.tools.ui;
 
-import com.mobicore.core.gfx.BitmapFont;
 import com.mobicore.core.gfx.Framebuffer;
 
 /**
@@ -20,13 +19,13 @@ public final class Ui {
     /** Height of the application bar. */
     public static final int APP_BAR = 62;
 
-    private final BitmapFont small = BitmapFont.of(BitmapFont.SIZE_SMALL, BitmapFont.STYLE_PLAIN);
-    private final BitmapFont smallBold = BitmapFont.of(BitmapFont.SIZE_SMALL, BitmapFont.STYLE_BOLD);
-    private final BitmapFont medium = BitmapFont.of(BitmapFont.SIZE_MEDIUM, BitmapFont.STYLE_PLAIN);
-    private final BitmapFont mediumBold = BitmapFont.of(BitmapFont.SIZE_MEDIUM, BitmapFont.STYLE_BOLD);
-    private final BitmapFont large = BitmapFont.of(BitmapFont.SIZE_LARGE, BitmapFont.STYLE_PLAIN);
-    private final BitmapFont largeBold = BitmapFont.of(BitmapFont.SIZE_LARGE, BitmapFont.STYLE_BOLD);
-    private final BitmapFont title = BitmapFont.of(BitmapFont.SIZE_TITLE, BitmapFont.STYLE_BOLD);
+    private final UiFont small = UiFont.of(UiFont.SIZE_SMALL, UiFont.STYLE_PLAIN);
+    private final UiFont smallBold = UiFont.of(UiFont.SIZE_SMALL, UiFont.STYLE_BOLD);
+    private final UiFont medium = UiFont.of(UiFont.SIZE_BODY, UiFont.STYLE_PLAIN);
+    private final UiFont mediumBold = UiFont.of(UiFont.SIZE_BODY, UiFont.STYLE_BOLD);
+    private final UiFont large = UiFont.of(UiFont.SIZE_LARGE, UiFont.STYLE_PLAIN);
+    private final UiFont largeBold = UiFont.of(UiFont.SIZE_LARGE, UiFont.STYLE_BOLD);
+    private final UiFont title = UiFont.of(UiFont.SIZE_TITLE, UiFont.STYLE_BOLD);
 
     public Ui(Framebuffer frame) {
         this.frame = frame;
@@ -36,31 +35,31 @@ public final class Ui {
         return frame;
     }
 
-    public BitmapFont small() {
+    public UiFont small() {
         return small;
     }
 
-    public BitmapFont smallBold() {
+    public UiFont smallBold() {
         return smallBold;
     }
 
-    public BitmapFont medium() {
+    public UiFont medium() {
         return medium;
     }
 
-    public BitmapFont mediumBold() {
+    public UiFont mediumBold() {
         return mediumBold;
     }
 
-    public BitmapFont large() {
+    public UiFont large() {
         return large;
     }
 
-    public BitmapFont largeBold() {
+    public UiFont largeBold() {
         return largeBold;
     }
 
-    public BitmapFont title() {
+    public UiFont title() {
         return title;
     }
 
@@ -95,21 +94,20 @@ public final class Ui {
         frame.fillRect(x, y, w, h);
     }
 
-    public int text(BitmapFont font, String value, int x, int y, int color) {
-        frame.setColor(color);
-        return font.draw(frame, value, x, y);
+    public int text(UiFont font, String value, int x, int y, int color) {
+        return font.draw(frame, value, x, y, color);
     }
 
-    public void textRight(BitmapFont font, String value, int right, int y, int color) {
+    public void textRight(UiFont font, String value, int right, int y, int color) {
         text(font, value, right - font.stringWidth(value), y, color);
     }
 
-    public void textCenter(BitmapFont font, String value, int centerX, int y, int color) {
+    public void textCenter(UiFont font, String value, int centerX, int y, int color) {
         text(font, value, centerX - font.stringWidth(value) / 2, y, color);
     }
 
     /** Truncates with an ellipsis so long game titles never overflow a card. */
-    public String ellipsize(BitmapFont font, String value, int maxWidth) {
+    public String ellipsize(UiFont font, String value, int maxWidth) {
         if (value == null) {
             return "";
         }

@@ -30,6 +30,7 @@ struct GameSettings: Codable, Hashable {
     var muted: Bool
     var showFps: Bool
     var keepAspect: Bool
+    var smoothing: Bool
     var networkMode: Int
     var skin: String
     var favourite: Bool

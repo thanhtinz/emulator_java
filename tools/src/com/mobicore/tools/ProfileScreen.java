@@ -99,14 +99,15 @@ public final class ProfileScreen {
         y += deviceHeight + 14;
 
         // Display and audio ----------------------------------------------
-        int displayHeight = ui.sectionHeight(4);
+        int displayHeight = ui.sectionHeight(5);
         row = ui.section(margin, y, width, displayHeight, "HIỂN THỊ & ÂM THANH", null);
         ui.field("Phóng ảnh", scaleName(profile), fieldX, row, fieldWidth);
+        ui.field("Làm mượt", profile.smoothingName(), fieldX, row + Ui.ROW, fieldWidth);
         ui.field("Giới hạn khung hình", profile.frameLimit() + " hình/giây", fieldX,
-                row + Ui.ROW, fieldWidth);
-        ui.field("Âm lượng", profile.volume() + "%", fieldX, row + Ui.ROW * 2, fieldWidth);
+                row + Ui.ROW * 2, fieldWidth);
+        ui.field("Âm lượng", profile.volume() + "%", fieldX, row + Ui.ROW * 3, fieldWidth);
         ui.field("Giữ tỉ lệ khung", profile.keepAspect() ? "Bật" : "Tắt", fieldX,
-                row + Ui.ROW * 3, fieldWidth);
+                row + Ui.ROW * 4, fieldWidth);
         y += displayHeight + 14;
 
         // Input mapping --------------------------------------------------

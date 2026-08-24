@@ -52,6 +52,11 @@ public final class Preview {
     }
 
     static Framebuffer newScreen() {
-        return new Framebuffer(SCREEN_WIDTH, SCREEN_HEIGHT);
+        Framebuffer frame = new Framebuffer(SCREEN_WIDTH, SCREEN_HEIGHT);
+        // The interface is drawn with the same primitives a game uses, so it
+        // gets the same treatment: rounded corners and chips should not have
+        // staircase edges.
+        frame.setAntialias(true);
+        return frame;
     }
 }

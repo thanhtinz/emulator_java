@@ -263,7 +263,7 @@ public class SkyRunner extends MIDlet implements CommandListener {
         }
 
         private void paintSky(Graphics g, int width, int height) {
-            int bands = 16;
+            int bands = 40;
             for (int i = 0; i < bands; i++) {
                 g.setColor(blend(SKY_TOP, SKY_BOTTOM, i, bands));
                 g.fillRect(0, i * height / bands, width, height / bands + 1);

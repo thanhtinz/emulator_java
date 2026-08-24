@@ -90,6 +90,10 @@ public final class EmulatorSession {
         int height = profile.device().height();
         MidpContext context = new MidpContext(vm, width, height);
         context.setAttributes(suite.info().attributes());
+        // Smooth the game's own diagonals and curves when the profile asks for
+        // it. Off-screen images a game draws into are deliberately left alone;
+        // see Framebuffer.setAntialias.
+        context.setSmoothShapes(profile.smoothing());
 
         Vfs vfs = storage == null ? new MemoryVfs() : storage;
         StorageLayout paths = layout == null ? new StorageLayout("MobiCore") : layout;

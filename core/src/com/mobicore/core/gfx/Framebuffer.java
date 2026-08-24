@@ -26,6 +26,7 @@ public final class Framebuffer {
     private int clipW;
     private int clipH;
     private int blendMode = BLEND_SRC_OVER;
+    private boolean antialias;
 
     public Framebuffer(int width, int height) {
         if (width <= 0 || height <= 0) {
@@ -94,6 +95,27 @@ public final class Framebuffer {
 
     public int blendMode() {
         return blendMode;
+    }
+
+    /**
+     * Smooths the edges of diagonal and curved shapes.
+     *
+     * <p>MIDP itself had no anti-aliasing, and on a two inch screen it did not
+     * need any. Shown several times larger on a modern display, the same
+     * staircases are impossible to miss, so the emulator offers to soften them.
+     * Axis-aligned rectangles are always drawn exactly; there is nothing to
+     * smooth and softening them would only blur a HUD.</p>
+     *
+     * <p>Deliberately not applied to off-screen images a game draws into: many
+     * suites build sprite sheets on a key colour and then make that exact
+     * colour transparent, and blended edge pixels would leave a halo.</p>
+     */
+    public void setAntialias(boolean antialias) {
+        this.antialias = antialias;
+    }
+
+    public boolean antialias() {
+        return antialias;
     }
 
     public void translate(int dx, int dy) {
@@ -190,6 +212,11 @@ public final class Framebuffer {
         blend(x + translateX, y + translateY, color);
     }
 
+    /** Blends one pixel in user space, honouring translation and clip. */
+    public void blendPixel(int x, int y, int argb) {
+        blend(x + translateX, y + translateY, argb);
+    }
+
     public void fillRect(int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) {
             return;
@@ -216,6 +243,10 @@ public final class Framebuffer {
     }
 
     public void drawLine(int x1, int y1, int x2, int y2) {
+        if (antialias && x1 != x2 && y1 != y2) {
+            drawLineSmooth(x1, y1, x2, y2);
+            return;
+        }
         int ax = x1 + translateX;
         int ay = y1 + translateY;
         int bx = x2 + translateX;
@@ -242,6 +273,83 @@ public final class Framebuffer {
         }
     }
 
+    /**
+     * Xiaolin Wu's line: each step lights the two pixels straddling the ideal
+     * line, weighted by how close the line passes to each.
+     */
+    private void drawLineSmooth(int x1, int y1, int x2, int y2) {
+        double ax = x1;
+        double ay = y1;
+        double bx = x2;
+        double by = y2;
+        boolean steep = Math.abs(by - ay) > Math.abs(bx - ax);
+        if (steep) {
+            double swap = ax; ax = ay; ay = swap;
+            swap = bx; bx = by; by = swap;
+        }
+        if (ax > bx) {
+            double swap = ax; ax = bx; bx = swap;
+            swap = ay; ay = by; by = swap;
+        }
+        double gradient = bx == ax ? 1 : (by - ay) / (bx - ax);
+        double intersect = ay;
+        for (int x = (int) Math.round(ax); x <= (int) Math.round(bx); x++) {
+            int base = (int) Math.floor(intersect);
+            double fraction = intersect - base;
+            plotCoverage(steep, x, base, 1 - fraction);
+            plotCoverage(steep, x, base + 1, fraction);
+            intersect += gradient;
+        }
+    }
+
+    private void plotCoverage(boolean steep, int major, int minor, double coverage) {
+        if (coverage <= 0.004) {
+            return;
+        }
+        int x = steep ? minor : major;
+        int y = steep ? major : minor;
+        blendTranslated(x, y, coverage);
+    }
+
+    /** Blends the current colour at a user-space pixel, scaled by coverage. */
+    private void blendTranslated(int x, int y, double coverage) {
+        int alpha = (int) Math.round((color >>> 24) * Math.min(1.0, Math.max(0.0, coverage)));
+        if (alpha <= 0) {
+            return;
+        }
+        blend(x + translateX, y + translateY, (alpha << 24) | (color & 0xFFFFFF));
+    }
+
+    /** A shape's inside test, sampled at sub-pixel positions for coverage. */
+    private interface Region {
+        boolean contains(double x, double y);
+    }
+
+    /**
+     * Fills a region by sampling each pixel on a 4x4 grid. Sixteen samples is
+     * plenty for the shapes MIDP offers and costs nothing noticeable on a
+     * screen this size.
+     */
+    private void fillRegion(int left, int top, int right, int bottom, Region region) {
+        for (int py = top; py <= bottom; py++) {
+            for (int px = left; px <= right; px++) {
+                int hits = 0;
+                for (int sy = 0; sy < 4; sy++) {
+                    for (int sx = 0; sx < 4; sx++) {
+                        if (region.contains(px + (sx + 0.5) / 4.0, py + (sy + 0.5) / 4.0)) {
+                            hits++;
+                        }
+                    }
+                }
+                if (hits == 16) {
+                    blendTranslated(px, py, 1.0);
+                } else if (hits > 0) {
+                    blendTranslated(px, py, hits / 16.0);
+                }
+            }
+        }
+    }
+
     public void fillRoundRect(int x, int y, int w, int h, int arcW, int arcH) {
         if (w <= 0 || h <= 0) {
             return;
@@ -258,21 +366,44 @@ public final class Framebuffer {
         fillEllipseQuadrants(x + rx, y + ry, x + w - rx - 1, y + h - ry - 1, rx, ry);
     }
 
-    private void fillEllipseQuadrants(int left, int top, int right, int bottom, int rx, int ry) {
-        for (int dy = 0; dy <= ry; dy++) {
-            double normalised = (double) dy / ry;
-            int dx = (int) Math.round(rx * Math.sqrt(Math.max(0, 1 - normalised * normalised)));
-            for (int px = 0; px <= dx; px++) {
-                blendTranslated(left - px, top - dy);
-                blendTranslated(right + px, top - dy);
-                blendTranslated(left - px, bottom + dy);
-                blendTranslated(right + px, bottom + dy);
-            }
-        }
+    private void fillEllipseQuadrants(int left, int top, int right, int bottom,
+                                      final int rx, final int ry) {
+        corner(left, top, rx, ry, -1, -1);
+        corner(right, top, rx, ry, 1, -1);
+        corner(left, bottom, rx, ry, -1, 1);
+        corner(right, bottom, rx, ry, 1, 1);
     }
 
-    private void blendTranslated(int x, int y) {
-        blend(x + translateX, y + translateY, color);
+    /** One rounded corner, as a quarter ellipse centred on the corner pixel. */
+    private void corner(final int cx, final int cy, final int rx, final int ry,
+                        final int dirX, final int dirY) {
+        final double centreX = cx + 0.5;
+        final double centreY = cy + 0.5;
+        Region quarter = new Region() {
+            public boolean contains(double x, double y) {
+                double nx = (x - centreX) / rx;
+                double ny = (y - centreY) / ry;
+                if (nx * dirX < 0 || ny * dirY < 0) {
+                    return false;
+                }
+                return nx * nx + ny * ny <= 1.0;
+            }
+        };
+        int left = dirX < 0 ? cx - rx : cx;
+        int right = dirX < 0 ? cx : cx + rx;
+        int top = dirY < 0 ? cy - ry : cy;
+        int bottom = dirY < 0 ? cy : cy + ry;
+        if (antialias) {
+            fillRegion(left, top, right, bottom, quarter);
+            return;
+        }
+        for (int py = top; py <= bottom; py++) {
+            for (int px = left; px <= right; px++) {
+                if (quarter.contains(px + 0.5, py + 0.5)) {
+                    blendTranslated(px, py, 1.0);
+                }
+            }
+        }
     }
 
     public void drawRoundRect(int x, int y, int w, int h, int arcW, int arcH) {
@@ -289,14 +420,23 @@ public final class Framebuffer {
         if (rx == 0 || ry == 0) {
             return;
         }
-        for (int step = 0; step <= 90; step++) {
-            double angle = Math.toRadians(step);
-            int dx = (int) Math.round(rx * Math.cos(angle));
-            int dy = (int) Math.round(ry * Math.sin(angle));
-            blendTranslated(x + w - rx + dx, y + ry - dy);
-            blendTranslated(x + rx - dx, y + ry - dy);
-            blendTranslated(x + w - rx + dx, y + h - ry + dy);
-            blendTranslated(x + rx - dx, y + h - ry + dy);
+        int steps = antialias ? 360 : 90;
+        for (int step = 0; step <= steps; step++) {
+            double angle = Math.toRadians(step * 90.0 / steps);
+            double dx = rx * Math.cos(angle);
+            double dy = ry * Math.sin(angle);
+            plotOutline(x + w - rx + dx, y + ry - dy);
+            plotOutline(x + rx - dx, y + ry - dy);
+            plotOutline(x + w - rx + dx, y + h - ry + dy);
+            plotOutline(x + rx - dx, y + h - ry + dy);
+        }
+    }
+
+    private void plotOutline(double x, double y) {
+        if (antialias) {
+            spreadPoint(x + 0.5, y + 0.5);
+        } else {
+            blendTranslated((int) Math.round(x), (int) Math.round(y), 1.0);
         }
     }
 
@@ -305,25 +445,34 @@ public final class Framebuffer {
         if (w <= 0 || h <= 0 || arcAngle == 0) {
             return;
         }
-        double cx = x + w / 2.0;
-        double cy = y + h / 2.0;
-        double rx = w / 2.0;
-        double ry = h / 2.0;
-        int from = Math.min(startAngle, startAngle + arcAngle);
-        int to = Math.max(startAngle, startAngle + arcAngle);
-        for (int py = y; py <= y + h; py++) {
-            for (int px = x; px <= x + w; px++) {
-                double nx = (px + 0.5 - cx) / rx;
-                double ny = (cy - py - 0.5) / ry;
+        final double cx = x + w / 2.0;
+        final double cy = y + h / 2.0;
+        final double rx = w / 2.0;
+        final double ry = h / 2.0;
+        final int from = Math.min(startAngle, startAngle + arcAngle);
+        final int to = Math.max(startAngle, startAngle + arcAngle);
+        Region wedge = new Region() {
+            public boolean contains(double px, double py) {
+                double nx = (px - cx) / rx;
+                double ny = (cy - py) / ry;
                 if (nx * nx + ny * ny > 1.0) {
-                    continue;
+                    return false;
                 }
                 double degrees = Math.toDegrees(Math.atan2(ny, nx));
                 if (degrees < 0) {
                     degrees += 360;
                 }
-                if (withinArc(degrees, from, to)) {
-                    blendTranslated(px, py);
+                return withinArc(degrees, from, to);
+            }
+        };
+        if (antialias) {
+            fillRegion(x, y, x + w, y + h, wedge);
+            return;
+        }
+        for (int py = y; py <= y + h; py++) {
+            for (int px = x; px <= x + w; px++) {
+                if (wedge.contains(px + 0.5, py + 0.5)) {
+                    blendTranslated(px, py, 1.0);
                 }
             }
         }
@@ -348,39 +497,67 @@ public final class Framebuffer {
         }
         double cx = x + w / 2.0;
         double cy = y + h / 2.0;
-        int steps = Math.max(8, Math.abs(arcAngle));
+        int steps = Math.max(8, Math.abs(arcAngle) * (antialias ? 4 : 1));
         for (int i = 0; i <= steps; i++) {
             double degrees = startAngle + (double) arcAngle * i / steps;
             double radians = Math.toRadians(degrees);
-            blendTranslated((int) Math.round(cx + Math.cos(radians) * w / 2.0),
-                    (int) Math.round(cy - Math.sin(radians) * h / 2.0));
+            double px = cx + Math.cos(radians) * w / 2.0;
+            double py = cy - Math.sin(radians) * h / 2.0;
+            if (antialias) {
+                spreadPoint(px, py);
+            } else {
+                blendTranslated((int) Math.round(px), (int) Math.round(py), 1.0);
+            }
         }
     }
 
-    public void fillTriangle(int x1, int y1, int x2, int y2, int x3, int y3) {
+    /** Spreads one sub-pixel sample over the four pixels it straddles. */
+    private void spreadPoint(double x, double y) {
+        int px = (int) Math.floor(x - 0.5);
+        int py = (int) Math.floor(y - 0.5);
+        double fx = x - 0.5 - px;
+        double fy = y - 0.5 - py;
+        blendTranslated(px, py, (1 - fx) * (1 - fy));
+        blendTranslated(px + 1, py, fx * (1 - fy));
+        blendTranslated(px, py + 1, (1 - fx) * fy);
+        blendTranslated(px + 1, py + 1, fx * fy);
+    }
+
+    public void fillTriangle(final int x1, final int y1, final int x2, final int y2,
+                             final int x3, final int y3) {
         int minX = Math.min(x1, Math.min(x2, x3));
         int maxX = Math.max(x1, Math.max(x2, x3));
         int minY = Math.min(y1, Math.min(y2, y3));
         int maxY = Math.max(y1, Math.max(y2, y3));
+        Region triangle = new Region() {
+            public boolean contains(double x, double y) {
+                return insideTriangle(x, y, x1, y1, x2, y2, x3, y3);
+            }
+        };
+        if (antialias) {
+            fillRegion(minX, minY, maxX, maxY, triangle);
+            return;
+        }
         for (int py = minY; py <= maxY; py++) {
             for (int px = minX; px <= maxX; px++) {
-                if (insideTriangle(px, py, x1, y1, x2, y2, x3, y3)) {
-                    blendTranslated(px, py);
+                if (triangle.contains(px + 0.5, py + 0.5)) {
+                    blendTranslated(px, py, 1.0);
                 }
             }
         }
     }
 
-    private static boolean insideTriangle(int px, int py, int x1, int y1, int x2, int y2, int x3, int y3) {
-        int d1 = cross(px, py, x1, y1, x2, y2);
-        int d2 = cross(px, py, x2, y2, x3, y3);
-        int d3 = cross(px, py, x3, y3, x1, y1);
+    private static boolean insideTriangle(double px, double py, int x1, int y1,
+                                          int x2, int y2, int x3, int y3) {
+        double d1 = cross(px, py, x1, y1, x2, y2);
+        double d2 = cross(px, py, x2, y2, x3, y3);
+        double d3 = cross(px, py, x3, y3, x1, y1);
         boolean negative = d1 < 0 || d2 < 0 || d3 < 0;
         boolean positive = d1 > 0 || d2 > 0 || d3 > 0;
         return !(negative && positive);
     }
 
-    private static int cross(int px, int py, int x1, int y1, int x2, int y2) {
+    private static double cross(double px, double py, int x1, int y1, int x2, int y2) {
         return (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
     }
 
@@ -426,6 +603,63 @@ public final class Framebuffer {
             }
         }
         return target;
+    }
+
+    /**
+     * Bilinear scale into a new surface.
+     *
+     * <p>This is the default for showing an emulated screen. A handset packed
+     * 240x320 into about two inches, so the pixels were far too small to see;
+     * blowing the same image up on a modern display with nearest-neighbour
+     * turns each of them into a visible block, which looks far more pixelated
+     * than the original hardware ever did.</p>
+     */
+    public Framebuffer scaleSmooth(int targetWidth, int targetHeight) {
+        Framebuffer target = new Framebuffer(targetWidth, targetHeight);
+        if (targetWidth <= 0 || targetHeight <= 0) {
+            return target;
+        }
+        // Sample at pixel centres, so the edges of the image are not stretched
+        // half a source pixel outwards.
+        double stepX = (double) width / targetWidth;
+        double stepY = (double) height / targetHeight;
+        for (int y = 0; y < targetHeight; y++) {
+            double sourceY = (y + 0.5) * stepY - 0.5;
+            int y0 = (int) Math.floor(sourceY);
+            double fy = sourceY - y0;
+            int topRow = clamp(y0, height - 1);
+            int bottomRow = clamp(y0 + 1, height - 1);
+            for (int x = 0; x < targetWidth; x++) {
+                double sourceX = (x + 0.5) * stepX - 0.5;
+                int x0 = (int) Math.floor(sourceX);
+                double fx = sourceX - x0;
+                int left = clamp(x0, width - 1);
+                int right = clamp(x0 + 1, width - 1);
+                target.pixels[y * targetWidth + x] = mix(
+                        pixels[topRow * width + left], pixels[topRow * width + right],
+                        pixels[bottomRow * width + left], pixels[bottomRow * width + right],
+                        fx, fy);
+            }
+        }
+        return target;
+    }
+
+    private static int clamp(int value, int max) {
+        return value < 0 ? 0 : (value > max ? max : value);
+    }
+
+    /** Bilinear mix of four ARGB samples. */
+    private static int mix(int topLeft, int topRight, int bottomLeft, int bottomRight,
+                           double fx, double fy) {
+        int result = 0;
+        for (int shift = 0; shift <= 24; shift += 8) {
+            double top = ((topLeft >>> shift) & 0xFF) * (1 - fx) + ((topRight >>> shift) & 0xFF) * fx;
+            double bottom = ((bottomLeft >>> shift) & 0xFF) * (1 - fx)
+                    + ((bottomRight >>> shift) & 0xFF) * fx;
+            int value = (int) Math.round(top * (1 - fy) + bottom * fy);
+            result |= (value < 0 ? 0 : (value > 255 ? 255 : value)) << shift;
+        }
+        return result;
     }
 
     /** Largest integer scale that still fits inside the given viewport. */

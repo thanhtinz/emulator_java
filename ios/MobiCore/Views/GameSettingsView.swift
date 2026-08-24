@@ -64,6 +64,19 @@ struct GameSettingsView: View {
                                 }
                             )
 
+                            Toggle(isOn: Binding(
+                                get: { current.smoothing },
+                                set: { current.smoothing = $0; save(current) }
+                            )) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Làm mượt")
+                                    Text("Khử răng cưa cạnh chéo và làm mượt khi phóng to")
+                                        .font(.caption2)
+                                        .foregroundStyle(Palette.textDim)
+                                }
+                            }
+                            .font(.footnote)
+
                             Toggle("Hiện số khung hình", isOn: Binding(
                                 get: { current.showFps },
                                 set: { current.showFps = $0; save(current) }

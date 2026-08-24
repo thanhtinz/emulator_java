@@ -25,13 +25,24 @@ public final class GameProfile {
     private final String suiteId;
     private DeviceProfile device;
     private InputProfile input;
-    private int scaleMode = SCALE_INTEGER;
+    private int scaleMode = SCALE_FIT;
     private int orientation = DeviceProfile.ORIENTATION_PORTRAIT;
     private int frameLimit = 30;
     private int volume = 70;
     private boolean muted;
     private boolean showFps;
     private boolean keepAspect = true;
+    /**
+     * Smooth the emulated screen when it is scaled up.
+     *
+     * <p>On by default, which is the opposite of what "pixel perfect" instinct
+     * suggests. A handset packed 240x320 into about two inches, so its pixels
+     * were far too small to pick out; reproducing them as visible blocks on a
+     * modern display looks markedly more pixelated than the hardware being
+     * emulated ever did. The setting stays available for anyone who wants the
+     * blocky look deliberately.</p>
+     */
+    private boolean smoothing = true;
     private int networkMode = NETWORK_ASK;
     private String skin = "classic";
     private boolean favourite;
@@ -135,6 +146,18 @@ public final class GameProfile {
         this.keepAspect = keepAspect;
     }
 
+    public boolean smoothing() {
+        return smoothing;
+    }
+
+    public void setSmoothing(boolean smoothing) {
+        this.smoothing = smoothing;
+    }
+
+    public String smoothingName() {
+        return smoothing ? "Mượt" : "Sắc cạnh";
+    }
+
     public int networkMode() {
         return networkMode;
     }
@@ -233,6 +256,7 @@ public final class GameProfile {
         json.put("muted", Boolean.valueOf(muted));
         json.put("showFps", Boolean.valueOf(showFps));
         json.put("keepAspect", Boolean.valueOf(keepAspect));
+        json.put("smoothing", Boolean.valueOf(smoothing));
         json.put("networkMode", Integer.valueOf(networkMode));
         json.put("skin", skin);
         json.put("favourite", Boolean.valueOf(favourite));
@@ -246,13 +270,14 @@ public final class GameProfile {
                 Json.string(json, "suiteId", "unknown"),
                 DeviceProfile.fromJson(Json.child(json, "device")),
                 InputProfile.fromJson(Json.child(json, "input")));
-        profile.scaleMode = Json.integer(json, "scaleMode", SCALE_INTEGER);
+        profile.scaleMode = Json.integer(json, "scaleMode", SCALE_FIT);
         profile.orientation = Json.integer(json, "orientation", DeviceProfile.ORIENTATION_PORTRAIT);
         profile.frameLimit = Json.integer(json, "frameLimit", 30);
         profile.volume = Json.integer(json, "volume", 70);
         profile.muted = Json.bool(json, "muted", false);
         profile.showFps = Json.bool(json, "showFps", false);
         profile.keepAspect = Json.bool(json, "keepAspect", true);
+        profile.smoothing = Json.bool(json, "smoothing", true);
         profile.networkMode = Json.integer(json, "networkMode", NETWORK_ASK);
         profile.skin = Json.string(json, "skin", "classic");
         profile.favourite = Json.bool(json, "favourite", false);

@@ -38,12 +38,13 @@ struct EmulatorView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
 
-            GameSurface(engine: engine)
+            GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             HStack {
                 Text("\(Int(engine.screenSize.width))×\(Int(engine.screenSize.height))"
-                     + "  ·  bội số nguyên  ·  không làm mượt")
+                     + "  ·  \(settings?.scaleModeName ?? "—")"
+                     + "  ·  \((settings?.smoothing ?? true) ? "làm mượt" : "sắc cạnh")")
                     .font(.caption2)
                     .foregroundStyle(Palette.textDim)
                 Spacer()
@@ -84,6 +85,7 @@ struct EmulatorView: View {
 private struct GameSurface: View {
 
     @ObservedObject var engine: EmulatorEngine
+    var smooth: Bool = true
 
     var body: some View {
         GeometryReader { geometry in
@@ -92,9 +94,10 @@ private struct GameSurface: View {
                 Color.black
                 if let frame = engine.frame {
                     Image(decorative: frame, scale: 1, orientation: .up)
-                        // Nearest neighbour: smoothing pixel art is the one
-                        // thing an emulator must never do.
-                        .interpolation(.none)
+                        // Smoothing is on by default: a handset packed this
+                        // many pixels into about two inches, so drawing them
+                        // as hard blocks looks worse than the real hardware.
+                        .interpolation(smooth ? .medium : .none)
                         .antialiased(false)
                         .resizable()
                         .frame(width: rect.width, height: rect.height)

@@ -339,8 +339,11 @@ public final class MidpUi {
                 .method("<init>", "(Z)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         // The back buffer is the same size as the screen, which
-                        // is what flushGraphics assumes.
-                        self.host = new Framebuffer(context.width(), context.height());
+                        // is what flushGraphics assumes, and is shown directly,
+                        // so it smooths shapes exactly as the screen does.
+                        Framebuffer back = new Framebuffer(context.width(), context.height());
+                        back.setAntialias(context.smoothShapes());
+                        self.host = back;
                         return null;
                     }
                 })
@@ -383,7 +386,9 @@ public final class MidpUi {
 
     static Framebuffer backBuffer(MidpContext context, VmObject canvas) {
         if (!(canvas.host instanceof Framebuffer)) {
-            canvas.host = new Framebuffer(context.width(), context.height());
+            Framebuffer back = new Framebuffer(context.width(), context.height());
+            back.setAntialias(context.smoothShapes());
+            canvas.host = back;
         }
         return (Framebuffer) canvas.host;
     }

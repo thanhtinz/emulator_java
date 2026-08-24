@@ -52,6 +52,7 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
     var frameLimit by remember { mutableIntStateOf(profile.frameLimit()) }
     var volume by remember { mutableIntStateOf(profile.volume()) }
     var showFps by remember { mutableStateOf(profile.showFps()) }
+    var smoothing by remember { mutableStateOf(profile.smoothing()) }
     var networkMode by remember { mutableIntStateOf(profile.networkMode()) }
     var preset by remember { mutableStateOf(profile.input().presetName()) }
 
@@ -110,6 +111,24 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                         onValueChangeFinished = { persist { it.setFrameLimit(frameLimit) } },
                         valueRange = 0f..60f,
                     )
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Làm mượt", color = MobiColors.TextDim, fontSize = 14.sp)
+                            Text(
+                                "Khử răng cưa cạnh chéo và làm mượt khi phóng to",
+                                color = MobiColors.TextDim,
+                                fontSize = 11.sp,
+                            )
+                        }
+                        Switch(checked = smoothing, onCheckedChange = {
+                            smoothing = it
+                            persist { profile -> profile.setSmoothing(it) }
+                        })
+                    }
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
