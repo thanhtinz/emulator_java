@@ -8,6 +8,7 @@ import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.storage.MemoryVfs;
 import com.mobicore.core.storage.StorageLayout;
 import com.mobicore.core.storage.Vfs;
+import com.mobicore.tools.ui.Icons;
 import com.mobicore.tools.ui.Theme;
 import com.mobicore.tools.ui.Ui;
 
@@ -80,10 +81,14 @@ public final class LibraryScreen {
     /**
      * Distinct placeholder cover derived from the title, so tiles differ.
      *
-     * <p>Drawn at 192 square with smoothing on, not at icon size: a tile on
-     * this screen is about ninety pixels across on a phone, so a 48 pixel
-     * source has to be blown up and every diagonal in it turns into a
-     * staircase. Drawn larger than it is shown, the edges stay clean.</p>
+     * <p>The mark on it is the Material controller icon, the same one the
+     * library tab and the empty states use — a cover with no artwork should
+     * look like the rest of the product, not like something drawn for the
+     * occasion.</p>
+     *
+     * <p>Painted at 192 square: a tile is about ninety pixels across, so a
+     * cover the size of a real {@code icon.png} would have to be blown up,
+     * and every edge in it would come out as a staircase.</p>
      */
     private byte[] coverFor(String title) throws Exception {
         int size = 192;
@@ -93,14 +98,7 @@ public final class LibraryScreen {
         int base = 0xFF000000 | ((40 + seed % 90) << 16) | ((60 + (seed / 7) % 120) << 8)
                 | (90 + (seed / 13) % 140);
         icon.fill(base);
-        icon.setColor(0x40FFFFFF);
-        for (int i = 0; i < size; i += 24) {
-            icon.drawLine(0, i, i, 0);
-        }
-        icon.setColor(0xFFFFFFFF);
-        icon.fillRoundRect(40, 56, 112, 80, 32, 32);
-        icon.setColor(base);
-        icon.fillArc(72, 76, 40, 40, 0, 360);
+        Icons.drawCentred(icon, Icons.LIBRARY, size / 2, size / 2, 104, 0xCCFFFFFF);
         return com.mobicore.core.gfx.PngWriter.encode(icon);
     }
 
@@ -113,10 +111,12 @@ public final class LibraryScreen {
         int width = frame.width() - margin * 2;
 
         ui.text(ui.title(), "MobiCore", margin, 14, Theme.TEXT);
-        ui.textRight(ui.medium(), "Nhập trò chơi", frame.width() - margin,
-                14 + (ui.title().height() - ui.medium().height()) / 2, Theme.ACCENT);
 
-        int y = 14 + ui.title().height() + 18;
+        int y = 14 + ui.title().height() + 14;
+        // Importing is what a new install has to do first and what every
+        // later visit comes back for, so it is a button on the home screen,
+        // not a word tucked into the corner of the title.
+        y += ui.button(margin, y, width, "Nhập trò chơi (.jar/.jad)", true, Icons.IMPORT) + 18;
         ui.text(ui.small(), "VỪA CHƠI", margin, y, Theme.TEXT_DIM);
         y += ui.small().height() + 10;
         List<LibraryEntry> recent = library.sort(library.all(), GameLibrary.SORT_RECENT, profiles);
@@ -184,8 +184,9 @@ public final class LibraryScreen {
                 y + 14 + ui.mediumBold().height() + 4, Theme.TEXT_DIM);
         ui.chip(chip, x + width - chipWidth - 14, y + 14, Theme.ACCENT, Theme.ACCENT_DIM);
         if (profile != null && profile.isFavourite()) {
-            ui.textRight(ui.small(), "★ yêu thích", x + width - 14,
-                    y + 14 + ui.chipHeight() + 8, Theme.WARN);
+            int favouriteWidth = ui.iconChipWidth("yêu thích");
+            ui.iconChip(Icons.STAR, "yêu thích", x + width - favouriteWidth - 14,
+                    y + 14 + ui.chipHeight() + 8, Theme.WARN, 0xFF3A2E10);
         }
     }
 

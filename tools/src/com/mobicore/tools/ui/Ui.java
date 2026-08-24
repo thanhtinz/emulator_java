@@ -168,7 +168,7 @@ public final class Ui {
             int centre = slot * i + slot / 2;
             boolean active = i == selected;
             int color = active ? Theme.ACCENT : Theme.TEXT_DIM;
-            tabGlyph(i, centre, top + 16, color);
+            Icons.drawCentred(frame, TAB_ICONS[i], centre, top + 24, 26, color);
             textCenter(small, labels[i], centre, top + 42, color);
             if (active) {
                 bar(slot * i + slot / 4, top + 1, slot / 2, 3, Theme.ACCENT);
@@ -176,31 +176,10 @@ public final class Ui {
         }
     }
 
-    /** Simple drawn icons, so the preview needs no image assets. */
-    private void tabGlyph(int index, int cx, int cy, int color) {
-        frame.setColor(color);
-        switch (index) {
-            case 0:
-                frame.fillTriangle(cx, cy - 2, cx - 11, cy + 7, cx + 11, cy + 7);
-                frame.fillRect(cx - 7, cy + 7, 14, 8);
-                break;
-            case 1:
-                frame.fillRoundRect(cx - 12, cy, 24, 15, 8, 8);
-                frame.setColor(Theme.SURFACE);
-                frame.fillRect(cx - 8, cy + 6, 5, 2);
-                frame.fillRect(cx + 5, cy + 6, 3, 3);
-                break;
-            case 2:
-                frame.fillRect(cx - 10, cy + 9, 14, 4);
-                frame.fillRoundRect(cx + 2, cy, 9, 9, 6, 6);
-                break;
-            default:
-                frame.fillArc(cx - 10, cy - 1, 20, 20, 0, 360);
-                frame.setColor(Theme.SURFACE);
-                frame.fillArc(cx - 4, cy + 5, 8, 8, 0, 360);
-                break;
-        }
-    }
+    /** The Material icon for each destination, in the order the bar shows. */
+    private static final String[] TAB_ICONS = {
+            Icons.HOME, Icons.LIBRARY, Icons.TOOLS, Icons.SETTINGS,
+    };
 
     /** Key/value row used across the detail and inspector screens. */
     public void field(String label, String value, int x, int y, int width) {
@@ -212,10 +191,49 @@ public final class Ui {
 
     /** Filled action button; returns the height it occupied. */
     public int button(int x, int y, int w, String label, boolean primary) {
+        return button(x, y, w, label, primary, null);
+    }
+
+    /**
+     * Filled action button carrying a Material icon before its label. The
+     * icon and the text are centred together, so the pair reads as one thing
+     * rather than as a label with something stuck to the side.
+     */
+    public int button(int x, int y, int w, String label, boolean primary, String icon) {
         int height = medium.height() + 24;
+        int color = primary ? Theme.ACCENT : Theme.TEXT;
         panel(x, y, w, height, primary ? Theme.ACCENT_DIM : Theme.SURFACE_ALT,
                 primary ? Theme.ACCENT : Theme.BORDER);
-        textCenter(mediumBold, label, x + w / 2, y + 12, primary ? Theme.ACCENT : Theme.TEXT);
+        if (icon == null) {
+            textCenter(mediumBold, label, x + w / 2, y + 12, color);
+            return height;
+        }
+        int glyph = mediumBold.height() + 4;
+        int span = glyph + 8 + mediumBold.stringWidth(label);
+        int left = x + (w - span) / 2;
+        Icons.draw(frame, icon, left, y + (height - glyph) / 2, glyph, color);
+        text(mediumBold, label, left + glyph + 8, y + 12, color);
         return height;
+    }
+
+    /**
+     * Rounded label with an icon in front of it, for a state a word alone
+     * states weakly — a favourite, for one.
+     */
+    public int iconChip(String icon, String label, int x, int y, int textColor, int fillColor) {
+        int padding = 9;
+        int glyph = small.height() + 2;
+        int width = glyph + 5 + small.stringWidth(label) + padding * 2;
+        int height = small.height() + 6;
+        frame.setColor(fillColor);
+        frame.fillRoundRect(x, y, width, height, height, height);
+        Icons.draw(frame, icon, x + padding, y + (height - glyph) / 2, glyph, textColor);
+        text(small, label, x + padding + glyph + 5, y + 3, textColor);
+        return width;
+    }
+
+    /** Width {@link #iconChip} would occupy, for laying a row out first. */
+    public int iconChipWidth(String label) {
+        return small.height() + 2 + 5 + small.stringWidth(label) + 18;
     }
 }

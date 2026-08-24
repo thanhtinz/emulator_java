@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,17 +62,18 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Row(
-                Modifier.fillMaxWidth().padding(top = 18.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("MobiCore", color = MobiColors.Text, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    text = "Nhập trò chơi",
-                    color = MobiColors.Accent,
-                    fontSize = 15.sp,
-                    modifier = Modifier.clickable(onClick = onImport),
+            Column(Modifier.fillMaxWidth().padding(top = 18.dp)) {
+                Text("MobiCore", color = MobiColors.Text, fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(12.dp))
+                // Importing is the first thing a new install has to do and the
+                // reason for most later visits, so it is a button on the home
+                // screen rather than a word in the corner of the title.
+                PrimaryButton(
+                    label = "Nhập trò chơi (.jar/.jad)",
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Filled.Download,
+                    onClick = onImport,
                 )
             }
         }

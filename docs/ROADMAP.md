@@ -258,3 +258,29 @@ cả `Canvas` lẫn màn hình cấp cao.
 MIDlet `demo/MenuDemo.java` là chương trình J2ME thật dựng hoàn toàn bằng
 `List`, `Form`, `TextBox` và `Alert` — bộ test lái nó bằng bàn phím, và
 `./build.sh run com.mobicore.tools.Preview` chụp lại từng màn hình.
+
+## Biểu tượng lấy sẵn, không tự vẽ
+
+Trước đây các biểu tượng trong bản xem trước desktop được vẽ tay bằng hình
+học: một tam giác làm mái nhà, hai hình tròn làm nút chơi, mấy đường chéo làm
+ảnh bìa. Chúng không giống bộ biểu tượng nào, và mỗi lần Android hay iOS đổi
+là bản xem trước lệch theo.
+
+Nay cả ba nền tảng dùng chung một bộ **Material Symbols** (Apache 2.0):
+
+- Android vẽ thẳng qua `Icons.Filled`.
+- iOS dùng SF Symbols tương ứng.
+- Bản xem trước không có sẵn bộ nào, nên `codegen/IconGen.java` đọc các tệp
+  SVG trong `assets/icons`, tự phân tích đường dẫn SVG, tô ở 64×64 có khử răng
+  cưa rồi sinh `IconData.java`. Khi vẽ, biểu tượng luôn được thu nhỏ chứ không
+  phóng to, nên không bao giờ vỡ hạt.
+
+Ảnh bìa mặc định của trò chơi cũng vậy: nền màu suy ra từ tên, và dấu ở giữa
+là chính biểu tượng tay cầm của bộ Material, không còn hình tự chế.
+
+## Nút nhập trò chơi ở trang chủ
+
+Nhập game trước đây chỉ là một dòng chữ nhỏ ở góc tiêu đề. Đó là việc đầu tiên
+một máy mới cài phải làm và là lý do quay lại thường xuyên nhất, nên nó thành
+một nút thật, có biểu tượng tải về, nằm ngay dưới tiêu đề trang chủ — ở cả bản
+xem trước, Android và iOS.

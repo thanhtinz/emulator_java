@@ -4,6 +4,7 @@ import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.midp.MidpContext;
+import com.mobicore.tools.ui.Icons;
 import com.mobicore.tools.ui.Theme;
 import com.mobicore.tools.ui.Ui;
 

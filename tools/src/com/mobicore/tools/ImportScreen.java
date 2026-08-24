@@ -6,6 +6,7 @@ import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.model.MidletSuiteInfo;
 import com.mobicore.core.storage.StorageLayout;
+import com.mobicore.tools.ui.Icons;
 import com.mobicore.tools.ui.Theme;
 import com.mobicore.tools.ui.Ui;
 
@@ -126,22 +127,19 @@ public final class ImportScreen {
         // Actions --------------------------------------------------------
         int buttonWidth = (width - 12) / 2;
         ui.button(margin, y, buttonWidth, "Hủy", false);
-        ui.button(margin + buttonWidth + 12, y, buttonWidth, "Cài đặt", true);
+        ui.button(margin + buttonWidth + 12, y, buttonWidth, "Cài đặt", true, Icons.IMPORT);
 
         return frame;
     }
 
+    /** Placeholder cover for a suite that carries no icon of its own. */
     private void drawIcon(Ui ui, int x, int y, int size) {
         Framebuffer frame = ui.frame();
         frame.setColor(0xFF1D4E63);
         frame.fillRoundRect(x, y, size, size, 18, 18);
         frame.setColor(Theme.ACCENT);
         frame.drawRoundRect(x, y, size - 1, size - 1, 18, 18);
-        frame.fillArc(x + 20, y + 16, 32, 32, 0, 360);
-        frame.setColor(0xFF1D4E63);
-        frame.fillArc(x + 28, y + 24, 16, 16, 0, 360);
-        frame.setColor(Theme.ACCENT);
-        frame.fillRect(x + 16, y + 56, 40, 4);
+        Icons.drawCentred(frame, Icons.LIBRARY, x + size / 2, y + size / 2, size / 2, Theme.ACCENT);
     }
 
     private static String kb(long bytes) {

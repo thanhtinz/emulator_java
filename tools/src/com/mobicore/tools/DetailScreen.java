@@ -5,6 +5,7 @@ import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.gfx.PngReader;
 import com.mobicore.core.storage.Json;
 import com.mobicore.core.storage.MemoryVfs;
+import com.mobicore.tools.ui.Icons;
 import com.mobicore.tools.ui.Theme;
 import com.mobicore.tools.ui.Ui;
 
@@ -80,14 +81,14 @@ public final class DetailScreen {
         chipX += ui.chip(Json.string(game, "profile", ""), chipX, chipY,
                 Theme.ACCENT, Theme.ACCENT_DIM) + 8;
         if (Json.bool(settings, "favourite", false)) {
-            ui.chip("★ YÊU THÍCH", chipX, chipY, Theme.WARN, 0xFF3A2E10);
+            ui.iconChip(Icons.STAR, "YÊU THÍCH", chipX, chipY, Theme.WARN, 0xFF3A2E10);
         }
         y += cover + 18;
 
         // Actions --------------------------------------------------------
         int buttonWidth = (width - 12) / 2;
-        int buttonHeight = ui.button(margin, y, buttonWidth, "Chơi", true);
-        ui.button(margin + buttonWidth + 12, y, buttonWidth, "Cài đặt", false);
+        int buttonHeight = ui.button(margin, y, buttonWidth, "Chơi", true, Icons.PLAY);
+        ui.button(margin + buttonWidth + 12, y, buttonWidth, "Cài đặt", false, Icons.TUNE);
         y += buttonHeight + 16;
 
         // Details --------------------------------------------------------
@@ -137,7 +138,9 @@ public final class DetailScreen {
         // Danger zone ----------------------------------------------------
         int dangerHeight = 12 + ui.medium().height() + ui.small().height() + 26;
         ui.panel(margin, y, width, dangerHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.medium(), "Gỡ trò chơi", fieldX, y + 12, Theme.BAD);
+        int trash = ui.medium().height() + 2;
+        Icons.draw(ui.frame(), Icons.DELETE, fieldX, y + 12, trash, Theme.BAD);
+        ui.text(ui.medium(), "Gỡ trò chơi", fieldX + trash + 6, y + 12, Theme.BAD);
         ui.text(ui.small(), "Dữ liệu lưu luôn được sao lưu trước khi xoá bất cứ thứ gì.",
                 fieldX, y + 12 + ui.medium().height() + 4, Theme.TEXT_DIM);
 

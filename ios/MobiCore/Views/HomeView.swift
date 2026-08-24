@@ -14,6 +14,25 @@ struct HomeView: View {
                     .padding(.top, 60)
             } else {
                 VStack(alignment: .leading, spacing: 18) {
+                    // Importing is the first thing a new install has to do and
+                    // the reason for most later visits, so it gets a button on
+                    // the screen itself, not only a word in the toolbar.
+                    Button {
+                        importing = true
+                    } label: {
+                        Label("Nhập trò chơi (.jar/.jad)", systemImage: "square.and.arrow.down")
+                            .font(.headline)
+                            .foregroundStyle(Palette.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 13)
+                            .background(Palette.accentDim, in: RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Palette.accent, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+
                     if !client.recent.isEmpty {
                         Text("VỪA CHƠI")
                             .font(.caption2.weight(.semibold))
@@ -64,7 +83,11 @@ struct HomeView: View {
         .navigationTitle("MobiCore")
         .navigationDestination(for: String.self) { GameDetailView(suiteId: $0) }
         .toolbar {
-            Button("Nhập trò chơi") { importing = true }
+            Button {
+                importing = true
+            } label: {
+                Label("Nhập trò chơi", systemImage: "square.and.arrow.down")
+            }
         }
         .fileImporter(
             isPresented: $importing,

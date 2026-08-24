@@ -5,6 +5,7 @@ import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.vm.VmHost;
+import com.mobicore.tools.ui.Icons;
 import com.mobicore.tools.ui.Theme;
 import com.mobicore.tools.ui.Ui;
 
@@ -85,7 +86,9 @@ public final class EmulatorScreen {
         frame.setColor(Theme.SURFACE);
         frame.fillRect(0, 0, frame.width(), barHeight);
         int textY = (barHeight - ui.medium().height()) / 2;
-        ui.text(ui.medium(), "‹  Thư viện", Ui.PAD, textY, Theme.ACCENT);
+        int glyph = ui.medium().height() + 4;
+        Icons.draw(frame, Icons.BACK, Ui.PAD, (barHeight - glyph) / 2, glyph, Theme.ACCENT);
+        ui.text(ui.medium(), "Thư viện", Ui.PAD + glyph + 4, textY, Theme.ACCENT);
         ui.textCenter(ui.small(), GAME_WIDTH + "×" + GAME_HEIGHT + "  ·  " + SCALE
                         + "×  ·  30 hình/giây",
                 frame.width() / 2, (barHeight - ui.small().height()) / 2, Theme.TEXT_DIM);
@@ -183,20 +186,18 @@ public final class EmulatorScreen {
                 middleY + (keyHeight - ui.medium().height()) / 2, Theme.ACCENT);
     }
 
-    /** Directional key with a drawn triangle: 0 up, 1 down, 2 left, 3 right. */
+    /** The Material arrow for each direction: 0 up, 1 down, 2 left, 3 right. */
+    private static final String[] ARROWS = {
+            Icons.UP, Icons.DOWN, Icons.LEFT, Icons.RIGHT,
+    };
+
+    /**
+     * Directional key. The arrow is the Material chevron the Android keypad
+     * puts on the same key, so the two keypads cannot drift apart.
+     */
     private void arrowKey(Ui ui, int x, int y, int w, int h, int direction) {
-        Framebuffer frame = ui.frame();
         ui.panel(x, y, w, h, 0xFF1D3547, Theme.ACCENT);
-        frame.setColor(Theme.ACCENT);
-        int cx = x + w / 2;
-        int cy = y + h / 2;
-        int size = 11;
-        switch (direction) {
-            case 0: frame.fillTriangle(cx, cy - size, cx - size, cy + size, cx + size, cy + size); break;
-            case 1: frame.fillTriangle(cx, cy + size, cx - size, cy - size, cx + size, cy - size); break;
-            case 2: frame.fillTriangle(cx - size, cy, cx + size, cy - size, cx + size, cy + size); break;
-            default: frame.fillTriangle(cx + size, cy, cx - size, cy - size, cx - size, cy + size); break;
-        }
+        Icons.drawCentred(ui.frame(), ARROWS[direction], x + w / 2, y + h / 2, 40, Theme.ACCENT);
     }
 
     /** Deterministic clock so screenshots are reproducible. */

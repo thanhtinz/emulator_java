@@ -1,6 +1,7 @@
 package com.mobicore.tests;
 
 import com.mobicore.core.emu.EmulatorSession;
+import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.AttributeSet;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.library.GameLibrary;
@@ -22,6 +23,8 @@ import com.mobicore.core.tools.RmsEditor;
 import com.mobicore.core.vm.VmObject;
 import com.mobicore.core.vm.VmThrow;
 import com.mobicore.tools.SampleSuite;
+import com.mobicore.tools.ui.IconData;
+import com.mobicore.tools.ui.Icons;
 
 import java.io.File;
 import java.util.LinkedHashMap;
@@ -46,6 +49,7 @@ public final class ToolsTest extends Test {
     public void run() throws Exception {
         policy();
         jadEditor();
+        icons();
 
         Vfs vfs = new MemoryVfs();
         StorageLayout layout = new StorageLayout("/data/MobiCore");
@@ -62,6 +66,56 @@ public final class ToolsTest extends Test {
         mods(library, entry);
         rmsEditor(library, entry);
         crash(library, entry);
+    }
+
+    /**
+     * The interface draws no icon of its own: every glyph comes from the
+     * Material set generated into {@link IconData}. These checks are what
+     * catches a bad path parse — an icon that came out blank, solid, or
+     * spilling past the box it was asked for.
+     */
+    private void icons() {
+        check(IconData.NAMES.length >= 20, "the generated icon set is present");
+        check(Icons.has(Icons.HOME) && Icons.has(Icons.IMPORT) && Icons.has(Icons.STAR),
+                "the icons the screens name are in the set");
+
+        Framebuffer frame = new Framebuffer(40, 40);
+        frame.fill(0xFF000000);
+        Icons.draw(frame, Icons.HOME, 4, 4, 32, 0xFFFFFFFF);
+
+        int lit = 0;
+        int outside = 0;
+        for (int y = 0; y < 40; y++) {
+            for (int x = 0; x < 40; x++) {
+                boolean drawn = frame.pixel(x, y) != 0xFF000000;
+                if (drawn) {
+                    lit++;
+                    if (x < 4 || y < 4 || x >= 36 || y >= 36) {
+                        outside++;
+                    }
+                }
+            }
+        }
+        check(lit > 100, "the icon paints something");
+        check(lit < 32 * 32, "the icon is a shape, not a filled square");
+        eq(0, outside, "the icon stays inside the box it was given");
+
+        boolean partial = false;
+        for (int x = 4; x < 36; x++) {
+            int alpha = frame.pixel(x, 20) & 0xFF;
+            if (alpha > 0 && alpha < 255) {
+                partial = true;
+            }
+        }
+        check(partial, "edges are anti-aliased, not hard");
+
+        boolean rejected = false;
+        try {
+            Icons.draw(frame, "no_such_icon", 0, 0, 16, 0xFFFFFFFF);
+        } catch (IllegalArgumentException expected) {
+            rejected = true;
+        }
+        check(rejected, "an icon that was never generated is refused, not blank");
     }
 
     private void policy() {
