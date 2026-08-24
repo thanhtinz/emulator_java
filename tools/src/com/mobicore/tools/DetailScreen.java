@@ -66,7 +66,7 @@ public final class DetailScreen {
         if (artwork.length > 0 && PngReader.looksLikePng(artwork)) {
             PngReader.Image decoded = PngReader.decode(artwork);
             Framebuffer icon = Framebuffer.wrap(decoded.pixels, decoded.width, decoded.height)
-                    .scaleNearest(cover, cover);
+                    .scaleSmooth(cover, cover);
             frame.drawFramebuffer(icon, margin, y);
         }
         int textLeft = margin + cover + 16;

@@ -87,7 +87,9 @@ public final class SampleSuite {
     }
 
     private static byte[] iconPng() throws IOException {
-        int size = 48;
+        // Larger than any tile shows it, so the screens that scale it up have
+        // pixels to work with rather than blocks to enlarge.
+        int size = 192;
         int[] pixels = new int[size * size];
         for (int y = 0; y < size; y++) {
             for (int x = 0; x < size; x++) {

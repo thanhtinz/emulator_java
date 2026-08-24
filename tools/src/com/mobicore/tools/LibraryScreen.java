@@ -77,22 +77,30 @@ public final class LibraryScreen {
         library.install(SampleSuite.zip(entries), null);
     }
 
-    /** Distinct placeholder cover derived from the title, so tiles differ. */
+    /**
+     * Distinct placeholder cover derived from the title, so tiles differ.
+     *
+     * <p>Drawn at 192 square with smoothing on, not at icon size: a tile on
+     * this screen is about ninety pixels across on a phone, so a 48 pixel
+     * source has to be blown up and every diagonal in it turns into a
+     * staircase. Drawn larger than it is shown, the edges stay clean.</p>
+     */
     private byte[] coverFor(String title) throws Exception {
-        int size = 48;
+        int size = 192;
         Framebuffer icon = new Framebuffer(size, size);
+        icon.setAntialias(true);
         int seed = Math.abs(title.hashCode());
         int base = 0xFF000000 | ((40 + seed % 90) << 16) | ((60 + (seed / 7) % 120) << 8)
                 | (90 + (seed / 13) % 140);
         icon.fill(base);
         icon.setColor(0x40FFFFFF);
-        for (int i = 0; i < size; i += 6) {
+        for (int i = 0; i < size; i += 24) {
             icon.drawLine(0, i, i, 0);
         }
         icon.setColor(0xFFFFFFFF);
-        icon.fillRoundRect(10, 14, 28, 20, 8, 8);
+        icon.fillRoundRect(40, 56, 112, 80, 32, 32);
         icon.setColor(base);
-        icon.fillArc(18, 19, 10, 10, 0, 360);
+        icon.fillArc(72, 76, 40, 40, 0, 360);
         return com.mobicore.core.gfx.PngWriter.encode(icon);
     }
 
@@ -190,7 +198,7 @@ public final class LibraryScreen {
         if (artwork != null && PngReader.looksLikePng(artwork)) {
             PngReader.Image decoded = PngReader.decode(artwork);
             Framebuffer icon = Framebuffer.wrap(decoded.pixels, decoded.width, decoded.height)
-                    .scaleNearest(size - 10, size - 10);
+                    .scaleSmooth(size - 10, size - 10);
             frame.drawFramebuffer(icon, x + 5, y + 5);
         } else {
             ui.textCenter(ui.title(), entry.title().substring(0, 1).toUpperCase(),
