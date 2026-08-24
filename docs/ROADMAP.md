@@ -281,6 +281,8 @@ là chính biểu tượng tay cầm của bộ Material, không còn hình tự
 ## Nút nhập trò chơi ở trang chủ
 
 Nhập game trước đây chỉ là một dòng chữ nhỏ ở góc tiêu đề. Đó là việc đầu tiên
-một máy mới cài phải làm và là lý do quay lại thường xuyên nhất, nên nó thành
-một nút thật, có biểu tượng tải về, nằm ngay dưới tiêu đề trang chủ — ở cả bản
-xem trước, Android và iOS.
+một máy mới cài phải làm và là lý do quay lại thường xuyên nhất, nên nay nó là
+một nút tròn nổi, có biểu tượng tải về, nằm ở góc dưới bên phải ngay trên
+thanh tab — ở cả bản xem trước, Android và iOS. Nút tròn nhỏ vì nó phải luôn
+ở đó khi danh sách cuộn, mà không lấy mất một dải màn hình của chính các trò
+chơi.

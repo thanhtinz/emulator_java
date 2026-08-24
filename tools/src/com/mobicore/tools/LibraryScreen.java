@@ -112,11 +112,7 @@ public final class LibraryScreen {
 
         ui.text(ui.title(), "MobiCore", margin, 14, Theme.TEXT);
 
-        int y = 14 + ui.title().height() + 14;
-        // Importing is what a new install has to do first and what every
-        // later visit comes back for, so it is a button on the home screen,
-        // not a word tucked into the corner of the title.
-        y += ui.button(margin, y, width, "Nhập trò chơi (.jar/.jad)", true, Icons.IMPORT) + 18;
+        int y = 14 + ui.title().height() + 18;
         ui.text(ui.small(), "VỪA CHƠI", margin, y, Theme.TEXT_DIM);
         y += ui.small().height() + 10;
         List<LibraryEntry> recent = library.sort(library.all(), GameLibrary.SORT_RECENT, profiles);
@@ -155,6 +151,11 @@ public final class LibraryScreen {
         }
 
         ui.tabBar(new String[]{"Trang chủ", "Thư viện", "Công cụ", "Cài đặt"}, 0);
+        // Importing is what a new install has to do first and what most later
+        // visits come back for, so it gets the one floating button on the
+        // screen — small, always in the same corner, never in the way of the
+        // list.
+        ui.fab(Icons.IMPORT);
         return frame;
     }
 

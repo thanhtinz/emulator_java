@@ -152,6 +152,27 @@ public final class Ui {
         }
     }
 
+    /** Diameter of the floating action button. */
+    public static final int FAB = 56;
+
+    /**
+     * Round action button, floating clear of the content above the tab bar.
+     *
+     * <p>One action per screen earns this, and on the home screen that is
+     * importing. It stays reachable while the list scrolls without taking a
+     * band of the screen away from the games themselves.</p>
+     */
+    public void fab(String icon) {
+        int size = FAB;
+        int x = frame.width() - PAD - size;
+        int y = frame.height() - TAB_BAR - PAD - size;
+        frame.setColor(0x33000000);
+        frame.fillArc(x - 1, y + 2, size + 2, size + 2, 0, 360);
+        frame.setColor(Theme.ACCENT);
+        frame.fillArc(x, y, size, size, 0, 360);
+        Icons.drawCentred(frame, icon, x + size / 2, y + size / 2, 26, Theme.BG);
+    }
+
     /** Height of the bottom navigation bar. */
     public static final int TAB_BAR = 74;
 

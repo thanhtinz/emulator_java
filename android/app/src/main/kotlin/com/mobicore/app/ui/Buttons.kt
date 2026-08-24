@@ -3,35 +3,20 @@ package com.mobicore.app.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/**
- * @param icon a Material icon shown before the label. Every glyph in the app
- *   comes from that set — nothing here is drawn by hand, so what the user sees
- *   matches the rest of the system they already know.
- */
 @Composable
-fun PrimaryButton(
-    label: String,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    onClick: () -> Unit,
-) {
+fun PrimaryButton(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         modifier
             .clip(RoundedCornerShape(12.dp))
@@ -41,17 +26,7 @@ fun PrimaryButton(
             .padding(vertical = 13.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (icon != null) {
-                Icon(icon, contentDescription = null, tint = MobiColors.Accent,
-                    modifier = Modifier.size(20.dp))
-            }
-            Text(label, color = MobiColors.Accent, fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold)
-        }
+        Text(label, color = MobiColors.Accent, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
