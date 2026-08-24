@@ -1,6 +1,8 @@
 package com.mobicore.tests;
 
 import com.mobicore.core.bridge.MobiCoreFacade;
+import com.mobicore.core.gfx.Framebuffer;
+import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.storage.Json;
 import com.mobicore.core.storage.MemoryVfs;
 import com.mobicore.tools.SampleSuite;
@@ -58,6 +60,36 @@ public final class FacadeTest extends Test {
 
         check(facade.artwork(suiteId).length > 0, "artwork crosses the bridge as bytes");
         eq(0, facade.artwork("nonexistent").length, "a missing game yields no artwork");
+
+        // Renaming and cover art across the bridge ------------------------
+        Map<String, Object> renamed = Json.readObject(
+                facade.renameGame(suiteId, "Người Chạy Trên Mây"));
+        check(Json.bool(renamed, "ok", false), "a game can be renamed through the bridge");
+        eq("Người Chạy Trên Mây", Json.string(renamed, "title", ""), "the new title comes back");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> afterRename = (Map<String, Object>)
+                Json.array(Json.readObject(facade.libraryJson()), "games").get(0);
+        eq("Người Chạy Trên Mây", Json.string(afterRename, "title", ""),
+                "the library lists the new name");
+        eq("Sky Runner", Json.string(afterRename, "originalTitle", ""),
+                "and still carries the manifest name");
+        check(Json.bool(afterRename, "renamed", false),
+                "the entry says it was renamed, so the phone need not compare strings");
+        check(!Json.bool(Json.readObject(facade.renameGame(suiteId, "  ")), "ok", true),
+                "a blank name is refused with an error, not stored");
+        check(Json.bool(Json.readObject(facade.resetTitle(suiteId)), "ok", false),
+                "the manifest title can be put back");
+
+        Framebuffer chosenCover = new Framebuffer(20, 20);
+        chosenCover.fill(0xFF3366AA);
+        byte[] chosen = PngWriter.encode(chosenCover);
+        check(Json.bool(Json.readObject(facade.setArtwork(suiteId, chosen)), "ok", false),
+                "a chosen cover crosses the bridge");
+        eq(chosen.length, facade.artwork(suiteId).length, "and is what later reads return");
+        check(!Json.bool(Json.readObject(facade.setArtwork(suiteId, new byte[]{9, 9})), "ok", true),
+                "a file that is not a PNG is refused");
+        check(Json.bool(Json.readObject(facade.resetArtwork(suiteId)), "ok", false),
+                "the suite's own icon can be put back");
 
         Map<String, Object> profile = Json.readObject(facade.profileJson(suiteId));
         eq(7, Json.array(profile, "devices").size(), "the device catalog rides along");

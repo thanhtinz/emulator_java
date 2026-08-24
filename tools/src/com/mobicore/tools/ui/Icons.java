@@ -38,6 +38,10 @@ public final class Icons {
     public static final String CLOSE = "close";
     public static final String SAVE = "save";
     public static final String FOLDER = "folder_open";
+    public static final String EDIT = "edit";
+    public static final String PHOTO = "photo_library";
+    public static final String CAMERA = "photo_camera";
+    public static final String UNDO = "undo";
 
     private static final byte[][] CACHE = new byte[IconData.NAMES.length][];
 

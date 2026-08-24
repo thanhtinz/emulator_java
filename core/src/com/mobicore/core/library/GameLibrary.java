@@ -1,5 +1,6 @@
 package com.mobicore.core.library;
 
+import com.mobicore.core.gfx.PngReader;
 import com.mobicore.core.jar.JarArchive;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.model.GameProfile;
@@ -203,6 +204,93 @@ public final class GameLibrary {
     public byte[] artwork(String suiteId) throws IOException {
         String path = layout.artworkPath(suiteId);
         return vfs.exists(path) ? vfs.read(path) : null;
+    }
+
+    /**
+     * Renames a game as the library lists it.
+     *
+     * <p>Only the display title changes: the suite's own manifest title is
+     * kept, so the change can be undone and so a reinstall of the same suite
+     * is still recognised. The manifest inside the JAR is never rewritten —
+     * a game that reads its own name would then disagree with the library.</p>
+     *
+     * @throws IOException if there is no such suite, or the name is blank
+     */
+    public LibraryEntry rename(String suiteId, String title) throws IOException {
+        LibraryEntry entry = entries.get(suiteId);
+        if (entry == null) {
+            throw new IOException("No installed suite with id " + suiteId);
+        }
+        String trimmed = title == null ? "" : title.trim();
+        if (trimmed.length() == 0) {
+            throw new IOException("A game needs a name");
+        }
+        if (trimmed.length() > MAX_TITLE) {
+            trimmed = trimmed.substring(0, MAX_TITLE).trim();
+        }
+        LibraryEntry renamed = entry.withTitle(trimmed);
+        entries.put(suiteId, renamed);
+        writeIndex();
+        return renamed;
+    }
+
+    /** Puts the manifest's own title back. */
+    public LibraryEntry resetTitle(String suiteId) throws IOException {
+        LibraryEntry entry = entries.get(suiteId);
+        if (entry == null) {
+            throw new IOException("No installed suite with id " + suiteId);
+        }
+        return rename(suiteId, entry.originalTitle());
+    }
+
+    /** Longest display title kept; past this a name is a paragraph. */
+    public static final int MAX_TITLE = 120;
+
+    /**
+     * Replaces the cover art with a picture of the user's choosing.
+     *
+     * <p>Stored as given, so whatever the phone handed over is what later
+     * screens scale down. Only a PNG is accepted: it is the one format the
+     * emulator can decode everywhere, MIDP included, and a file that cannot
+     * be decoded would leave a game with no cover at all.</p>
+     *
+     * @throws IOException if there is no such suite, or the bytes are not a PNG
+     */
+    public LibraryEntry setArtwork(String suiteId, byte[] png) throws IOException {
+        LibraryEntry entry = entries.get(suiteId);
+        if (entry == null) {
+            throw new IOException("No installed suite with id " + suiteId);
+        }
+        if (png == null || !PngReader.looksLikePng(png)) {
+            throw new IOException("Cover art must be a PNG");
+        }
+        vfs.write(layout.artworkPath(suiteId), png);
+        LibraryEntry updated = entry.withArtwork(true);
+        entries.put(suiteId, updated);
+        writeIndex();
+        return updated;
+    }
+
+    /**
+     * Puts back the icon the suite ships, or leaves it with none if it ships
+     * no icon. The JAR is the source of truth, so nothing is lost by
+     * replacing the cover.
+     */
+    public LibraryEntry resetArtwork(String suiteId) throws IOException {
+        LibraryEntry entry = entries.get(suiteId);
+        if (entry == null) {
+            throw new IOException("No installed suite with id " + suiteId);
+        }
+        byte[] icon = load(suiteId).iconBytes();
+        if (icon != null) {
+            vfs.write(layout.artworkPath(suiteId), icon);
+        } else if (vfs.exists(layout.artworkPath(suiteId))) {
+            vfs.delete(layout.artworkPath(suiteId));
+        }
+        LibraryEntry updated = entry.withArtwork(icon != null);
+        entries.put(suiteId, updated);
+        writeIndex();
+        return updated;
     }
 
     public RecordStoreManager records(String suiteId) {

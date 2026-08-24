@@ -286,3 +286,27 @@ một nút tròn nổi, có biểu tượng tải về, nằm ở góc dưới b
 thanh tab — ở cả bản xem trước, Android và iOS. Nút tròn nhỏ vì nó phải luôn
 ở đó khi danh sách cuộn, mà không lấy mất một dải màn hình của chính các trò
 chơi.
+
+## Đặt tên và đổi ảnh bìa cho game
+
+Tên và ảnh của một game trước đây là bất biến: lấy từ manifest trong JAR, và
+không ai sửa được. Với game lậu hoặc bản chép tay — thứ chiếm phần lớn kho
+J2ME — tên trong manifest thường vô nghĩa, còn ảnh bìa thì không có.
+
+Nay đổi được cả hai:
+
+- **Đổi tên** chỉ đổi tên hiển thị. Tên trong manifest được giữ nguyên trong
+  `LibraryEntry.originalTitle`, nên luôn hoàn tác được, và cài lại đúng bộ đó
+  vẫn được nhận ra là cùng một game. Manifest bên trong JAR không bao giờ bị
+  ghi đè: một game tự đọc tên của chính nó sẽ lệch với thư viện.
+  Tên trống bị từ chối ngay, không lưu.
+- **Đổi ảnh bìa** ghi đè `artwork.png` trong hộp cát của game. Chỉ nhận PNG —
+  đó là định dạng duy nhất emulator giải mã được ở mọi nơi, kể cả phía MIDP.
+  Ảnh người dùng chọn (thường là JPEG/HEIC) được cắt vuông, thu về tối đa 256
+  px rồi mã hoá lại thành PNG ngay trên máy: Android dùng `Artwork.pngFrom`,
+  iOS dùng `Artwork.png(from:)`.
+- **Trả về mặc định** lấy lại tên trong manifest và icon gốc trong JAR. JAR
+  vẫn là nguồn thật, nên không có gì mất đi khi thay ảnh.
+
+Nút "+" ở trang chủ nhập game; trang chi tiết có mục "Tên và ảnh bìa", còn
+ảnh bìa có sẵn nút sửa ngay ở góc — chỗ người ta nhìn vào khi muốn đổi ảnh.

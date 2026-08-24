@@ -18,7 +18,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -123,7 +124,7 @@ fun HomeScreen(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                Icons.Filled.Download,
+                Icons.Filled.Add,
                 contentDescription = "Nhập trò chơi",
                 tint = MobiColors.Background,
                 modifier = Modifier.size(26.dp),

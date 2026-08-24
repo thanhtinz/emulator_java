@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 /// Ảnh bìa, thông tin và mọi thao tác với một trò chơi đã cài.
@@ -9,6 +10,10 @@ struct GameDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var confirmUninstall = false
     @State private var playing = false
+    @State private var renaming = false
+    @State private var newTitle = ""
+    @State private var coverPick: PhotosPickerItem?
+    @State private var coverError: String?
 
     private var game: Game? { client.game(suiteId) }
 
@@ -18,6 +23,7 @@ struct GameDetailView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(alignment: .top, spacing: 14) {
                         GameArtwork(title: game.title, image: client.artwork(suiteId), size: 84)
+                            .id(client.artworkRevision)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(game.title)
                                 .font(.title2.weight(.bold))
@@ -47,6 +53,46 @@ struct GameDetailView: View {
                             Text("Cài đặt").frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
+                    }
+
+                    SectionCard(title: "TÊN VÀ ẢNH BÌA") {
+                        VStack(alignment: .leading, spacing: 6) {
+                            FieldRow(label: "Tên hiển thị", value: game.title)
+                            if game.renamed {
+                                FieldRow(label: "Tên gốc", value: game.originalTitle)
+                            }
+                            HStack(spacing: 10) {
+                                Button {
+                                    newTitle = game.title
+                                    renaming = true
+                                } label: {
+                                    Label(game.renamed ? "Đổi tên" : "Đặt tên", systemImage: "pencil")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+
+                                PhotosPicker(selection: $coverPick, matching: .images) {
+                                    Label("Chọn ảnh", systemImage: "photo.on.rectangle")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                            .padding(.top, 4)
+
+                            if game.renamed || game.hasArtwork {
+                                Button("Trả về mặc định") {
+                                    client.resetTitle(suiteId)
+                                    client.resetArtwork(suiteId)
+                                }
+                                .font(.footnote)
+                                .foregroundStyle(Palette.accent)
+                            }
+                            if let coverError {
+                                Text(coverError)
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.bad)
+                            }
+                        }
                     }
 
                     SectionCard(title: "THÔNG TIN") {
@@ -110,6 +156,30 @@ struct GameDetailView: View {
                 Image(systemName: (game?.settings?.favourite ?? false) ? "star.fill" : "star")
             }
             .tint(Palette.warn)
+        }
+        .onChange(of: coverPick) { _, item in
+            guard let item else { return }
+            Task {
+                guard let raw = try? await item.loadTransferable(type: Data.self),
+                      let png = Artwork.png(from: raw) else {
+                    coverError = "Không đọc được ảnh này."
+                    return
+                }
+                coverError = nil
+                client.setArtwork(png, for: suiteId)
+            }
+        }
+        // A blank name is refused while the keyboard is still up, rather than
+        // through a failure after the fact.
+        .alert("Tên trò chơi", isPresented: $renaming) {
+            TextField("Tên trò chơi", text: $newTitle)
+            Button("Huỷ", role: .cancel) { }
+            Button("Lưu") {
+                let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    client.rename(suiteId, to: trimmed)
+                }
+            }
         }
         .fullScreenCover(isPresented: $playing) {
             EmulatorView(suiteId: suiteId)

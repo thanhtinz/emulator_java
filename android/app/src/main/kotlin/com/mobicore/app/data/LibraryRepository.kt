@@ -109,6 +109,31 @@ class LibraryRepository(filesDir: String) {
         refresh()
     }
 
+    /**
+     * Renames a game as the library lists it. The suite's own manifest title
+     * is kept, so the change is reversible and a reinstall still matches.
+     */
+    fun rename(suiteId: String, title: String) {
+        library.rename(suiteId, title)
+        refresh()
+    }
+
+    fun resetTitle(suiteId: String) {
+        library.resetTitle(suiteId)
+        refresh()
+    }
+
+    /** Replaces the cover. PNG only — the core refuses anything else. */
+    fun setArtwork(suiteId: String, png: ByteArray) {
+        library.setArtwork(suiteId, png)
+        refresh()
+    }
+
+    fun resetArtwork(suiteId: String) {
+        library.resetArtwork(suiteId)
+        refresh()
+    }
+
     fun toggleFavourite(suiteId: String) {
         val profile = library.profile(suiteId) ?: return
         profile.isFavourite = !profile.isFavourite

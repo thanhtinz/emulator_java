@@ -155,7 +155,7 @@ public final class LibraryScreen {
         // visits come back for, so it gets the one floating button on the
         // screen — small, always in the same corner, never in the way of the
         // list.
-        ui.fab(Icons.IMPORT);
+        ui.fab(Icons.ADD);
         return frame;
     }
 

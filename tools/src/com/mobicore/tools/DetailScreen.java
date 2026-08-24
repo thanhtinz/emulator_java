@@ -32,6 +32,9 @@ public final class DetailScreen {
         String suiteId = Json.string(Json.child(imported, "game"), "suiteId", "");
 
         facade.toggleFavourite(suiteId);
+        // Renamed here so the screenshot shows what a renamed game looks
+        // like, including the line offering the manifest name back.
+        facade.renameGame(suiteId, "Sky Runner (bản Việt)");
         facade.startGame(suiteId);
         facade.renderFrame();
         facade.stopGame();
@@ -70,6 +73,15 @@ public final class DetailScreen {
                     .scaleSmooth(cover, cover);
             frame.drawFramebuffer(icon, margin, y);
         }
+        // A tap target on the corner of the cover, because that is where a
+        // user looks to change a picture — not in a list of settings.
+        int badge = 30;
+        int badgeX = margin + cover - badge + 4;
+        int badgeY = y + cover - badge + 4;
+        frame.setColor(Theme.ACCENT);
+        frame.fillArc(badgeX, badgeY, badge, badge, 0, 360);
+        Icons.drawCentred(frame, Icons.PHOTO, badgeX + badge / 2, badgeY + badge / 2, 16, Theme.BG);
+
         int textLeft = margin + cover + 16;
         ui.text(ui.largeBold(), Json.string(game, "title", ""), textLeft, y + 2, Theme.TEXT);
         ui.text(ui.small(), Json.string(game, "vendor", ""), textLeft,
@@ -90,6 +102,22 @@ public final class DetailScreen {
         int buttonHeight = ui.button(margin, y, buttonWidth, "Chơi", true, Icons.PLAY);
         ui.button(margin + buttonWidth + 12, y, buttonWidth, "Cài đặt", false, Icons.TUNE);
         y += buttonHeight + 16;
+
+        // Name and cover -------------------------------------------------
+        boolean renamed = Json.bool(game, "renamed", false);
+        String originalTitle = Json.string(game, "originalTitle", "");
+        int nameRows = renamed ? 2 : 1;
+        int nameHeight = ui.sectionHeight(nameRows) + buttonHeight + 4;
+        int nameRow = ui.section(margin, y, width, nameHeight, "TÊN VÀ ẢNH BÌA", null);
+        ui.field("Tên hiển thị", Json.string(game, "title", ""), fieldX, nameRow, fieldWidth);
+        if (renamed) {
+            ui.field("Tên gốc", originalTitle, fieldX, nameRow + Ui.ROW, fieldWidth);
+        }
+        int actionY = nameRow + Ui.ROW * nameRows + 2;
+        int half = (fieldWidth - 12) / 2;
+        ui.button(fieldX, actionY, half, renamed ? "Đổi tên" : "Đặt tên", false, Icons.EDIT);
+        ui.button(fieldX + half + 12, actionY, half, "Chọn ảnh", false, Icons.PHOTO);
+        y += nameHeight + 16;
 
         // Details --------------------------------------------------------
         Map<String, Object> device = Json.child(settings, "device");

@@ -36,6 +36,18 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *)uninstallSuite:(NSString *)suiteId keepData:(BOOL)keepData;
 
+/// Renames a game as the library lists it; the manifest title is kept.
+- (NSString *)renameSuite:(NSString *)suiteId title:(NSString *)title;
+
+/// Puts the suite's own title back.
+- (NSString *)resetTitleForSuite:(NSString *)suiteId;
+
+/// Replaces the cover art. PNG only — anything else is refused.
+- (NSString *)setArtwork:(NSData *)png forSuite:(NSString *)suiteId;
+
+/// Puts the icon the suite ships back on the tile.
+- (NSString *)resetArtworkForSuite:(NSString *)suiteId;
+
 #pragma mark - Profiles
 
 - (NSString *)profileJSONForSuite:(NSString *)suiteId;

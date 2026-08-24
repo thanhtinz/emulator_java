@@ -4,6 +4,10 @@ import Foundation
 struct Game: Codable, Identifiable, Hashable {
     let suiteId: String
     let title: String
+    /// The title the suite's own manifest declares. Kept when a game is
+    /// renamed, so the original name can always be offered back.
+    let originalTitle: String
+    let renamed: Bool
     let vendor: String
     let version: String
     let configuration: String

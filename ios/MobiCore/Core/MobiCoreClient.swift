@@ -12,6 +12,9 @@ final class MobiCoreClient: ObservableObject {
     @Published private(set) var recent: [Game] = []
     @Published private(set) var favourites: [Game] = []
     @Published private(set) var lastError: String?
+    /// Bumped whenever a cover changes, so views holding a decoded image
+    /// know to ask for it again — the bytes change while the id does not.
+    @Published private(set) var artworkRevision: Int = 0
 
     private let bridge = MobiCoreBridge.shared
     private let decoder = JSONDecoder()
@@ -56,6 +59,38 @@ final class MobiCoreClient: ObservableObject {
 
     func uninstall(_ suiteId: String, keepData: Bool = false) {
         report(decode(bridge.uninstallSuite(suiteId, keepData: keepData)))
+        refresh()
+    }
+
+    /// Renames a game as the library lists it. The suite keeps its own title,
+    /// so the change can be undone and a reinstall still matches.
+    @discardableResult
+    func rename(_ suiteId: String, to title: String) -> Bool {
+        let result: ActionResult? = decode(bridge.renameSuite(suiteId, title: title))
+        report(result)
+        refresh()
+        return result?.ok ?? false
+    }
+
+    func resetTitle(_ suiteId: String) {
+        report(decode(bridge.resetTitle(forSuite: suiteId)))
+        refresh()
+    }
+
+    /// Replaces the cover. The picture must already be PNG — see
+    /// `Artwork.png(from:)`, which is where a picked photo is converted.
+    @discardableResult
+    func setArtwork(_ png: Data, for suiteId: String) -> Bool {
+        let result: ActionResult? = decode(bridge.setArtwork(png, forSuite: suiteId))
+        report(result)
+        artworkRevision &+= 1
+        refresh()
+        return result?.ok ?? false
+    }
+
+    func resetArtwork(_ suiteId: String) {
+        report(decode(bridge.resetArtwork(forSuite: suiteId)))
+        artworkRevision &+= 1
         refresh()
     }
 

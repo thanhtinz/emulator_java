@@ -172,6 +172,60 @@ public final class MobiCoreFacade {
         }
     }
 
+    /**
+     * Renames a game as the library lists it. The name a user gives a game is
+     * the one they look for it under; the manifest keeps its own.
+     */
+    public String renameGame(String suiteId, String title) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return ok("title", library.rename(suiteId, title).title());
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Puts the suite's own title back. */
+    public String resetTitle(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return ok("title", library.resetTitle(suiteId).title());
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Replaces the cover art. PNG only — see
+     * {@link GameLibrary#setArtwork(String, byte[])}.
+     */
+    public String setArtwork(String suiteId, byte[] png) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return ok("artwork", String.valueOf(library.setArtwork(suiteId, png).hasArtwork()));
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Puts the icon the suite ships back on the tile. */
+    public String resetArtwork(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return ok("artwork", String.valueOf(library.resetArtwork(suiteId).hasArtwork()));
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
     // ------------------------------------------------------------ profiles
 
     public String profileJson(String suiteId) {

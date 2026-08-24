@@ -13,11 +13,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +37,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.mobicore.app.data.Artwork
 import com.mobicore.app.data.LibraryRepository
 
 /** Cover, metadata and the actions available for one installed game. */
@@ -44,6 +57,26 @@ fun GameDetailScreen(
     val profiles by library.profiles.collectAsState()
     val entry = library.games.collectAsState().value.firstOrNull { it.suiteId() == suiteId }
     var confirmUninstall by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf(false) }
+    var coverError by remember { mutableStateOf<String?>(null) }
+    var coverRevision by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+
+    // The photo picker, rather than a storage permission: it hands back the
+    // one picture the user chose and asks them for nothing else.
+    val pickCover = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val png = Artwork.pngFrom(context, uri)
+            if (png == null) {
+                coverError = "Không đọc được ảnh này."
+            } else {
+                library.setArtwork(suiteId, png)
+                coverRevision++
+            }
+        }
+    }
 
     if (entry == null) {
         EmptyState(Icons.AutoMirrored.Filled.ArrowBack, "Không tìm thấy trò chơi",
@@ -52,7 +85,7 @@ fun GameDetailScreen(
     }
 
     val profile = profiles[suiteId]
-    val artwork = remember(suiteId) { decodeArtwork(library.artwork(suiteId)) }
+    val artwork = remember(suiteId, coverRevision) { decodeArtwork(library.artwork(suiteId)) }
     val stores = remember(suiteId) { library.records(suiteId).listStoreNames() }
 
     LazyColumn(
@@ -103,7 +136,52 @@ fun GameDetailScreen(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PrimaryButton("Chơi", Modifier.weight(1f), onPlay)
-                SecondaryButton("Cài đặt", Modifier.weight(1f), onSettings)
+                SecondaryButton("Cài đặt", Modifier.weight(1f), onClick = onSettings)
+            }
+        }
+
+        item {
+            SectionCard(title = "TÊN VÀ ẢNH BÌA") {
+                Column {
+                    FieldRow("Tên hiển thị", entry.title())
+                    if (entry.isRenamed) {
+                        FieldRow("Tên gốc", entry.originalTitle())
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        SecondaryButton(
+                            label = if (entry.isRenamed) "Đổi tên" else "Đặt tên",
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Filled.Edit,
+                        ) { renaming = true }
+                        SecondaryButton(
+                            label = "Chọn ảnh",
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Filled.PhotoLibrary,
+                        ) {
+                            pickCover.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    }
+                    if (entry.isRenamed || entry.hasArtwork()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Trả về mặc định",
+                            color = MobiColors.Accent,
+                            fontSize = 13.sp,
+                            modifier = Modifier.clickable {
+                                library.resetTitle(suiteId)
+                                library.resetArtwork(suiteId)
+                                coverRevision++
+                            },
+                        )
+                    }
+                    if (coverError != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(coverError!!, color = MobiColors.Bad, fontSize = 13.sp)
+                    }
+                }
             }
         }
 
@@ -171,4 +249,50 @@ fun GameDetailScreen(
 
         item { Spacer(Modifier.height(24.dp)) }
     }
+
+    if (renaming) {
+        RenameDialog(
+            current = entry.title(),
+            onDismiss = { renaming = false },
+            onConfirm = { name ->
+                library.rename(suiteId, name)
+                renaming = false
+            },
+        )
+    }
+}
+
+/**
+ * Asks for the name a game should be listed under.
+ *
+ * A blank name is refused here rather than at the store, so the user finds
+ * out while the keyboard is still up instead of through a failure afterwards.
+ */
+@Composable
+private fun RenameDialog(current: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    var text by remember { mutableStateOf(current) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Tên trò chơi", color = MobiColors.Text) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = true,
+                isError = text.isBlank(),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(text.trim()) },
+                enabled = text.isNotBlank(),
+            ) {
+                Text("Lưu", color = MobiColors.Accent)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Huỷ", color = MobiColors.TextDim) }
+        },
+        containerColor = MobiColors.Surface,
+    )
 }

@@ -1,6 +1,8 @@
 package com.mobicore.tests;
 
 import com.mobicore.core.emu.EmulatorSession;
+import com.mobicore.core.gfx.Framebuffer;
+import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
@@ -12,6 +14,7 @@ import com.mobicore.core.storage.Vfs;
 import com.mobicore.tools.SampleSuite;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -62,6 +65,52 @@ public final class LibraryTest extends Test {
         eq(1, reopened.search("MobiCore").size(), "search matches the vendor");
         eq(0, reopened.search("tetris").size(), "search rejects non-matches");
         eq(1, reopened.search("").size(), "an empty query lists everything");
+
+        // Renaming and cover art -----------------------------------------
+        LibraryEntry renamed = reopened.rename(entry.suiteId(), "  Người Chạy Trên Mây  ");
+        eq("Người Chạy Trên Mây", renamed.title(), "a new name is trimmed and kept");
+        eq("Sky Runner", renamed.originalTitle(), "the manifest title is not overwritten");
+        check(renamed.isRenamed(), "the entry knows it was renamed");
+        eq(1, reopened.search("Người").size(), "search finds the game under its new name");
+
+        GameLibrary afterRename = new GameLibrary(vfs, layout);
+        afterRename.open();
+        eq("Người Chạy Trên Mây", afterRename.find(entry.suiteId()).title(),
+                "the new name survives a reopen");
+        eq("Sky Runner", afterRename.find(entry.suiteId()).originalTitle(),
+                "so does the manifest title");
+        eq("Sky Runner", afterRename.resetTitle(entry.suiteId()).title(),
+                "resetting puts the manifest title back");
+
+        boolean blankRejected = false;
+        try {
+            afterRename.rename(entry.suiteId(), "   ");
+        } catch (IOException expected) {
+            blankRejected = true;
+        }
+        check(blankRejected, "a blank name is refused, not stored");
+
+        Framebuffer cover = new Framebuffer(24, 24);
+        cover.fill(0xFF4488CC);
+        byte[] chosen = PngWriter.encode(cover);
+        check(afterRename.setArtwork(entry.suiteId(), chosen).hasArtwork(),
+                "a chosen cover is accepted");
+        eq(chosen.length, afterRename.artwork(entry.suiteId()).length,
+                "the cover is stored exactly as given");
+
+        boolean notAPng = false;
+        try {
+            afterRename.setArtwork(entry.suiteId(), new byte[]{1, 2, 3});
+        } catch (IOException expected) {
+            notAPng = true;
+        }
+        check(notAPng, "a file that is not a PNG is refused");
+        eq(chosen.length, afterRename.artwork(entry.suiteId()).length,
+                "and the cover that was there is left alone");
+
+        afterRename.resetArtwork(entry.suiteId());
+        check(afterRename.artwork(entry.suiteId()).length != chosen.length,
+                "resetting puts the suite's own icon back");
 
         GameProfile profile = reopened.profile(entry.suiteId());
         check(profile != null, "the stored profile loads");

@@ -64,6 +64,22 @@
     return [_facade uninstallWithNSString:suiteId withBoolean:keepData];
 }
 
+- (NSString *)renameSuite:(NSString *)suiteId title:(NSString *)title {
+    return [_facade renameGameWithNSString:suiteId withNSString:title];
+}
+
+- (NSString *)resetTitleForSuite:(NSString *)suiteId {
+    return [_facade resetTitleWithNSString:suiteId];
+}
+
+- (NSString *)setArtwork:(NSData *)png forSuite:(NSString *)suiteId {
+    return [_facade setArtworkWithNSString:suiteId withByteArray:[self byteArrayFrom:png]];
+}
+
+- (NSString *)resetArtworkForSuite:(NSString *)suiteId {
+    return [_facade resetArtworkWithNSString:suiteId];
+}
+
 #pragma mark - Profiles
 
 - (NSString *)profileJSONForSuite:(NSString *)suiteId {

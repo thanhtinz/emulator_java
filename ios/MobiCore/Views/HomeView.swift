@@ -69,7 +69,7 @@ struct HomeView: View {
             Button {
                 importing = true
             } label: {
-                Image(systemName: "square.and.arrow.down")
+                Image(systemName: "plus")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Palette.background)
                     .frame(width: 56, height: 56)
