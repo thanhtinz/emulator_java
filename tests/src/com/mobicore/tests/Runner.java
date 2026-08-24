@@ -19,6 +19,7 @@ public final class Runner {
         tests.add(new MidpTest(fixtures));
         tests.add(new ProfileTest());
         tests.add(new LibraryTest(fixtures));
+        tests.add(new FacadeTest(fixtures));
 
         int failed = 0;
         int totalChecks = 0;

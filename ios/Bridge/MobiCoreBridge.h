@@ -1,0 +1,90 @@
+#import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+/**
+ Objective-C face of the emulator core.
+
+ The core is plain Java translated by J2ObjC; this class is the only place that
+ touches the generated types. Swift sees Foundation objects and a CGImage, so a
+ change inside the core never ripples into the UI layer.
+
+ Everything structured crosses as JSON, matching
+ `com.mobicore.core.bridge.MobiCoreFacade`.
+ */
+@interface MobiCoreBridge : NSObject
+
+/// Shared instance; the library and the running game are process-wide state.
+@property (class, readonly) MobiCoreBridge *shared;
+
+#pragma mark - Library
+
+/// Creates the storage tree under `root` (normally Application Support).
+- (NSString *)openAtPath:(NSString *)root;
+@property (nonatomic, readonly) BOOL isOpen;
+@property (nonatomic, readonly) NSString *storageRoot;
+
+/// The whole library as JSON: games, embedded profiles, recent and favourites.
+- (NSString *)libraryJSON;
+
+/// Cover art bytes, or nil when the suite ships none.
+- (nullable NSData *)artworkForSuite:(NSString *)suiteId;
+
+/// Imports a suite. `descriptor` may be nil for a bare JAR.
+- (NSString *)importJar:(NSData *)jar descriptor:(nullable NSData *)descriptor;
+
+- (NSString *)uninstallSuite:(NSString *)suiteId keepData:(BOOL)keepData;
+
+#pragma mark - Profiles
+
+- (NSString *)profileJSONForSuite:(NSString *)suiteId;
+- (NSString *)updateProfileJSON:(NSString *)json;
+- (NSString *)setDeviceProfile:(NSString *)deviceId forSuite:(NSString *)suiteId;
+- (NSString *)setInputPreset:(NSString *)preset forSuite:(NSString *)suiteId;
+- (NSString *)toggleFavouriteForSuite:(NSString *)suiteId;
+
+#pragma mark - Saves
+
+- (NSString *)savesJSONForSuite:(NSString *)suiteId;
+- (NSString *)backupSuite:(NSString *)suiteId;
+- (NSString *)restoreLatestForSuite:(NSString *)suiteId;
+- (NSString *)resetDataForSuite:(NSString *)suiteId;
+
+#pragma mark - Tools
+
+- (NSString *)inspectJSONForSuite:(NSString *)suiteId;
+- (nullable NSData *)resourceNamed:(NSString *)path inSuite:(NSString *)suiteId;
+
+#pragma mark - Emulator
+
+- (NSString *)startGame:(NSString *)suiteId;
+@property (nonatomic, readonly) BOOL isRunning;
+@property (nonatomic, readonly) BOOL isFinished;
+@property (nonatomic, readonly) NSString *activeSuiteId;
+@property (nonatomic, readonly) CGSize screenSize;
+
+/// Advances one frame. Returns NO when nothing changed.
+- (BOOL)renderFrame;
+
+/// The current frame as an image, or nil when no game is running.
+- (nullable CGImageRef)copyFrameImage CF_RETURNS_RETAINED;
+
+- (nullable NSData *)screenshotPNG;
+
+- (void)pressButton:(NSString *)button;
+- (void)releaseButton:(NSString *)button;
+- (void)pointerDownAtX:(NSInteger)x y:(NSInteger)y;
+- (void)pointerMovedToX:(NSInteger)x y:(NSInteger)y;
+- (void)pointerUpAtX:(NSInteger)x y:(NSInteger)y;
+
+- (void)pauseGame;
+- (void)resumeGame;
+- (void)stopGame;
+
+- (NSString *)logText;
+- (NSString *)logJSON;
+
+@end
+
+NS_ASSUME_NONNULL_END

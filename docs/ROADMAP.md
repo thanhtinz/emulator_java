@@ -7,8 +7,8 @@
 | 3 | Thư viện MIDP: Display, Canvas, Graphics, Image, Sprite | Xong |
 | 4 | Device profile, input mapping, RMS + backup/restore | Xong |
 | 5 | Ứng dụng Android (Kotlin) | Xong (chưa biên dịch được ở CI) |
-| 6 | Ứng dụng iOS (SwiftUI + J2ObjC) | Đang làm |
-| 7 | Developer tools, network layer, modding | |
+| 6 | Ứng dụng iOS (SwiftUI + J2ObjC) | Xong (chưa biên dịch được ở CI) |
+| 7 | Developer tools, network layer, modding | Đang làm |
 | 8 | Tối ưu tương thích và hiệu năng | |
 
 ## Giai đoạn 1 — đã hoàn thành
@@ -106,3 +106,17 @@ Module `android/`: Kotlin + Jetpack Compose, dùng trực tiếp core.
 
 Xem `docs/ANDROID.md`. Lưu ý: môi trường dựng repo này chặn `dl.google.com`
 nên chưa chạy được `gradlew` để biên dịch module Android.
+
+## Giai đoạn 6 — đã hoàn thành
+
+- `MobiCoreFacade`: API phẳng chỉ dùng `String`/`byte[]`/`int[]`/số nguyên,
+  mọi cấu trúc đi qua JSON. Đây là toàn bộ bề mặt mà bản dịch J2ObjC phải
+  phơi ra, nên cầu nối nhỏ và ổn định. Có bộ test riêng (47 checks).
+- `ios/Bridge/MobiCoreBridge.[hm]`: lớp Objective-C duy nhất chạm vào kiểu do
+  J2ObjC sinh ra; đổi `int[]` ARGB thành `CGImage` bằng bộ đệm dùng lại.
+- Ứng dụng SwiftUI: Home, Library, Game Detail, Emulator (keypad ảo,
+  integer scaling, không lọc pixel), Game settings, Saves, Tools, Settings.
+- `ios/build-core.sh` dịch `core/src`; `ios/project.yml` sinh project bằng
+  XcodeGen.
+
+Xem `docs/IOS.md`.

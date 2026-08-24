@@ -1,0 +1,46 @@
+# XcodeGen specification. Run `xcodegen generate` in this directory to produce
+# MobiCore.xcodeproj; the project file itself is not committed so it never
+# drifts from the sources.
+name: MobiCore
+options:
+  bundleIdPrefix: com.mobicore
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    CLANG_ENABLE_MODULES: YES
+
+targets:
+  MobiCore:
+    type: application
+    platform: iOS
+    sources:
+      - path: MobiCore
+      - path: Bridge
+      - path: Generated
+        optional: true
+        type: folder
+    info:
+      path: MobiCore/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mobicore.app
+        SWIFT_OBJC_BRIDGING_HEADER: Bridge/MobiCore-Bridging-Header.h
+        # The translated core and the J2ObjC runtime.
+        HEADER_SEARCH_PATHS:
+          - $(SRCROOT)/Generated
+          - $(J2OBJC_HOME)/include
+        LIBRARY_SEARCH_PATHS:
+          - $(J2OBJC_HOME)/lib
+        OTHER_LDFLAGS:
+          - -ljre_emul
+          - -lz
+          - -ObjC
+    dependencies:
+      - sdk: CoreGraphics.framework
+      - sdk: QuartzCore.framework
+      - sdk: UIKit.framework

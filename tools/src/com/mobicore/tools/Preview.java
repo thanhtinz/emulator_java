@@ -35,6 +35,7 @@ public final class Preview {
         write(vfs, outDir, "03-emulator.png", new EmulatorScreen(fixtures).render());
         write(vfs, outDir, "04-game-settings.png", new ProfileScreen(fixtures).render());
         write(vfs, outDir, "05-library.png", new LibraryScreen(fixtures).render());
+        write(vfs, outDir, "06-game-detail.png", new DetailScreen(fixtures).render());
 
         System.out.println("Screenshots written to " + outDir);
     }
