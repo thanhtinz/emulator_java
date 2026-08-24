@@ -110,6 +110,22 @@ public final class FacadeTest extends Test {
         eq("qvga-240x320", Json.string(Json.child(afterAuto, "device"), "id", ""),
                 "and the hand-set device was replaced by the detected one");
 
+        // The interface theme: the one setting people change often ---------
+        Map<String, Object> appearance = Json.readObject(facade.appSettingsJson());
+        eq(0, Json.integer(appearance, "theme", -1), "the interface starts light");
+        eq("Sáng", Json.string(appearance, "themeName", ""), "and says so in words");
+
+        check(Json.bool(Json.readObject(facade.setTheme(1)), "ok", false), "dark can be chosen");
+        eq(1, Json.integer(Json.readObject(facade.appSettingsJson()), "theme", -1),
+                "and the choice is remembered");
+        eq(2, Json.integer(Json.readObject(facade.cycleTheme()), "theme", -1),
+                "one tap moves dark to following the phone");
+        eq(0, Json.integer(Json.readObject(facade.cycleTheme()), "theme", -1),
+                "and then back round to light");
+        facade.setTheme(9);
+        eq(0, Json.integer(Json.readObject(facade.appSettingsJson()), "theme", -1),
+                "a theme that does not exist falls back to light rather than breaking");
+
         Map<String, Object> profile = Json.readObject(facade.profileJson(suiteId));
         eq(7, Json.array(profile, "devices").size(), "the device catalog rides along");
         eq("qvga-240x320", Json.string(Json.child(profile, "device"), "id", ""),

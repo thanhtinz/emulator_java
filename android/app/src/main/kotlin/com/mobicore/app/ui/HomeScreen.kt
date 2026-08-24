@@ -19,9 +19,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Brightness4
+import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Brightness4
+import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -70,13 +75,29 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
-                Text(
-                    text = "MobiCore",
-                    color = MobiColors.Text,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 18.dp),
-                )
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "MobiCore",
+                        color = MobiColors.Text,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    // One tap, always in the same corner: light and dark is
+                    // the setting people change often enough to want on the
+                    // way rather than three screens in.
+                    IconButton(onClick = { library.cycleTheme() }) {
+                        Icon(
+                            if (MobiColors.dark) Icons.Filled.BrightnessHigh
+                            else Icons.Filled.Brightness4,
+                            contentDescription = "Đổi giao diện sáng tối",
+                            tint = MobiColors.Accent,
+                        )
+                    }
+                }
             }
 
             if (recent.isNotEmpty()) {

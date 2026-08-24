@@ -102,7 +102,7 @@ public final class DetailScreen {
         compatibilityChip(ui, textLeft, chipY - ui.chipHeight() - 8,
                 Json.integer(settings, "compatibility", 0));
         if (Json.bool(settings, "favourite", false)) {
-            ui.iconChip(Icons.STAR, "YÊU THÍCH", chipX, chipY, Theme.WARN, 0xFF3A2E10);
+            ui.iconChip(Icons.STAR, "YÊU THÍCH", chipX, chipY, Theme.WARN, Theme.WARN_BG);
         }
         y += cover + 18;
 
@@ -236,12 +236,12 @@ public final class DetailScreen {
      */
     private int compatibilityChip(Ui ui, int x, int y, int level) {
         if (level == 1) {
-            return ui.iconChip(Icons.CHECK, "THIẾU VÀI THỨ", x, y, Theme.WARN, 0xFF3A2E10);
+            return ui.iconChip(Icons.CHECK, "THIẾU VÀI THỨ", x, y, Theme.WARN, Theme.WARN_BG);
         }
         if (level >= 2) {
-            return ui.iconChip(Icons.CLOSE, "CHƯA CHẠY ĐƯỢC", x, y, Theme.BAD, 0xFF3A1A1A);
+            return ui.iconChip(Icons.CLOSE, "CHƯA CHẠY ĐƯỢC", x, y, Theme.BAD, Theme.BAD_BG);
         }
-        return ui.iconChip(Icons.CHECK, "CHẠY TỐT", x, y, Theme.GOOD, 0xFF12301E);
+        return ui.iconChip(Icons.CHECK, "CHẠY TỐT", x, y, Theme.GOOD, Theme.GOOD_BG);
     }
 
     private static String kb(long bytes) {

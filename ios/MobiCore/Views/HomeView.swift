@@ -81,6 +81,16 @@ struct HomeView: View {
             .padding(16)
         }
         .navigationTitle("MobiCore")
+        .toolbar {
+            // One tap, always in the same corner: light and dark is the
+            // setting people change often enough to want it on the way.
+            Button {
+                client.cycleTheme()
+            } label: {
+                Image(systemName: Palette.dark ? "sun.max" : "moon")
+            }
+            .accessibilityLabel("Đổi giao diện sáng tối")
+        }
         .navigationDestination(for: String.self) { GameDetailView(suiteId: $0) }
         .toolbar {
             Button {

@@ -285,7 +285,8 @@ private val BUTTON_LABELS = listOf(
 )
 
 @Composable
-private fun OptionRow(label: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+/** A labelled row of mutually exclusive choices, used by both settings screens. */
+fun OptionRow(label: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(label, color = MobiColors.TextDim, fontSize = 14.sp)
         Spacer(Modifier.height(6.dp))

@@ -135,7 +135,7 @@ public final class ImportScreen {
     /** Placeholder cover for a suite that carries no icon of its own. */
     private void drawIcon(Ui ui, int x, int y, int size) {
         Framebuffer frame = ui.frame();
-        frame.setColor(0xFF1D4E63);
+        frame.setColor(Theme.ACCENT_DIM);
         frame.fillRoundRect(x, y, size, size, 18, 18);
         frame.setColor(Theme.ACCENT);
         frame.drawRoundRect(x, y, size - 1, size - 1, 18, 18);

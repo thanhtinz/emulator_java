@@ -72,6 +72,44 @@ final class MobiCoreClient: ObservableObject {
         return result?.ok ?? false
     }
 
+    // MARK: - Appearance
+
+    /// Light, dark or follow the phone; see `AppSettings` in the core.
+    @Published private(set) var theme: Int = ThemeChoice.light {
+        didSet { applyTheme() }
+    }
+
+    func setTheme(_ choice: Int) {
+        report(decode(bridge.setTheme(Int32(choice))))
+        theme = choice
+    }
+
+    /// Light to dark to system and back, for the switch on the home screen.
+    func cycleTheme() {
+        let response: AppSettingsPayload? = decode(bridge.cycleTheme())
+        theme = response?.theme ?? ThemeChoice.light
+    }
+
+    func loadTheme() {
+        let stored: AppSettingsPayload? = decode(bridge.appSettingsJSON())
+        theme = stored?.theme ?? ThemeChoice.light
+    }
+
+    /// Resolves "follow the phone" and hands the answer to the palette and to
+    /// the emulated handset's own chrome, which must not stay dark on a light
+    /// screen.
+    private func applyTheme() {
+        let dark: Bool
+        switch theme {
+        case ThemeChoice.dark: dark = true
+        case ThemeChoice.system:
+            dark = UITraitCollection.current.userInterfaceStyle == .dark
+        default: dark = false
+        }
+        Palette.dark = dark
+        bridge.setChromeDark(dark)
+    }
+
     // MARK: - Save states
 
     /// True when the player has a game to come back to.

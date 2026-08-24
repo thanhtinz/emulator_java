@@ -111,6 +111,14 @@ public final class LibraryScreen {
         int width = frame.width() - margin * 2;
 
         ui.text(ui.title(), "MobiCore", margin, 14, Theme.TEXT);
+        // One tap, always in the same corner: the light and dark switch is
+        // the one setting people change often enough to want it on the way.
+        int toggle = 40;
+        int toggleX = frame.width() - margin - toggle;
+        int toggleY = 14 + (ui.title().height() - toggle) / 2;
+        ui.panel(toggleX, toggleY, toggle, toggle, Theme.SURFACE, Theme.BORDER);
+        Icons.drawCentred(frame, Theme.isDark() ? Icons.LIGHT_MODE : Icons.DARK_MODE,
+                toggleX + toggle / 2, toggleY + toggle / 2, 22, Theme.ACCENT);
 
         int y = 14 + ui.title().height() + 18;
         ui.text(ui.small(), "VỪA CHƠI", margin, y, Theme.TEXT_DIM);
@@ -187,7 +195,7 @@ public final class LibraryScreen {
         if (profile != null && profile.isFavourite()) {
             int favouriteWidth = ui.iconChipWidth("yêu thích");
             ui.iconChip(Icons.STAR, "yêu thích", x + width - favouriteWidth - 14,
-                    y + 14 + ui.chipHeight() + 8, Theme.WARN, 0xFF3A2E10);
+                    y + 14 + ui.chipHeight() + 8, Theme.WARN, Theme.WARN_BG);
         }
     }
 

@@ -1,19 +1,49 @@
 import SwiftUI
 
-/// MobiCore's palette, matching the Android shell so both platforms look like
-/// one product.
+/// MobiCore's palette, in light and dark, matching the Android shell so both
+/// platforms look like one product.
+///
+/// Light is the default. A dark chrome looks handsome in a screenshot and is
+/// tiring to read in daylight, which is where a phone mostly gets used.
+///
+/// The colours stay static so every view can keep naming them by role.
+/// `dark` is set from the client's stored setting, and the views that show
+/// them observe the client, so a change repaints the app.
 enum Palette {
-    static let background = Color(red: 0.055, green: 0.067, blue: 0.086)
-    static let surface = Color(red: 0.090, green: 0.110, blue: 0.141)
-    static let surfaceAlt = Color(red: 0.122, green: 0.149, blue: 0.188)
-    static let border = Color(red: 0.173, green: 0.208, blue: 0.263)
-    static let text = Color(red: 0.902, green: 0.929, blue: 0.953)
-    static let textDim = Color(red: 0.545, green: 0.596, blue: 0.659)
-    static let accent = Color(red: 0.298, green: 0.761, blue: 1.0)
-    static let accentDim = Color(red: 0.106, green: 0.306, blue: 0.408)
-    static let good = Color(red: 0.337, green: 0.827, blue: 0.392)
-    static let warn = Color(red: 0.890, green: 0.702, blue: 0.255)
-    static let bad = Color(red: 0.973, green: 0.318, blue: 0.286)
+
+    static var dark = false
+
+    static var background: Color { dark ? Color(hex: 0x0E1116) : Color(hex: 0xF2F4F7) }
+    static var surface: Color { dark ? Color(hex: 0x171C24) : Color(hex: 0xFFFFFF) }
+    static var surfaceAlt: Color { dark ? Color(hex: 0x1F2630) : Color(hex: 0xE9EDF2) }
+    static var border: Color { dark ? Color(hex: 0x2C3543) : Color(hex: 0xD3DAE3) }
+    static var text: Color { dark ? Color(hex: 0xE6EDF3) : Color(hex: 0x16202B) }
+    static var textDim: Color { dark ? Color(hex: 0x8B98A8) : Color(hex: 0x5C6B7A) }
+
+    /// Darker on light: the same blue on white is too pale to read.
+    static var accent: Color { dark ? Color(hex: 0x4CC2FF) : Color(hex: 0x0A6FA8) }
+    static var accentDim: Color { dark ? Color(hex: 0x1B4E68) : Color(hex: 0xD7EBF7) }
+    static var good: Color { dark ? Color(hex: 0x56D364) : Color(hex: 0x1A7F37) }
+    static var warn: Color { dark ? Color(hex: 0xE3B341) : Color(hex: 0x9A6700) }
+    static var bad: Color { dark ? Color(hex: 0xF85149) : Color(hex: 0xC0342B) }
+}
+
+private extension Color {
+    /// 0xRRGGBB, which is how the palette is written on every platform here.
+    init(hex: UInt32) {
+        self.init(
+            red: Double((hex >> 16) & 0xFF) / 255,
+            green: Double((hex >> 8) & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255
+        )
+    }
+}
+
+/// Theme choices, matching `AppSettings` in the core.
+enum ThemeChoice {
+    static let light = 0
+    static let dark = 1
+    static let system = 2
 }
 
 /// Rounded panel used for every grouped block.

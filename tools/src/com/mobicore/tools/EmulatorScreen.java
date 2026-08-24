@@ -196,7 +196,7 @@ public final class EmulatorScreen {
      * puts on the same key, so the two keypads cannot drift apart.
      */
     private void arrowKey(Ui ui, int x, int y, int w, int h, int direction) {
-        ui.panel(x, y, w, h, 0xFF1D3547, Theme.ACCENT);
+        ui.panel(x, y, w, h, Theme.KEY, Theme.ACCENT);
         Icons.drawCentred(ui.frame(), ARROWS[direction], x + w / 2, y + h / 2, 40, Theme.ACCENT);
     }
 

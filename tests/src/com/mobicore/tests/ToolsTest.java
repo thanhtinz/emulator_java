@@ -23,8 +23,10 @@ import com.mobicore.core.tools.RmsEditor;
 import com.mobicore.core.vm.VmObject;
 import com.mobicore.core.vm.VmThrow;
 import com.mobicore.tools.SampleSuite;
+import com.mobicore.core.midp.SystemChrome;
 import com.mobicore.tools.ui.IconData;
 import com.mobicore.tools.ui.Icons;
+import com.mobicore.tools.ui.Theme;
 
 import java.io.File;
 import java.util.LinkedHashMap;
@@ -50,6 +52,7 @@ public final class ToolsTest extends Test {
         policy();
         jadEditor();
         icons();
+        themes();
 
         Vfs vfs = new MemoryVfs();
         StorageLayout layout = new StorageLayout("/data/MobiCore");
@@ -116,6 +119,70 @@ public final class ToolsTest extends Test {
             rejected = true;
         }
         check(rejected, "an icon that was never generated is refused, not blank");
+    }
+
+    /**
+     * The palette has to work in both themes, and the emulated handset's own
+     * bars have to follow it: a dark strip on a light screen reads as a bug.
+     */
+    private void themes() {
+        int darkText = 0;
+        int lightText = 0;
+        try {
+            Theme.setMode(Theme.DARK);
+            check(Theme.isDark(), "dark mode is what it says");
+            check(SystemChrome.isDark(), "and the handset's bars go dark with it");
+            darkText = Theme.TEXT;
+            check(luminance(Theme.BG) < luminance(Theme.TEXT),
+                    "dark: text is lighter than the page");
+
+            Theme.setMode(Theme.LIGHT);
+            check(!Theme.isDark(), "light mode is what it says");
+            check(!SystemChrome.isDark(), "and the bars follow");
+            lightText = Theme.TEXT;
+            check(luminance(Theme.BG) > luminance(Theme.TEXT),
+                    "light: text is darker than the page");
+            check(luminance(Theme.BG) < 250,
+                    "the page is not pure white, which glares beside a game");
+
+            // Contrast is the point of the exercise: a pale accent on white
+            // is decoration, not something anyone can read.
+            check(contrast(Theme.ACCENT, Theme.SURFACE) > 3.0,
+                    "light: the accent reads on a card, ratio "
+                            + (int) contrast(Theme.ACCENT, Theme.SURFACE));
+            check(contrast(Theme.TEXT, Theme.BG) > 7.0, "light: body text is well clear");
+            check(contrast(Theme.TEXT_DIM, Theme.SURFACE) > 3.5,
+                    "light: even the quiet text is readable");
+        } finally {
+            Theme.setMode(Theme.LIGHT);
+        }
+        check(darkText != lightText, "the two themes are actually different");
+    }
+
+    private double luminance(int argb) {
+        return 0.2126 * ((argb >> 16) & 0xFF) + 0.7152 * ((argb >> 8) & 0xFF)
+                + 0.0722 * (argb & 0xFF);
+    }
+
+    /** WCAG contrast ratio, which is what "readable" is measured in. */
+    private double contrast(int foreground, int background) {
+        double first = relative(foreground);
+        double second = relative(background);
+        double lighter = Math.max(first, second);
+        double darker = Math.min(first, second);
+        return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    private double relative(int argb) {
+        double red = channel((argb >> 16) & 0xFF);
+        double green = channel((argb >> 8) & 0xFF);
+        double blue = channel(argb & 0xFF);
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    }
+
+    private double channel(int value) {
+        double v = value / 255.0;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
     }
 
     private void policy() {

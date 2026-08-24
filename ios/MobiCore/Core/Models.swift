@@ -151,3 +151,12 @@ extension Array {
         indices.contains(index) ? self[index] : nil
     }
 }
+
+
+/// What `MobiCoreFacade.appSettingsJson` reports.
+struct AppSettingsPayload: Codable {
+    let theme: Int
+    let themeName: String?
+    let librarySort: Int?
+    let confirmBeforeDeleting: Bool?
+}

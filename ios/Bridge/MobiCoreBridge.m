@@ -4,6 +4,7 @@
 #import "IOSPrimitiveArray.h"
 #import "MobiCoreAudioSink.h"
 #import "com/mobicore/core/bridge/MobiCoreFacade.h"
+#import "com/mobicore/core/midp/SystemChrome.h"
 
 @implementation MobiCoreBridge {
     ComMobicoreCoreBridgeMobiCoreFacade *_facade;
@@ -88,6 +89,24 @@
 
 - (NSString *)autoSetupForSuite:(NSString *)suiteId {
     return [_facade autoSetupWithNSString:suiteId];
+}
+
+#pragma mark - Appearance
+
+- (NSString *)appSettingsJSON {
+    return [_facade appSettingsJson];
+}
+
+- (NSString *)setTheme:(int32_t)theme {
+    return [_facade setThemeWithInt:theme];
+}
+
+- (NSString *)cycleTheme {
+    return [_facade cycleTheme];
+}
+
+- (void)setChromeDark:(BOOL)dark {
+    ComMobicoreCoreMidpSystemChrome_setDarkWithBoolean_(dark);
 }
 
 #pragma mark - Save states

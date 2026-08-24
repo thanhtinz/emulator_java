@@ -51,6 +51,20 @@ NS_ASSUME_NONNULL_BEGIN
 /// Re-runs the automatic setup for a game, discarding hand-set values.
 - (NSString *)autoSetupForSuite:(NSString *)suiteId;
 
+#pragma mark - Appearance
+
+/// Settings that belong to the person: the theme, the library's sort order.
+- (NSString *)appSettingsJSON;
+
+/// 0 light, 1 dark, 2 follow the phone.
+- (NSString *)setTheme:(int32_t)theme;
+
+/// Light to dark to system and back.
+- (NSString *)cycleTheme;
+
+/// Whether the emulated handset's title and softkey bars are drawn dark.
+- (void)setChromeDark:(BOOL)dark;
+
 #pragma mark - Save states
 
 /// Saves the running game where it stands, with a picture of the screen.

@@ -3,9 +3,11 @@ package com.mobicore.app.data
 import com.mobicore.core.jar.SuiteLoader
 import com.mobicore.core.library.GameLibrary
 import com.mobicore.core.library.LibraryEntry
+import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.rms.RecordStoreManager
+import com.mobicore.core.storage.Json
 import com.mobicore.core.storage.LocalVfs
 import com.mobicore.core.storage.StorageLayout
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +23,8 @@ import kotlinx.coroutines.flow.asStateFlow
 class LibraryRepository(filesDir: String) {
 
     private val layout = StorageLayout(StorageLayout.join(filesDir, "MobiCore"))
-    private val library = GameLibrary(LocalVfs(), layout)
+    private val vfs = LocalVfs()
+    private val library = GameLibrary(vfs, layout)
 
     private val _games = MutableStateFlow<List<LibraryEntry>>(emptyList())
     val games: StateFlow<List<LibraryEntry>> = _games.asStateFlow()
@@ -121,6 +124,46 @@ class LibraryRepository(filesDir: String) {
      * detections and are carried across; everything else is worked out from
      * the suite as it was at import.
      */
+    // -------------------------------------------------------- app settings
+
+    private val _theme = MutableStateFlow(loadTheme())
+
+    /** Light, dark or follow the phone; see `AppSettings`. */
+    val theme: StateFlow<Int> = _theme.asStateFlow()
+
+    fun setTheme(choice: Int) {
+        val settings = appSettings()
+        settings.setTheme(choice)
+        writeAppSettings(settings)
+        _theme.value = settings.theme()
+    }
+
+    /** Light to dark to system and back, for the switch on the home screen. */
+    fun cycleTheme() {
+        val settings = appSettings()
+        settings.setTheme(settings.nextTheme())
+        writeAppSettings(settings)
+        _theme.value = settings.theme()
+    }
+
+    private fun loadTheme(): Int = appSettings().theme()
+
+    private fun appSettings(): AppSettings {
+        val path = layout.settingsPath()
+        if (!vfs.exists(path)) return AppSettings()
+        return runCatching {
+            AppSettings.fromJson(Json.readObject(String(vfs.read(path), Charsets.UTF_8)))
+        }.getOrElse { AppSettings() }
+    }
+
+    private fun writeAppSettings(settings: AppSettings) {
+        runCatching {
+            vfs.mkdirs(layout.root())
+            vfs.write(layout.settingsPath(),
+                Json.write(settings.toJson()).toByteArray(Charsets.UTF_8))
+        }
+    }
+
     /**
      * Stores where a game was, with the screen the player left behind.
      *

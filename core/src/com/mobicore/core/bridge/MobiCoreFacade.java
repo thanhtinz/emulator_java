@@ -10,6 +10,7 @@ import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
+import com.mobicore.core.model.AppSettings;
 import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.InputProfile;
@@ -631,6 +632,64 @@ public final class MobiCoreFacade {
     public void resumeGame() {
         if (session != null) {
             session.resume();
+        }
+    }
+
+    // -------------------------------------------------------- app settings
+
+    /**
+     * Settings that belong to the person, not to a game: the theme, the
+     * library's sort order.
+     */
+    public String appSettingsJson() {
+        return Json.write(appSettings().toJson());
+    }
+
+    /** Switches the interface between light, dark and following the phone. */
+    public String setTheme(int theme) {
+        AppSettings settings = appSettings();
+        settings.setTheme(theme);
+        return writeAppSettings(settings);
+    }
+
+    /** Light to dark to system and back, for a one-tap toggle. */
+    public String cycleTheme() {
+        AppSettings settings = appSettings();
+        settings.setTheme(settings.nextTheme());
+        return writeAppSettings(settings);
+    }
+
+    public String updateAppSettings(String json) {
+        try {
+            return writeAppSettings(AppSettings.fromJson(Json.readObject(json)));
+        } catch (RuntimeException e) {
+            return error("Cài đặt không hợp lệ");
+        }
+    }
+
+    private AppSettings appSettings() {
+        try {
+            String path = layout.settingsPath();
+            if (vfs != null && vfs.exists(path)) {
+                return AppSettings.fromJson(
+                        Json.readObject(new String(vfs.read(path), "UTF-8")));
+            }
+        } catch (IOException e) {
+            // A settings file that cannot be read is not worth failing over:
+            // the defaults are all usable, and the next write repairs it.
+        }
+        return new AppSettings();
+    }
+
+    private String writeAppSettings(AppSettings settings) {
+        try {
+            vfs.mkdirs(layout.root());
+            vfs.write(layout.settingsPath(), Json.write(settings.toJson()).getBytes("UTF-8"));
+            Map<String, Object> json = settings.toJson();
+            json.put("ok", Boolean.TRUE);
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
         }
     }
 

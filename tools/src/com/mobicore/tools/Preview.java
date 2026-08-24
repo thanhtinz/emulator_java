@@ -4,6 +4,7 @@ import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.storage.LocalVfs;
 import com.mobicore.core.storage.Vfs;
+import com.mobicore.tools.ui.Theme;
 
 import java.io.IOException;
 
@@ -48,6 +49,12 @@ public final class Preview {
         write(vfs, outDir, "11-textbox.png", new MenuScreen(fixtures, "textbox").render());
         write(vfs, outDir, "12-alert.png", new MenuScreen(fixtures, "alert").render());
         write(vfs, outDir, "13-sound.png", new SoundScreen(fixtures).render());
+
+        // The same screens in the other theme, so both can be reviewed.
+        Theme.setMode(Theme.DARK);
+        write(vfs, outDir, "14-library-dark.png", new LibraryScreen(fixtures).render());
+        write(vfs, outDir, "15-emulator-dark.png", new EmulatorScreen(fixtures).render());
+        Theme.setMode(Theme.LIGHT);
 
         System.out.println("Screenshots written to " + outDir);
     }

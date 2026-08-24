@@ -13,6 +13,7 @@
 | 9 | Tương thích: Timer và kiểm tra trước khi chơi | Xong |
 | 10 | Tối ưu hiệu năng | Xong |
 | 11 | Lưu trạng thái, chơi tiếp | Xong |
+| 12 | Giao diện sáng / tối | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -481,3 +482,27 @@ Trong ứng dụng, việc này không cần người chơi bấm gì: **thoát 
 mở lại là chơi tiếp. Trang chi tiết có thẻ "Đang chơi dở" kèm **ảnh màn hình lúc
 rời đi** — nhìn ảnh thì nhận ra mình đang ở đâu nhanh hơn nhìn ngày giờ nhiều —
 và một dòng để bỏ bản lưu, chơi lại từ đầu.
+
+
+## Giao diện sáng và tối
+
+Mặc định nay là **sáng**. Giao diện tối trông đẹp trong ảnh chụp nhưng đọc mệt
+mắt giữa ban ngày — mà điện thoại thì chủ yếu dùng ban ngày; ai thích tối chỉ
+cần nói một lần.
+
+- **Nút chuyển ngay trên trang chủ**, luôn ở cùng một góc: sáng → tối → theo hệ
+  thống → sáng. Đây là cài đặt người ta đổi đủ thường xuyên để đáng nằm sẵn
+  trên đường đi, thay vì nằm sâu ba màn hình.
+- **Cài đặt** có lựa chọn ba mức rõ ràng cho ai muốn đặt một lần rồi thôi.
+- Lựa chọn được lưu trong `AppSettings` — tách khỏi `GameProfile`, vì cài đặt
+  của một game thì đi theo game khi sao lưu, còn cái này là của người dùng.
+- **Thanh tiêu đề và phím mềm của máy giả lập cũng đổi theo.** Máy J2ME đời đó
+  có cả hai kiểu nên không kiểu nào kém "thật" hơn; thứ trông sai là một dải
+  tối dán lên đầu một màn hình sáng.
+- Bảng màu sáng **không dùng trắng tinh**: nền trắng gắt cạnh màn hình game, và
+  thẻ nào cũng phải viền đậm mới thấy. Màu nhấn cũng đậm hơn bản tối — cùng một
+  màu xanh đặt trên nền trắng thì nhạt đến mức không đọc được.
+
+Bộ test đo **tỉ lệ tương phản theo chuẩn WCAG** chứ không chỉ so mã màu: chữ
+thường trên nền > 7:1, chữ mờ và màu nhấn > 3:1, nền sáng không phải trắng
+tinh, và bar của máy giả lập đổi đúng theo chế độ.

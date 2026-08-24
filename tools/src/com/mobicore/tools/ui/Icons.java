@@ -43,6 +43,9 @@ public final class Icons {
     public static final String CAMERA = "photo_camera";
     public static final String UNDO = "undo";
     public static final String CHECK = "check_circle";
+    /** The sun and the moon: what a theme toggle looks like everywhere. */
+    public static final String LIGHT_MODE = "brightness_high";
+    public static final String DARK_MODE = "brightness_4";
 
     private static final byte[][] CACHE = new byte[IconData.NAMES.length][];
 

@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +33,17 @@ fun SettingsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
         item {
             Text("Cài đặt", color = MobiColors.Text, fontSize = 28.sp,
                 fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
+        }
+
+        item {
+            SectionCard(title = "GIAO DIỆN") {
+                val theme by library.theme.collectAsState()
+                OptionRow(
+                    label = "Sáng tối",
+                    options = listOf("Sáng", "Tối", "Theo hệ thống"),
+                    selected = theme,
+                ) { library.setTheme(it) }
+            }
         }
 
         item {

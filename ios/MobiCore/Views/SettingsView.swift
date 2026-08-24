@@ -12,6 +12,18 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                SectionCard(title: "GIAO DIỆN") {
+                    Picker("Sáng tối", selection: Binding(
+                        get: { client.theme },
+                        set: { client.setTheme($0) }
+                    )) {
+                        Text("Sáng").tag(ThemeChoice.light)
+                        Text("Tối").tag(ThemeChoice.dark)
+                        Text("Theo hệ thống").tag(ThemeChoice.system)
+                    }
+                    .pickerStyle(.segmented)
+                }
+
                 SectionCard(title: "BỘ GIẢ LẬP") {
                     VStack(spacing: 6) {
                         FieldRow(label: "Cấu hình", value: "CLDC 1.0 / 1.1")

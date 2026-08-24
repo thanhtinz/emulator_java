@@ -5,11 +5,22 @@ struct MobiCoreApp: App {
 
     @StateObject private var client = MobiCoreClient()
 
+    private var colourScheme: ColorScheme? {
+        switch client.theme {
+        case ThemeChoice.dark: return .dark
+        case ThemeChoice.system: return nil
+        default: return .light
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(client)
-                .preferredColorScheme(.dark)
+                // Whatever the user chose last time, from the moment the app
+                // opens; "theo hệ thống" leaves the decision to the phone.
+                .preferredColorScheme(colourScheme)
+                .task { client.loadTheme() }
         }
     }
 }

@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.mobicore.app.ui.MobiCoreApp
 import com.mobicore.app.ui.MobiCoreTheme
 
@@ -21,7 +23,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val library = (application as MobiCoreApplication).library
         setContent {
-            MobiCoreTheme {
+            // Whatever the user chose last time, from the moment the app opens.
+            val theme by library.theme.collectAsState()
+            MobiCoreTheme(themeChoice = theme) {
                 MobiCoreApp(library = library, filesDir = filesDir.absolutePath)
             }
         }
