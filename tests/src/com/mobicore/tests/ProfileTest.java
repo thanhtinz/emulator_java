@@ -83,9 +83,9 @@ public final class ProfileTest extends Test {
         eq(MidpContext.KEY_SOFT_LEFT, nokia.keyCodeFor("softLeft"), "Nokia softkeys");
         eq(-6, InputProfile.sonyEricsson().keyCodeFor("softLeft"), "Sony Ericsson softkeys differ");
         eq(0, nokia.keyCodeFor("nonexistent"), "an unbound button reports zero");
-        eq(22, InputProfile.BUTTONS.length, "every virtual button is declared");
-        eq(MidpContext.KEY_SEND, nokia.keyCodeFor("send"), "the call key is mapped");
-        eq(MidpContext.KEY_END, nokia.keyCodeFor("end"), "the end key is mapped");
+        eq(20, InputProfile.BUTTONS.length, "every virtual button is declared");
+        eq(MidpContext.KEY_CLEAR, nokia.keyCodeFor("clear"), "the clear key is mapped");
+        eq(0, nokia.keyCodeFor("send"), "the call key is not on the keypad");
 
         nokia.remap("fire", '5');
         eq('5', nokia.keyCodeFor("fire"), "remap takes effect");

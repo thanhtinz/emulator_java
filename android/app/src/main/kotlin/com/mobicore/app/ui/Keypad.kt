@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,13 +59,12 @@ fun Keypad(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SoftKey(leftSoftKey, "softLeft", TextAlign.Start, onPress, onRelease,
                 Modifier.weight(1f))
+            // The clear key sits between them, where a handset put it. The call
+            // and end keys are gone: nothing maps them, so pressing one did
+            // nothing but crowd the keys that do.
+            PhoneKey("Xóa", "clear", onPress, onRelease, Modifier.weight(0.6f))
             SoftKey(rightSoftKey, "softRight", TextAlign.End, onPress, onRelease,
                 Modifier.weight(1f))
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            PhoneKey("Gọi", "send", MobiColors.Good, onPress, onRelease, Modifier.weight(1f))
-            PhoneKey("Xóa", "clear", MobiColors.Text, onPress, onRelease, Modifier.weight(1f))
-            PhoneKey("Kết thúc", "end", MobiColors.Bad, onPress, onRelease, Modifier.weight(1f))
         }
         Row(
             Modifier.fillMaxWidth(),
@@ -121,12 +120,11 @@ private fun SoftKey(
     }
 }
 
-/** The call, clear and end trio every J2ME handset carried. */
+/** The clear key, the one key of the handset's phone row that games read. */
 @Composable
 private fun PhoneKey(
     label: String,
     button: String,
-    tint: androidx.compose.ui.graphics.Color,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -134,7 +132,7 @@ private fun PhoneKey(
     var held by remember { mutableStateOf(false) }
     Box(
         modifier
-            .height(38.dp)
+            .height(44.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
             .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border,
@@ -142,7 +140,7 @@ private fun PhoneKey(
             .holdable(button, onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = tint, fontSize = 13.sp)
+        Text(label, color = MobiColors.Text, fontSize = 14.sp)
     }
 }
 
@@ -209,28 +207,6 @@ private fun NumberKey(
         if (hint.isNotEmpty()) {
             Text(hint, color = MobiColors.TextDim, fontSize = 10.sp)
         }
-    }
-}
-
-@Composable
-private fun KeyButton(
-    label: String,
-    button: String,
-    onPress: (String) -> Unit,
-    onRelease: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var held by remember { mutableStateOf(false) }
-    Box(
-        modifier
-            .height(46.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
-            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, RoundedCornerShape(12.dp))
-            .holdable(button, onPress, onRelease) { held = it },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, color = MobiColors.Text, fontSize = 15.sp)
     }
 }
 

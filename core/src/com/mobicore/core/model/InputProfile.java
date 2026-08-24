@@ -25,7 +25,7 @@ public final class InputProfile {
             "softLeft", "softRight",
             "num0", "num1", "num2", "num3", "num4",
             "num5", "num6", "num7", "num8", "num9",
-            "star", "hash", "clear", "send", "end",
+            "star", "hash", "clear",
     };
 
     private final Map<String, Integer> mappings = new LinkedHashMap<String, Integer>();
@@ -137,9 +137,9 @@ public final class InputProfile {
         profile.mappings.put("star", Integer.valueOf('*'));
         profile.mappings.put("hash", Integer.valueOf('#'));
         profile.mappings.put("clear", Integer.valueOf(MidpContext.KEY_CLEAR));
-        // Every J2ME handset had a call and an end key, and games used them.
-        profile.mappings.put("send", Integer.valueOf(MidpContext.KEY_SEND));
-        profile.mappings.put("end", Integer.valueOf(MidpContext.KEY_END));
+        // The call and end keys are deliberately absent: the handset had them
+        // because it was a phone, not because games read them, and a button
+        // nobody presses is a button in the way of the ones they do.
         return profile;
     }
 

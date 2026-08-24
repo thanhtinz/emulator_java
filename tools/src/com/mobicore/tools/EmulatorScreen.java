@@ -93,10 +93,11 @@ public final class EmulatorScreen {
     }
 
     /**
-     * The keypad, laid out as a handset laid it out: the softkeys sit directly
-     * under the screen so they line up with the labels the system draws there,
-     * then the call and clear row, then the numbers. The directional pad is on
-     * the right at the user's request; a handset put it in the middle.
+     * The keypad, cut down to the keys a game actually reads: the two softkeys
+     * directly under the screen, so they line up with the labels the system
+     * draws there, the numbers, the directional pad, and clear. The call and
+     * end keys a handset carried are gone — they were there because the device
+     * was a phone, and on screen they only crowded the keys that matter.
      */
     private void controls(Ui ui, int top, int height) {
         Framebuffer frame = ui.frame();
@@ -111,16 +112,13 @@ public final class EmulatorScreen {
         softKey(ui, Ui.PAD, y, softWidth, session.leftSoftKeyLabel(), true);
         softKey(ui, Ui.PAD + softWidth + 12, y, softWidth, session.rightSoftKeyLabel(), false);
 
-        y += softHeight + 10;
-        int callHeight = ui.medium().height() + 14;
-        int callWidth = (frame.width() - Ui.PAD * 2 - 12) / 3;
-        phoneKey(ui, Ui.PAD, y, callWidth, callHeight, "Gọi", Theme.GOOD);
-        phoneKey(ui, Ui.PAD + callWidth + 6, y, callWidth, callHeight, "Xóa", Theme.TEXT);
-        phoneKey(ui, Ui.PAD + (callWidth + 6) * 2, y, callWidth, callHeight, "Kết thúc", Theme.BAD);
-
-        int padTop = y + callHeight + 12;
+        int padTop = y + softHeight + 14;
         numericPad(ui, Ui.PAD + 4, padTop);
-        directionalPad(ui, frame.width() - Ui.PAD - 208, padTop + 16);
+        int padX = frame.width() - Ui.PAD - 208;
+        directionalPad(ui, padX, padTop + 16);
+        // Clear sits under the d-pad, in the gap the numeric pad's fourth row
+        // leaves beside it, so it costs no extra height.
+        phoneKey(ui, padX, padTop + 200, 208, ui.medium().height() + 14, "Xóa", Theme.TEXT);
     }
 
     /**
@@ -142,6 +140,7 @@ public final class EmulatorScreen {
         }
     }
 
+    /** Clear: the one non-game key a MIDlet does read, through KEY_CLEAR. */
     private void phoneKey(Ui ui, int x, int y, int w, int h, String label, int color) {
         ui.panel(x, y, w, h, Theme.SURFACE_ALT, Theme.BORDER);
         ui.textCenter(ui.small(), label, x + w / 2, y + (h - ui.small().height()) / 2, color);
