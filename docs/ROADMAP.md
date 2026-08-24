@@ -6,8 +6,8 @@
 | 2 | JVM bytecode interpreter (CLDC runtime) | Xong |
 | 3 | Thư viện MIDP: Display, Canvas, Graphics, Image, Sprite | Xong |
 | 4 | Device profile, input mapping, RMS + backup/restore | Xong |
-| 5 | Ứng dụng Android (Kotlin) | Đang làm |
-| 6 | Ứng dụng iOS (SwiftUI + J2ObjC) | |
+| 5 | Ứng dụng Android (Kotlin) | Xong (chưa biên dịch được ở CI) |
+| 6 | Ứng dụng iOS (SwiftUI + J2ObjC) | Đang làm |
 | 7 | Developer tools, network layer, modding | |
 | 8 | Tối ưu tương thích và hiệu năng | |
 
@@ -91,3 +91,18 @@
 - `GameLibrary`: import/cài đặt vào sandbox, index bền vững, tìm kiếm, sắp
   xếp, favourite, hồ sơ theo game, gỡ cài đặt, backup/restore trọn gói và
   `resetGameData` luôn sao lưu trước khi xóa.
+
+## Giai đoạn 5 — đã hoàn thành
+
+Module `android/`: Kotlin + Jetpack Compose, dùng trực tiếp core.
+
+- `EmulatorEngine` chạy MIDlet trên thread riêng, đẩy framebuffer vào Bitmap
+  và đánh thức Compose bằng bộ đếm khung hình.
+- Màn hình emulator vẽ không lọc pixel, integer scaling, chuyển tọa độ chạm
+  ngược về hệ tọa độ màn hình giả lập.
+- Keypad ảo phát riêng press/release để `getKeyStates` hoạt động đúng.
+- Home / Library / Game Detail / Game settings / Saves / Tools / Settings.
+- Import qua Storage Access Framework, không xin quyền filesystem rộng.
+
+Xem `docs/ANDROID.md`. Lưu ý: môi trường dựng repo này chặn `dl.google.com`
+nên chưa chạy được `gradlew` để biên dịch module Android.

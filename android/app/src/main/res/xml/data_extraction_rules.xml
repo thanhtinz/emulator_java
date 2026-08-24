@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="file" path="MobiCore/games" />
+        <include domain="file" path="MobiCore/profiles" />
+        <include domain="file" path="MobiCore/rms" />
+        <include domain="file" path="MobiCore/saves" />
+        <exclude domain="file" path="MobiCore/cache" />
+        <exclude domain="file" path="MobiCore/logs" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="file" path="MobiCore" />
+        <exclude domain="file" path="MobiCore/cache" />
+    </device-transfer>
+</data-extraction-rules>

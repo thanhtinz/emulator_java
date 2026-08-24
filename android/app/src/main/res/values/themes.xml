@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        A plain dark theme: the Compose layer owns all colour, and this only
+        needs to stop the system flashing white before the first frame.
+    -->
+    <style name="Theme.MobiCore" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0E1116</item>
+        <item name="android:statusBarColor">#0E1116</item>
+        <item name="android:navigationBarColor">#0E1116</item>
+    </style>
+</resources>

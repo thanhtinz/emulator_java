@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Games, saves and profiles are worth backing up; caches are not. -->
+    <include domain="file" path="MobiCore/games" />
+    <include domain="file" path="MobiCore/profiles" />
+    <include domain="file" path="MobiCore/rms" />
+    <include domain="file" path="MobiCore/saves" />
+    <include domain="file" path="MobiCore/backups" />
+    <exclude domain="file" path="MobiCore/cache" />
+    <exclude domain="file" path="MobiCore/logs" />
+</full-backup-content>
