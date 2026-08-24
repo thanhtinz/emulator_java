@@ -9,9 +9,15 @@ import com.mobicore.core.midp.Midp;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.midp.MidpGfx;
 import com.mobicore.core.midp.MidpUi;
+import com.mobicore.core.midp.MidpRms;
+import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.model.MidletSuiteInfo;
+import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.rt.Cldc;
+import com.mobicore.core.storage.MemoryVfs;
+import com.mobicore.core.storage.StorageLayout;
+import com.mobicore.core.storage.Vfs;
 import com.mobicore.core.vm.Descriptors;
 import com.mobicore.core.vm.Vm;
 import com.mobicore.core.vm.VmClass;
@@ -44,34 +50,60 @@ public final class EmulatorSession {
     private final MidletSuiteInfo info;
     private final JarClassSource source;
     private final EmulatorLog log;
+    private final RecordStoreManager rms;
+    private final GameProfile profile;
 
     private VmObject midlet;
     private int state = STATE_NEW;
     private String midletClass;
 
     private EmulatorSession(Vm vm, MidpContext context, MidletSuiteInfo info,
-                            JarClassSource source, EmulatorLog log) {
+                            JarClassSource source, EmulatorLog log,
+                            RecordStoreManager rms, GameProfile profile) {
         this.vm = vm;
         this.context = context;
         this.info = info;
         this.source = source;
         this.log = log;
+        this.rms = rms;
+        this.profile = profile;
     }
 
-    /** Builds a session for an installed suite at the given screen size. */
-    public static EmulatorSession create(SuiteLoader suite, int width, int height, VmHost host) {
+    /**
+     * Builds a session for an installed suite.
+     *
+     * @param storage where record stores live; an in-memory filesystem is used
+     *                when {@code null}, which is what previews and tests want
+     */
+    public static EmulatorSession create(SuiteLoader suite, GameProfile profile,
+                                         Vfs storage, StorageLayout layout, VmHost host) {
         EmulatorLog log = new EmulatorLog();
         Vm vm = new Vm();
         vm.setHost(host == null ? log.hostBridge(VmHost.DEFAULT) : log.hostBridge(host));
+
+        int width = profile.device().width();
+        int height = profile.device().height();
         MidpContext context = new MidpContext(vm, width, height);
         context.setAttributes(suite.info().attributes());
 
+        Vfs vfs = storage == null ? new MemoryVfs() : storage;
+        StorageLayout paths = layout == null ? new StorageLayout("MobiCore") : layout;
+        RecordStoreManager rms = new RecordStoreManager(vfs, paths, profile.suiteId());
+
         Cldc.install(vm);
         Midp.install(vm, context);
+        MidpRms.install(vm, rms, context);
 
         JarClassSource source = new JarClassSource(suite.archive());
         vm.addSource(source);
-        return new EmulatorSession(vm, context, suite.info(), source, log);
+        return new EmulatorSession(vm, context, suite.info(), source, log, rms, profile);
+    }
+
+    /** Convenience for previews and tests: default profile at a fixed size. */
+    public static EmulatorSession create(SuiteLoader suite, int width, int height, VmHost host) {
+        GameProfile profile = GameProfile.defaultsFor(suite.info());
+        profile.setDevice(com.mobicore.core.model.DeviceProfile.custom(width, height));
+        return create(suite, profile, null, null, host);
     }
 
     public Vm vm() {
@@ -92,6 +124,45 @@ public final class EmulatorSession {
 
     public JarClassSource source() {
         return source;
+    }
+
+    public RecordStoreManager rms() {
+        return rms;
+    }
+
+    public GameProfile profile() {
+        return profile;
+    }
+
+    /**
+     * Presses a virtual keypad button, translating it through the game's input
+     * mapping. This is the entry point the on-screen keypad uses.
+     */
+    public void pressButton(String button) {
+        int keyCode = profile.input().keyCodeFor(button);
+        if (keyCode != 0) {
+            keyPressed(keyCode);
+        }
+    }
+
+    public void releaseButton(String button) {
+        int keyCode = profile.input().keyCodeFor(button);
+        if (keyCode != 0) {
+            keyReleased(keyCode);
+        }
+    }
+
+    /** Replays a macro bound to a button, or returns false when none is bound. */
+    public boolean runMacro(String button) {
+        com.mobicore.core.model.InputProfile.Macro macro = profile.input().macroFor(button);
+        if (macro == null) {
+            return false;
+        }
+        for (String step : macro.steps()) {
+            pressButton(step);
+            releaseButton(step);
+        }
+        return true;
     }
 
     public int state() {
@@ -167,6 +238,12 @@ public final class EmulatorSession {
             vm.callVirtual(midlet, "destroyApp", "(Z)V", Integer.valueOf(1));
         } catch (VmThrow e) {
             log.error("destroyApp threw " + e);
+        }
+        try {
+            // A record store the game left open still has to reach storage.
+            rms.flushAll();
+        } catch (IOException e) {
+            log.error("Cannot flush record stores: " + e.getMessage());
         }
         state = STATE_DESTROYED;
         log.info("MIDlet destroyed");

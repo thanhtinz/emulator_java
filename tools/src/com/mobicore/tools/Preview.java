@@ -33,6 +33,7 @@ public final class Preview {
         write(vfs, outDir, "01-import.png", new ImportScreen().render());
         write(vfs, outDir, "02-vm-inspector.png", new VmScreen(fixtures).render());
         write(vfs, outDir, "03-emulator.png", new EmulatorScreen(fixtures).render());
+        write(vfs, outDir, "04-game-settings.png", new ProfileScreen(fixtures).render());
 
         System.out.println("Screenshots written to " + outDir);
     }

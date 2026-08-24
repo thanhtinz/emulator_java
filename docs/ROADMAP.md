@@ -5,8 +5,8 @@
 | 1 | JAR/JAD parser, metadata suite, bố cục lưu trữ, framebuffer + PNG | Xong |
 | 2 | JVM bytecode interpreter (CLDC runtime) | Xong |
 | 3 | Thư viện MIDP: Display, Canvas, Graphics, Image, Sprite | Xong |
-| 4 | Device profile, input mapping, RMS + backup/restore | Đang làm |
-| 5 | Ứng dụng Android (Kotlin) | |
+| 4 | Device profile, input mapping, RMS + backup/restore | Xong |
+| 5 | Ứng dụng Android (Kotlin) | Đang làm |
 | 6 | Ứng dụng iOS (SwiftUI + J2ObjC) | |
 | 7 | Developer tools, network layer, modding | |
 | 8 | Tối ưu tương thích và hiệu năng | |
@@ -70,3 +70,24 @@
 - `EmulatorLog`: ring buffer cho console và crash report.
 - MIDlet demo `demo/SkyRunner.java` là chương trình J2ME thật, được biên dịch
   ra bytecode và chạy bằng chính interpreter.
+
+## Giai đoạn 4 — đã hoàn thành
+
+- `Json`: bộ đọc/ghi JSON tự viết (giữ thứ tự khóa để file dễ đọc và dễ so
+  sánh), dùng cho profile và library index.
+- `DeviceProfile`: catalog 128×128, 128×160, 176×208, 176×220, 240×320,
+  320×240, 240×400 cảm ứng, cộng độ phân giải tùy chỉnh; tự đoán profile từ
+  thuộc tính JAD nếu suite có khai báo.
+- `InputProfile`: remap từng phím, preset Nokia/Sony Ericsson/Samsung,
+  turbo (auto-repeat) và macro theo từng game.
+- `GameProfile`: scale (fit/integer/stretch/original), orientation, giới hạn
+  FPS, âm lượng, chế độ mạng, skin, favourite, số lần chơi; hàm `viewport`
+  tính khung hiển thị chính xác cho từng chế độ scale.
+- `RecordStoreManager`: RMS lưu vĩnh viễn theo sandbox riêng từng suite,
+  định dạng nhị phân có magic + version, ghi ngay khi game ghi record.
+- `javax.microedition.rms`: `RecordStore`, `RecordEnumeration`,
+  `RecordFilter`, `RecordComparator` (filter và comparator của game được gọi
+  ngược lại bằng bytecode) cùng đủ bộ exception.
+- `GameLibrary`: import/cài đặt vào sandbox, index bền vững, tìm kiếm, sắp
+  xếp, favourite, hồ sơ theo game, gỡ cài đặt, backup/restore trọn gói và
+  `resetGameData` luôn sao lưu trước khi xóa.

@@ -12,6 +12,10 @@ import javax.microedition.lcdui.game.LayerManager;
 import javax.microedition.lcdui.game.Sprite;
 import javax.microedition.lcdui.game.TiledLayer;
 import javax.microedition.midlet.MIDlet;
+import javax.microedition.rms.RecordComparator;
+import javax.microedition.rms.RecordEnumeration;
+import javax.microedition.rms.RecordFilter;
+import javax.microedition.rms.RecordStore;
 
 /**
  * Demo MIDlet shipped with MobiCore.
@@ -21,6 +25,8 @@ import javax.microedition.midlet.MIDlet;
  * for Canvas, Graphics, Image, Font, Sprite, TiledLayer and LayerManager.
  */
 public class SkyRunner extends MIDlet implements CommandListener {
+
+    private static final String SCORE_STORE = "skyrunner-scores";
 
     private Scene scene;
 
@@ -39,6 +45,75 @@ public class SkyRunner extends MIDlet implements CommandListener {
     }
 
     protected void destroyApp(boolean unconditional) {
+    }
+
+    /**
+     * Persists the high score through RMS, which is what the emulator's save
+     * management has to keep intact across sessions, backups and restores.
+     */
+    public int saveScore(int score) throws Exception {
+        RecordStore store = RecordStore.openRecordStore(SCORE_STORE, true);
+        try {
+            byte[] payload = encode(score);
+            return store.addRecord(payload, 0, payload.length);
+        } finally {
+            store.closeRecordStore();
+        }
+    }
+
+    /** Highest score on record, or zero when nothing has been saved yet. */
+    public int bestScore() throws Exception {
+        RecordStore store = RecordStore.openRecordStore(SCORE_STORE, true);
+        try {
+            RecordEnumeration records = store.enumerateRecords(new PositiveScores(), new Descending(), false);
+            if (!records.hasNextElement()) {
+                return 0;
+            }
+            int best = decode(records.nextRecord());
+            records.destroy();
+            return best;
+        } finally {
+            store.closeRecordStore();
+        }
+    }
+
+    public int savedScoreCount() throws Exception {
+        RecordStore store = RecordStore.openRecordStore(SCORE_STORE, true);
+        try {
+            return store.getNumRecords();
+        } finally {
+            store.closeRecordStore();
+        }
+    }
+
+    private static byte[] encode(int score) {
+        return new byte[]{
+                (byte) (score >>> 24), (byte) (score >>> 16), (byte) (score >>> 8), (byte) score};
+    }
+
+    private static int decode(byte[] data) {
+        return ((data[0] & 0xFF) << 24) | ((data[1] & 0xFF) << 16)
+                | ((data[2] & 0xFF) << 8) | (data[3] & 0xFF);
+    }
+
+    /** Rejects the zero-score placeholder some builds used to write. */
+    static class PositiveScores implements RecordFilter {
+
+        public boolean matches(byte[] candidate) {
+            return candidate.length == 4 && decode(candidate) > 0;
+        }
+    }
+
+    static class Descending implements RecordComparator {
+
+        public int compare(byte[] left, byte[] right) {
+            int a = decode(left);
+            int b = decode(right);
+            if (a == b) {
+                return EQUIVALENT;
+            }
+            return a > b ? PRECEDES : FOLLOWS;
+        }
     }
 
     public void commandAction(Command command, Displayable displayable) {
