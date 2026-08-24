@@ -39,11 +39,17 @@ struct GameSettings: Codable, Hashable {
     /// Catalog of selectable devices; present only in `profileJSON`.
     var devices: [DeviceProfile]?
 
-    static let scaleModeNames = ["Fit", "Integer", "Stretch", "Original"]
-    static let networkModeNames = ["Blocked", "Ask", "Allowed"]
+    static let scaleModeNames = ["Vừa khung", "Bội số nguyên", "Kéo đầy", "Nguyên cỡ"]
+    static let networkModeNames = ["Chặn", "Hỏi trước", "Cho phép"]
 
-    var scaleModeName: String { Self.scaleModeNames[safe: scaleMode] ?? "Integer" }
-    var networkModeName: String { Self.networkModeNames[safe: networkMode] ?? "Ask" }
+    var scaleModeName: String { Self.scaleModeNames[safe: scaleMode] ?? "Bội số nguyên" }
+    var networkModeName: String { Self.networkModeNames[safe: networkMode] ?? "Hỏi trước" }
+
+    /// Virtual buttons in keypad order, with the names the interface shows.
+    static let buttonLabels: [(button: String, label: String)] = [
+        ("up", "Lên"), ("down", "Xuống"), ("left", "Trái"), ("right", "Phải"),
+        ("fire", "Chọn"), ("softLeft", "Phím mềm 1"), ("softRight", "Phím mềm 2"),
+    ]
 }
 
 struct DeviceProfile: Codable, Hashable, Identifiable {

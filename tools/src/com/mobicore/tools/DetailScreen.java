@@ -52,93 +52,94 @@ public final class DetailScreen {
         Framebuffer frame = Preview.newScreen();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
-        ui.appBar(Json.string(game, "title", ""), "Game detail");
+        ui.appBar(Json.string(game, "title", ""), "Chi tiết");
 
-        int margin = 16;
+        int margin = Ui.PAD;
         int width = frame.width() - margin * 2;
-        int y = 62;
+        int fieldX = margin + Ui.PAD;
+        int fieldWidth = width - Ui.PAD * 2;
+        int y = Ui.APP_BAR + 18;
 
         // Header ---------------------------------------------------------
+        int cover = 92;
         byte[] artwork = facade.artwork(suiteId);
         if (artwork.length > 0 && PngReader.looksLikePng(artwork)) {
             PngReader.Image decoded = PngReader.decode(artwork);
             Framebuffer icon = Framebuffer.wrap(decoded.pixels, decoded.width, decoded.height)
-                    .scaleNearest(72, 72);
+                    .scaleNearest(cover, cover);
             frame.drawFramebuffer(icon, margin, y);
         }
-        int textLeft = margin + 86;
+        int textLeft = margin + cover + 16;
         ui.text(ui.largeBold(), Json.string(game, "title", ""), textLeft, y + 2, Theme.TEXT);
-        ui.text(ui.small(), Json.string(game, "vendor", ""), textLeft, y + 26, Theme.TEXT_DIM);
+        ui.text(ui.small(), Json.string(game, "vendor", ""), textLeft,
+                y + 2 + ui.largeBold().height() + 4, Theme.TEXT_DIM);
+        int chipY = y + cover - ui.chipHeight() - 2;
         int chipX = textLeft;
-        chipX += ui.chip(Json.string(game, "configuration", ""), chipX, y + 44,
-                Theme.ACCENT, Theme.ACCENT_DIM) + 6;
-        chipX += ui.chip(Json.string(game, "profile", ""), chipX, y + 44,
-                Theme.ACCENT, Theme.ACCENT_DIM) + 6;
+        chipX += ui.chip(Json.string(game, "configuration", ""), chipX, chipY,
+                Theme.ACCENT, Theme.ACCENT_DIM) + 8;
+        chipX += ui.chip(Json.string(game, "profile", ""), chipX, chipY,
+                Theme.ACCENT, Theme.ACCENT_DIM) + 8;
         if (Json.bool(settings, "favourite", false)) {
-            ui.chip("FAVOURITE", chipX, y + 44, Theme.WARN, 0xFF3A2E10);
+            ui.chip("★ YÊU THÍCH", chipX, chipY, Theme.WARN, 0xFF3A2E10);
         }
-        y += 88;
+        y += cover + 18;
 
         // Actions --------------------------------------------------------
-        int buttonWidth = (width - 10) / 2;
-        ui.panel(margin, y, buttonWidth, 42, Theme.ACCENT_DIM, Theme.ACCENT);
-        ui.textCenter(ui.mediumBold(), "Play", margin + buttonWidth / 2, y + 12, Theme.ACCENT);
-        ui.panel(margin + buttonWidth + 10, y, buttonWidth, 42, Theme.SURFACE_ALT, Theme.BORDER);
-        ui.textCenter(ui.mediumBold(), "Settings", margin + buttonWidth + 10 + buttonWidth / 2,
-                y + 12, Theme.TEXT);
-        y += 54;
+        int buttonWidth = (width - 12) / 2;
+        int buttonHeight = ui.button(margin, y, buttonWidth, "Chơi", true);
+        ui.button(margin + buttonWidth + 12, y, buttonWidth, "Cài đặt", false);
+        y += buttonHeight + 16;
 
         // Details --------------------------------------------------------
         Map<String, Object> device = Json.child(settings, "device");
-        ui.panel(margin, y, width, 136, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "DETAILS", margin + 14, y + 10, Theme.TEXT_DIM);
-        ui.field("Version", Json.string(game, "version", ""), margin + 14, y + 30, width - 28);
-        ui.field("Suite id", Json.string(game, "suiteId", ""), margin + 14, y + 50, width - 28);
-        ui.field("Size", kb(Json.longValue(game, "jarSize", 0)), margin + 14, y + 70, width - 28);
-        ui.field("Device", Json.string(device, "name", ""), margin + 14, y + 90, width - 28);
-        ui.field("Times played", String.valueOf(Json.integer(settings, "playCount", 0)),
-                margin + 14, y + 110, width - 28);
-        y += 148;
+        int detailsHeight = ui.sectionHeight(5);
+        int row = ui.section(margin, y, width, detailsHeight, "THÔNG TIN", null);
+        ui.field("Phiên bản", Json.string(game, "version", ""), fieldX, row, fieldWidth);
+        ui.field("Mã bộ cài", Json.string(game, "suiteId", ""), fieldX, row + Ui.ROW, fieldWidth);
+        ui.field("Dung lượng", kb(Json.longValue(game, "jarSize", 0)), fieldX, row + Ui.ROW * 2,
+                fieldWidth);
+        ui.field("Máy giả lập", Json.string(device, "name", ""), fieldX, row + Ui.ROW * 3, fieldWidth);
+        ui.field("Số lần chơi", String.valueOf(Json.integer(settings, "playCount", 0)), fieldX,
+                row + Ui.ROW * 4, fieldWidth);
+        y += detailsHeight + 14;
 
         // Saves ----------------------------------------------------------
         List<Object> stores = Json.array(saves, "stores");
         List<Object> backups = Json.array(saves, "backups");
-        int savesHeight = 52 + Math.max(1, stores.size()) * 20;
-        ui.panel(margin, y, width, savesHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "SAVES", margin + 14, y + 10, Theme.TEXT_DIM);
-        ui.textRight(ui.small(), backups.size() + " backup", margin + width - 14, y + 10, Theme.ACCENT);
-        int rowY = y + 30;
+        int savesHeight = ui.sectionHeight(Math.max(1, stores.size()));
+        row = ui.section(margin, y, width, savesHeight, "DỮ LIỆU LƯU",
+                backups.size() + " bản sao lưu");
         if (stores.isEmpty()) {
-            ui.text(ui.small(), "This game has not saved anything yet.", margin + 14, rowY,
-                    Theme.TEXT_DIM);
+            ui.text(ui.medium(), "Trò chơi này chưa lưu gì.", fieldX, row, Theme.TEXT_DIM);
         } else {
             for (Object item : stores) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> store = (Map<String, Object>) item;
                 ui.field(Json.string(store, "name", ""),
-                        Json.integer(store, "records", 0) + " records",
-                        margin + 14, rowY, width - 28);
-                rowY += 20;
+                        Json.integer(store, "records", 0) + " bản ghi", fieldX, row, fieldWidth);
+                row += Ui.ROW;
             }
         }
-        y += savesHeight + 12;
+        y += savesHeight + 14;
 
         // Contents -------------------------------------------------------
-        ui.panel(margin, y, width, 96, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "CONTENTS", margin + 14, y + 10, Theme.TEXT_DIM);
-        ui.field("MIDlets", String.valueOf(Json.array(inspect, "midlets").size()),
-                margin + 14, y + 30, width - 28);
-        ui.field("Classes", String.valueOf(Json.array(inspect, "classes").size()),
-                margin + 14, y + 50, width - 28);
-        ui.field("Resources", Json.array(inspect, "resources").size() + "  ("
-                + kb(Json.longValue(inspect, "uncompressed", 0)) + ")",
-                margin + 14, y + 70, width - 28);
-        y += 108;
+        int contentsHeight = ui.sectionHeight(3);
+        row = ui.section(margin, y, width, contentsHeight, "NỘI DUNG BỘ CÀI", null);
+        ui.field("MIDlet", String.valueOf(Json.array(inspect, "midlets").size()), fieldX, row,
+                fieldWidth);
+        ui.field("Lớp Java", String.valueOf(Json.array(inspect, "classes").size()), fieldX,
+                row + Ui.ROW, fieldWidth);
+        ui.field("Tài nguyên", Json.array(inspect, "resources").size() + "  ("
+                + kb(Json.longValue(inspect, "uncompressed", 0)) + ")", fieldX, row + Ui.ROW * 2,
+                fieldWidth);
+        y += contentsHeight + 14;
 
-        ui.panel(margin, y, width, 46, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "Uninstall game", margin + 14, y + 8, Theme.BAD);
-        ui.text(ui.small(), "Saves are backed up before anything is removed.",
-                margin + 14, y + 26, Theme.TEXT_DIM);
+        // Danger zone ----------------------------------------------------
+        int dangerHeight = 12 + ui.medium().height() + ui.small().height() + 26;
+        ui.panel(margin, y, width, dangerHeight, Theme.SURFACE, Theme.BORDER);
+        ui.text(ui.medium(), "Gỡ trò chơi", fieldX, y + 12, Theme.BAD);
+        ui.text(ui.small(), "Dữ liệu lưu luôn được sao lưu trước khi xoá bất cứ thứ gì.",
+                fieldX, y + 12 + ui.medium().height() + 4, Theme.TEXT_DIM);
 
         return frame;
     }
@@ -147,6 +148,6 @@ public final class DetailScreen {
         if (bytes < 1024) {
             return bytes + " B";
         }
-        return (bytes / 1024) + "." + ((bytes % 1024) * 10 / 1024) + " KB";
+        return (bytes / 1024) + "," + ((bytes % 1024) * 10 / 1024) + " KB";
     }
 }

@@ -57,6 +57,17 @@ MobiCore/
 Mỗi game có sandbox riêng: một game không bao giờ đọc hay ghi đè dữ liệu của
 game khác.
 
+## Giao diện
+
+Toàn bộ giao diện là tiếng Việt, kể cả tên phím mà `Canvas.getKeyName()` trả
+về cho trò chơi. Font bitmap trong core phủ đủ mọi tổ hợp dấu tiếng Việt, nên
+chữ có dấu hiển thị đúng cả trong giao diện lẫn bên trong game đang chạy.
+
+Khi vào một trò chơi, ứng dụng chạy toàn màn hình: ẩn thanh trạng thái và
+thanh điều hướng, khung hình game phóng theo bội số nguyên và không làm mượt.
+Bàn phím ảo đặt **cụm mũi tên bên phải**, bàn số 3×4 bên trái, hàng phím mềm ở
+trên — theo cách cầm một chiếc điện thoại J2ME.
+
 ## Những gì đã chạy được
 
 - Nạp và chạy **bytecode Java thật**: trình thông dịch phủ tập lệnh CLDC,

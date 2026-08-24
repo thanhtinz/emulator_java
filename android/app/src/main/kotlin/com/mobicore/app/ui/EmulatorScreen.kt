@@ -1,8 +1,9 @@
 package com.mobicore.app.ui
 
+import android.app.Activity
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -18,27 +19,31 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.mobicore.app.data.LibraryRepository
 import com.mobicore.app.emu.EmulatorEngine
 
 /**
- * The running game plus its on-screen controls.
+ * Màn hình chơi: khung hình của trò chơi và bàn phím ảo.
  *
- * The framebuffer is blitted with filtering disabled and, by default, at an
- * integer scale: classic games are pixel art and smoothing them is the one
- * thing an emulator must not do.
+ * The system bars are hidden while a game runs. The emulated screen is small to
+ * begin with, and giving up a strip of it to a status bar wastes the space the
+ * player actually looks at.
  */
 @Composable
 fun EmulatorScreen(
@@ -50,6 +55,9 @@ fun EmulatorScreen(
     val engine = remember(suiteId) { EmulatorEngine(filesDir) }
     val profiles by library.profiles.collectAsState()
     val profile = profiles[suiteId]
+    val context = LocalContext.current
+    val title = library.games.collectAsState().value
+        .firstOrNull { it.suiteId() == suiteId }?.title() ?: "Trò chơi"
 
     LaunchedEffect(suiteId) {
         val loaded = library.load(suiteId)
@@ -58,26 +66,41 @@ fun EmulatorScreen(
         engine.start(loaded, active)
     }
 
+    // Immersive while playing, restored on the way out.
     DisposableEffect(suiteId) {
-        onDispose { engine.stop() }
+        val activity = context as? Activity
+        val window = activity?.window
+        val controller = window?.let { WindowInsetsControllerCompat(it, it.decorView) }
+        controller?.apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+        window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
+        onDispose {
+            controller?.show(WindowInsetsCompat.Type.systemBars())
+            engine.stop()
+        }
     }
 
     Column(Modifier.fillMaxSize().background(MobiColors.Background)) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text("Exit", color = MobiColors.Accent, fontSize = 14.sp,
-                modifier = Modifier.clickableText { engine.stop(); onExit() })
-            if (profile?.showFps() == true) {
-                Text("${engine.measuredFps} fps", color = MobiColors.TextDim, fontSize = 12.sp)
-            }
             Text(
-                text = if (engine.paused) "Resume" else "Pause",
+                text = "‹  Thoát",
                 color = MobiColors.Accent,
-                fontSize = 14.sp,
-                modifier = Modifier.clickableText {
+                fontSize = 15.sp,
+                modifier = Modifier.clickable { engine.stop(); onExit() },
+            )
+            Text(title, color = MobiColors.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = if (engine.paused) "Tiếp tục" else "Tạm dừng",
+                color = MobiColors.Accent,
+                fontSize = 15.sp,
+                modifier = Modifier.clickable {
                     if (engine.paused) engine.resume() else engine.pause()
                 },
             )
@@ -85,6 +108,22 @@ fun EmulatorScreen(
 
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             GameSurface(engine, library, suiteId)
+        }
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(MobiColors.SurfaceAlt)
+                .padding(horizontal = 16.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "${engine.screenWidth()}×${engine.screenHeight()}  ·  " +
+                    (profile?.scaleModeName() ?: "—") + "  ·  không làm mượt",
+                color = MobiColors.TextDim,
+                fontSize = 11.sp,
+            )
+            Text("${engine.measuredFps} hình/giây", color = MobiColors.Good, fontSize = 11.sp)
         }
 
         val error = engine.lastError
@@ -100,9 +139,9 @@ fun EmulatorScreen(
         Keypad(
             onPress = { engine.pressButton(it) },
             onRelease = { engine.releaseButton(it) },
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
     }
 }
 
@@ -178,5 +217,3 @@ private fun toGameCoordinates(
     if (x < 0 || y < 0 || x >= screenWidth || y >= screenHeight) return null
     return x to y
 }
-
-private fun Modifier.clickableText(onClick: () -> Unit): Modifier = this.clickable(onClick = onClick)

@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Application-wide information: what the emulator supports, where data lives
-/// and how the sandbox is enforced.
+/// Thông tin chung: bộ giả lập hỗ trợ gì, dữ liệu nằm ở đâu, vùng cách ly ra sao.
 struct SettingsView: View {
 
     @EnvironmentObject private var client: MobiCoreClient
@@ -13,18 +12,18 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                SectionCard(title: "EMULATOR") {
+                SectionCard(title: "BỘ GIẢ LẬP") {
                     VStack(spacing: 6) {
-                        FieldRow(label: "Configuration", value: "CLDC 1.0 / 1.1")
-                        FieldRow(label: "Profile", value: "MIDP 1.0 / 2.0")
-                        FieldRow(label: "Rendering", value: "Nearest neighbour, integer scale")
+                        FieldRow(label: "Cấu hình", value: "CLDC 1.0 / 1.1")
+                        FieldRow(label: "Hồ sơ", value: "MIDP 1.0 / 2.0")
+                        FieldRow(label: "Kết xuất", value: "Điểm gần nhất, phóng bội số nguyên")
                     }
                 }
 
-                SectionCard(title: "STORAGE") {
+                SectionCard(title: "LƯU TRỮ") {
                     VStack(alignment: .leading, spacing: 6) {
-                        FieldRow(label: "Installed games", value: "\(client.games.count)")
-                        FieldRow(label: "Suites on disk", value: byteString(totalBytes))
+                        FieldRow(label: "Trò chơi đã cài", value: "\(client.games.count)")
+                        FieldRow(label: "Dung lượng bộ cài", value: byteString(totalBytes))
                         Text(client.storageRoot)
                             .font(.caption2)
                             .foregroundStyle(Palette.textDim)
@@ -33,19 +32,19 @@ struct SettingsView: View {
                     }
                 }
 
-                SectionCard(title: "SECURITY") {
+                SectionCard(title: "BẢO MẬT") {
                     VStack(spacing: 6) {
-                        FieldRow(label: "Sandbox", value: "One directory per game")
-                        FieldRow(label: "Filesystem access", value: "Import only")
-                        FieldRow(label: "Network", value: "Off until a profile allows it")
+                        FieldRow(label: "Vùng cách ly", value: "Mỗi trò chơi một thư mục riêng")
+                        FieldRow(label: "Truy cập tệp", value: "Chỉ khi nhập")
+                        FieldRow(label: "Mạng", value: "Tắt cho tới khi hồ sơ cho phép")
                     }
                 }
 
-                SectionCard(title: "ABOUT") {
+                SectionCard(title: "GIỚI THIỆU") {
                     VStack(alignment: .leading, spacing: 6) {
                         FieldRow(label: "MobiCore", value: "1.0")
-                        Text("A J2ME game platform: run, manage and customise Java ME games "
-                             + "on a modern device.")
+                        Text("Nền tảng chơi game J2ME: chạy, quản lý và tuỳ biến game Java ME "
+                             + "trên thiết bị hiện đại.")
                             .font(.caption)
                             .foregroundStyle(Palette.textDim)
                     }
@@ -54,6 +53,6 @@ struct SettingsView: View {
             .padding(16)
         }
         .background(Palette.background)
-        .navigationTitle("Settings")
+        .navigationTitle("Cài đặt")
     }
 }

@@ -255,20 +255,25 @@ public final class MidpContext {
         }
     }
 
+    /**
+     * Human readable key name, as {@code Canvas.getKeyName} returns it. Games
+     * print this on screen, so it is localised along with the rest of the
+     * interface.
+     */
     public static String keyName(int keyCode) {
         switch (keyCode) {
-            case KEY_UP: return "Up";
-            case KEY_DOWN: return "Down";
-            case KEY_LEFT: return "Left";
-            case KEY_RIGHT: return "Right";
-            case KEY_FIRE: return "Select";
-            case KEY_SOFT_LEFT: return "Soft1";
-            case KEY_SOFT_RIGHT: return "Soft2";
-            case KEY_CLEAR: return "Clear";
-            case KEY_SEND: return "Call";
-            case KEY_END: return "End";
+            case KEY_UP: return "Lên";
+            case KEY_DOWN: return "Xuống";
+            case KEY_LEFT: return "Trái";
+            case KEY_RIGHT: return "Phải";
+            case KEY_FIRE: return "Chọn";
+            case KEY_SOFT_LEFT: return "Mềm 1";
+            case KEY_SOFT_RIGHT: return "Mềm 2";
+            case KEY_CLEAR: return "Xóa";
+            case KEY_SEND: return "Gọi";
+            case KEY_END: return "Kết thúc";
             default: return keyCode >= 32 && keyCode < 127 ? String.valueOf((char) keyCode)
-                    : "Key" + keyCode;
+                    : "Phím " + keyCode;
         }
     }
 }

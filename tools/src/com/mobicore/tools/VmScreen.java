@@ -93,56 +93,69 @@ public final class VmScreen {
         Framebuffer frame = Preview.newScreen();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
-        ui.appBar("VM Inspector", "Developer Tools");
+        ui.appBar("Máy ảo", "Công cụ nhà phát triển");
 
-        int margin = 16;
+        int margin = Ui.PAD;
         int width = frame.width() - margin * 2;
-        int y = 62;
+        int fieldX = margin + Ui.PAD;
+        int fieldWidth = width - Ui.PAD * 2;
+        int y = Ui.APP_BAR + 18;
 
-        ui.panel(margin, y, width, 92, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "RUNTIME", margin + 14, y + 10, Theme.TEXT_DIM);
-        ui.field("Classes loaded", String.valueOf(vm.loadedClasses().size()), margin + 14, y + 30, width - 28);
-        ui.field("Bytecodes executed", group(vm.interpreter().executed()), margin + 14, y + 50, width - 28);
-        ui.field("Configuration", "CLDC-1.1 / MIDP-2.0", margin + 14, y + 70, width - 28);
-        y += 104;
+        int runtimeHeight = ui.sectionHeight(3);
+        int row = ui.section(margin, y, width, runtimeHeight, "THỜI GIAN CHẠY", null);
+        ui.field("Số lớp đã nạp", String.valueOf(vm.loadedClasses().size()), fieldX, row, fieldWidth);
+        ui.field("Lệnh đã thực thi", group(vm.interpreter().executed()), fieldX, row + Ui.ROW,
+                fieldWidth);
+        ui.field("Cấu hình", "CLDC-1.1 / MIDP-2.0", fieldX, row + Ui.ROW * 2, fieldWidth);
+        y += runtimeHeight + 14;
 
-        int rowHeight = 22;
-        int panelHeight = 30 + rows.size() * rowHeight;
-        ui.panel(margin, y, width, panelHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "INTERPRETED CALLS", margin + 14, y + 10, Theme.TEXT_DIM);
-        int rowY = y + 30;
-        for (Row row : rows) {
-            ui.text(ui.small(), row.call, margin + 14, rowY, Theme.TEXT);
-            ui.textRight(ui.smallBold(), ui.ellipsize(ui.smallBold(), row.result, 150),
-                    margin + width - 14, rowY, Theme.GOOD);
-            rowY += rowHeight;
+        int callsHeight = ui.sectionHeight(rows.size());
+        row = ui.section(margin, y, width, callsHeight, "LỜI GỌI ĐÃ THÔNG DỊCH", null);
+        for (Row entry : rows) {
+            ui.field(entry.call, ui.ellipsize(ui.mediumBold(), entry.result, 190), fieldX, row,
+                    fieldWidth);
+            row += Ui.ROW;
         }
-        y += panelHeight + 12;
+        y += callsHeight + 14;
 
-        ui.panel(margin, y, width, 74, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "CONSOLE", margin + 14, y + 10, Theme.TEXT_DIM);
-        int lineY = y + 28;
-        for (String line : console.toString().split("\n")) {
+        String[] lines = console.toString().split("\n");
+        int consoleRows = 0;
+        for (String line : lines) {
+            if (line.length() > 0) {
+                consoleRows++;
+            }
+        }
+        int consoleHeight = 12 + ui.small().height() + 8
+                + Math.max(1, consoleRows) * (ui.medium().height() + 4) + 6;
+        row = ui.section(margin, y, width, consoleHeight, "BẢNG ĐIỀU KHIỂN", null);
+        for (String line : lines) {
             if (line.length() == 0) {
                 continue;
             }
-            ui.text(ui.small(), ui.ellipsize(ui.small(), line, width - 28), margin + 14, lineY, Theme.ACCENT);
-            lineY += 16;
+            ui.text(ui.medium(), ui.ellipsize(ui.medium(), line, fieldWidth), fieldX, row,
+                    Theme.ACCENT);
+            row += ui.medium().height() + 4;
         }
-        y += 86;
+        y += consoleHeight + 14;
 
-        ui.panel(margin, y, width, 118, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "LOADED CLASSES (SAMPLE)", margin + 14, y + 10, Theme.TEXT_DIM);
-        int listY = y + 30;
         int shown = 0;
+        for (VmClass type : vm.loadedClasses()) {
+            if (type.name().startsWith("demo/")) {
+                shown++;
+            }
+        }
+        int classesHeight = ui.sectionHeight(Math.min(shown, 5));
+        row = ui.section(margin, y, width, classesHeight, "LỚP CỦA TRÒ CHƠI",
+                shown + " lớp");
+        int drawn = 0;
         for (VmClass type : vm.loadedClasses()) {
             if (!type.name().startsWith("demo/")) {
                 continue;
             }
-            ui.text(ui.small(), type.binaryName(), margin + 14, listY, Theme.TEXT);
-            ui.textRight(ui.small(), type.methods().length + " methods", margin + width - 14, listY, Theme.TEXT_DIM);
-            listY += 18;
-            if (++shown >= 5) {
+            ui.field(type.binaryName(), type.methods().length + " phương thức", fieldX, row,
+                    fieldWidth);
+            row += Ui.ROW;
+            if (++drawn >= 5) {
                 break;
             }
         }
@@ -155,7 +168,7 @@ public final class VmScreen {
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < digits.length(); i++) {
             if (i > 0 && (digits.length() - i) % 3 == 0) {
-                out.append(' ');
+                out.append('.');
             }
             out.append(digits.charAt(i));
         }

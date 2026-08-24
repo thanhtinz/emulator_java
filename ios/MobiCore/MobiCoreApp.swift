@@ -21,13 +21,13 @@ struct RootView: View {
     var body: some View {
         TabView {
             NavigationStack { HomeView() }
-                .tabItem { Label("Home", systemImage: "house") }
+                .tabItem { Label("Trang chủ", systemImage: "house") }
             NavigationStack { LibraryView() }
-                .tabItem { Label("Library", systemImage: "gamecontroller") }
+                .tabItem { Label("Thư viện", systemImage: "gamecontroller") }
             NavigationStack { ToolsView() }
-                .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver") }
+                .tabItem { Label("Công cụ", systemImage: "wrench.and.screwdriver") }
             NavigationStack { SettingsView() }
-                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tabItem { Label("Cài đặt", systemImage: "gearshape") }
         }
         .tint(Palette.accent)
         .background(Palette.background)

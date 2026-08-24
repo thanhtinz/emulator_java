@@ -104,12 +104,13 @@ public final class LibraryScreen {
         int margin = 16;
         int width = frame.width() - margin * 2;
 
-        ui.text(ui.largeBold(), "MobiCore", margin, 16, Theme.TEXT);
-        ui.textRight(ui.small(), "Import", frame.width() - margin, 24, Theme.ACCENT);
+        ui.text(ui.title(), "MobiCore", margin, 14, Theme.TEXT);
+        ui.textRight(ui.medium(), "Nhập trò chơi", frame.width() - margin,
+                14 + (ui.title().height() - ui.medium().height()) / 2, Theme.ACCENT);
 
-        int y = 54;
-        ui.text(ui.small(), "RECENTLY PLAYED", margin, y, Theme.TEXT_DIM);
-        y += 18;
+        int y = 14 + ui.title().height() + 18;
+        ui.text(ui.small(), "VỪA CHƠI", margin, y, Theme.TEXT_DIM);
+        y += ui.small().height() + 10;
         List<LibraryEntry> recent = library.sort(library.all(), GameLibrary.SORT_RECENT, profiles);
         int tileX = margin;
         for (LibraryEntry entry : recent) {
@@ -118,45 +119,65 @@ public final class LibraryScreen {
                 continue;
             }
             drawTile(ui, library, entry, tileX, y);
-            tileX += 92;
-            if (tileX + 84 > margin + width) {
+            tileX += TILE + 14;
+            if (tileX + TILE > margin + width) {
                 break;
             }
         }
-        y += 116;
+        y += TILE + ui.small().height() + 22;
 
-        ui.text(ui.small(), "ALL GAMES", margin, y, Theme.TEXT_DIM);
-        ui.textRight(ui.small(), library.size() + " installed", frame.width() - margin, y, Theme.TEXT_DIM);
-        y += 18;
+        ui.text(ui.small(), "TẤT CẢ TRÒ CHƠI", margin, y, Theme.TEXT_DIM);
+        ui.textRight(ui.small(), "đã cài " + library.size(), frame.width() - margin, y, Theme.TEXT_DIM);
+        y += ui.small().height() + 10;
 
         for (LibraryEntry entry : library.sort(library.all(), GameLibrary.SORT_TITLE, profiles)) {
             drawRow(ui, library, entry, profiles.get(entry.suiteId()), margin, y, width);
-            y += 72;
+            y += ROW_HEIGHT + 12;
         }
 
+        List<LibraryEntry> favourites = library.favourites(profiles);
+        if (!favourites.isEmpty()) {
+            y += 6;
+            ui.text(ui.small(), "YÊU THÍCH", margin, y, Theme.TEXT_DIM);
+            y += ui.small().height() + 10;
+            for (LibraryEntry entry : favourites) {
+                drawRow(ui, library, entry, profiles.get(entry.suiteId()), margin, y, width);
+                y += ROW_HEIGHT + 12;
+            }
+        }
+
+        ui.tabBar(new String[]{"Trang chủ", "Thư viện", "Công cụ", "Cài đặt"}, 0);
         return frame;
     }
 
+    /** Cover size in the "vừa chơi" row, and the height of a list row. */
+    private static final int TILE = 108;
+    private static final int ROW_HEIGHT = 84;
+
     private void drawTile(Ui ui, GameLibrary library, LibraryEntry entry, int x, int y)
             throws Exception {
-        drawArtwork(ui, library, entry, x, y, 80);
-        ui.textCenter(ui.small(), ui.ellipsize(ui.small(), entry.title(), 84), x + 40, y + 86,
-                Theme.TEXT);
+        drawArtwork(ui, library, entry, x, y, TILE);
+        ui.textCenter(ui.small(), ui.ellipsize(ui.small(), entry.title(), TILE + 8),
+                x + TILE / 2, y + TILE + 8, Theme.TEXT);
     }
 
     private void drawRow(Ui ui, GameLibrary library, LibraryEntry entry, GameProfile profile,
                          int x, int y, int width) throws Exception {
-        ui.panel(x, y, width, 62, Theme.SURFACE, Theme.BORDER);
-        drawArtwork(ui, library, entry, x + 10, y + 8, 46);
-        int textLeft = x + 10 + 46 + 12;
-        ui.text(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), entry.title(), width - 170),
-                textLeft, y + 12, Theme.TEXT);
-        ui.text(ui.small(), entry.vendor() + "   -   " + entry.version(), textLeft, y + 34, Theme.TEXT_DIM);
+        ui.panel(x, y, width, ROW_HEIGHT, Theme.SURFACE, Theme.BORDER);
+        int cover = ROW_HEIGHT - 24;
+        drawArtwork(ui, library, entry, x + 12, y + 12, cover);
+        int textLeft = x + 12 + cover + 14;
         String chip = profile != null ? profile.device().resolution() : entry.profile();
-        int chipWidth = ui.small().stringWidth(chip) + 12;
-        ui.chip(chip, x + width - chipWidth - 12, y + 12, Theme.ACCENT, Theme.ACCENT_DIM);
+        int chipWidth = ui.small().stringWidth(chip) + 18;
+        ui.text(ui.mediumBold(),
+                ui.ellipsize(ui.mediumBold(), entry.title(), width - cover - chipWidth - 60),
+                textLeft, y + 14, Theme.TEXT);
+        ui.text(ui.small(), entry.vendor() + "  ·  " + entry.version(), textLeft,
+                y + 14 + ui.mediumBold().height() + 4, Theme.TEXT_DIM);
+        ui.chip(chip, x + width - chipWidth - 14, y + 14, Theme.ACCENT, Theme.ACCENT_DIM);
         if (profile != null && profile.isFavourite()) {
-            ui.textRight(ui.small(), "favourite", x + width - 12, y + 36, Theme.WARN);
+            ui.textRight(ui.small(), "★ yêu thích", x + width - 14,
+                    y + 14 + ui.chipHeight() + 8, Theme.WARN);
         }
     }
 
@@ -165,15 +186,15 @@ public final class LibraryScreen {
         Framebuffer frame = ui.frame();
         byte[] artwork = library.artwork(entry.suiteId());
         frame.setColor(Theme.SURFACE_ALT);
-        frame.fillRoundRect(x, y, size, size, 12, 12);
+        frame.fillRoundRect(x, y, size, size, 18, 18);
         if (artwork != null && PngReader.looksLikePng(artwork)) {
             PngReader.Image decoded = PngReader.decode(artwork);
             Framebuffer icon = Framebuffer.wrap(decoded.pixels, decoded.width, decoded.height)
-                    .scaleNearest(size - 8, size - 8);
-            frame.drawFramebuffer(icon, x + 4, y + 4);
+                    .scaleNearest(size - 10, size - 10);
+            frame.drawFramebuffer(icon, x + 5, y + 5);
         } else {
-            ui.textCenter(ui.largeBold(), entry.title().substring(0, 1).toUpperCase(),
-                    x + size / 2, y + size / 2 - 10, Theme.ACCENT);
+            ui.textCenter(ui.title(), entry.title().substring(0, 1).toUpperCase(),
+                    x + size / 2, y + (size - ui.title().height()) / 2, Theme.ACCENT);
         }
     }
 }

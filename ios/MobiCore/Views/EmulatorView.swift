@@ -1,6 +1,10 @@
 import SwiftUI
 
-/// The running game plus its on-screen controls.
+/// Màn hình chơi: khung hình của trò chơi và bàn phím ảo.
+///
+/// The status bar and the home indicator are hidden while a game runs. The
+/// emulated screen is small to begin with, and giving up a strip of it to
+/// system chrome wastes the space the player actually looks at.
 struct EmulatorView: View {
 
     let suiteId: String
@@ -14,19 +18,19 @@ struct EmulatorView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button("Exit") {
+                Button("‹  Thoát") {
                     engine.stop()
                     client.refresh()
                     dismiss()
                 }
                 Spacer()
                 if settings?.showFps ?? false {
-                    Text("\(engine.measuredFps) fps")
+                    Text("\(engine.measuredFps) hình/giây")
                         .font(.caption)
                         .foregroundStyle(Palette.textDim)
                 }
                 Spacer()
-                Button(engine.isPaused ? "Resume" : "Pause") {
+                Button(engine.isPaused ? "Tiếp tục" : "Tạm dừng") {
                     engine.isPaused ? engine.resume() : engine.pause()
                 }
             }
@@ -36,6 +40,20 @@ struct EmulatorView: View {
 
             GameSurface(engine: engine)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            HStack {
+                Text("\(Int(engine.screenSize.width))×\(Int(engine.screenSize.height))"
+                     + "  ·  bội số nguyên  ·  không làm mượt")
+                    .font(.caption2)
+                    .foregroundStyle(Palette.textDim)
+                Spacer()
+                Text("\(engine.measuredFps) hình/giây")
+                    .font(.caption2)
+                    .foregroundStyle(Palette.good)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 5)
+            .background(Palette.surfaceAlt)
 
             if let error = engine.error {
                 Text(error)
@@ -51,6 +69,8 @@ struct EmulatorView: View {
             .padding(12)
         }
         .background(Palette.background)
+        .statusBarHidden(true)
+        .persistentSystemOverlays(.hidden)
         .onAppear {
             engine.start(suiteId: suiteId, settings: client.settings(suiteId))
         }

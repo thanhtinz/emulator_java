@@ -53,11 +53,11 @@ fun LibraryScreen(
             Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text("Library", color = MobiColors.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("Thư viện", color = MobiColors.Text, fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Text(
-                text = "Import",
+                text = "Nhập trò chơi",
                 color = MobiColors.Accent,
-                fontSize = 14.sp,
+                fontSize = 15.sp,
                 modifier = Modifier.clickable(onClick = onImport),
             )
         }
@@ -66,30 +66,30 @@ fun LibraryScreen(
             value = query,
             onValueChange = { query = it },
             singleLine = true,
-            placeholder = { Text("Search title or vendor") },
+            placeholder = { Text("Tìm theo tên hoặc nhà phát hành") },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SortChip("Title", GameLibrary.SORT_TITLE, sortMode) { sortMode = it }
-            SortChip("Recent", GameLibrary.SORT_RECENT, sortMode) { sortMode = it }
-            SortChip("Vendor", GameLibrary.SORT_VENDOR, sortMode) { sortMode = it }
+            SortChip("Tên", GameLibrary.SORT_TITLE, sortMode) { sortMode = it }
+            SortChip("Vừa chơi", GameLibrary.SORT_RECENT, sortMode) { sortMode = it }
+            SortChip("Nhà phát hành", GameLibrary.SORT_VENDOR, sortMode) { sortMode = it }
         }
         Spacer(Modifier.height(12.dp))
 
         if (visible.isEmpty()) {
             EmptyState(
                 icon = Icons.Filled.VideogameAsset,
-                title = if (games.isEmpty()) "No games yet" else "Nothing matches",
+                title = if (games.isEmpty()) "Chưa có trò chơi nào" else "Không có kết quả",
                 body = if (games.isEmpty()) {
-                    "Import a .jar file, or a .jar and .jad pair, to get started."
+                    "Chọn một tệp .jar, hoặc cặp .jar và .jad, để bắt đầu."
                 } else {
-                    "Try a different search term."
+                    "Thử một từ khoá khác."
                 },
                 action = if (games.isEmpty()) onImport else null,
-                actionLabel = "Import game",
+                actionLabel = "Nhập trò chơi",
             )
             return
         }
@@ -109,7 +109,7 @@ private fun SortChip(label: String, mode: Int, selected: Int, onSelect: (Int) ->
     Text(
         text = label,
         color = if (active) MobiColors.Accent else MobiColors.TextDim,
-        fontSize = 12.sp,
+        fontSize = 13.sp,
         modifier = Modifier
             .clickable { onSelect(mode) }
             .padding(horizontal = 2.dp),

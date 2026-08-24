@@ -56,6 +56,14 @@ thấy `NSString`, `NSData` và `CGImage`.
 | Tools | `MobiCore/Views/ToolsView.swift` | Manifest/JAD, MIDlet, class, resource |
 | Settings | `MobiCore/Views/SettingsView.swift` | Emulator, storage, bảo mật |
 
+## Bố cục màn hình chơi
+
+Toàn bộ giao diện là tiếng Việt. Khi chơi, thanh trạng thái và home indicator
+được ẩn (`statusBarHidden`, `persistentSystemOverlays(.hidden)`).
+
+Bàn phím ảo đặt **cụm mũi tên bên phải**, bàn số 3×4 bên trái, hàng phím mềm ở
+trên — giống bố cục Android và giống cách cầm một chiếc máy J2ME.
+
 ## Các quyết định đáng chú ý
 
 - **MIDlet chạy trên background queue**, chỉ khung hình hoàn chỉnh mới được đưa

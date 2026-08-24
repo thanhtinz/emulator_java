@@ -26,7 +26,7 @@ fun PrimaryButton(label: String, modifier: Modifier = Modifier, onClick: () -> U
             .padding(vertical = 13.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = MobiColors.Accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = MobiColors.Accent, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -41,6 +41,6 @@ fun SecondaryButton(label: String, modifier: Modifier = Modifier, onClick: () ->
             .padding(vertical = 13.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = MobiColors.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = MobiColors.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }

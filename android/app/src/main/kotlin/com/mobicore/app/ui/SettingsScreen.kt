@@ -29,26 +29,26 @@ fun SettingsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text("Settings", color = MobiColors.Text, fontSize = 24.sp,
+            Text("Cài đặt", color = MobiColors.Text, fontSize = 28.sp,
                 fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
         }
 
         item {
-            SectionCard(title = "EMULATOR") {
+            SectionCard(title = "BỘ GIẢ LẬP") {
                 Column {
-                    FieldRow("Configuration", "CLDC 1.0 / 1.1")
-                    FieldRow("Profile", "MIDP 1.0 / 2.0")
-                    FieldRow("Rendering", "Nearest neighbour, integer scale")
+                    FieldRow("Cấu hình", "CLDC 1.0 / 1.1")
+                    FieldRow("Hồ sơ", "MIDP 1.0 / 2.0")
+                    FieldRow("Kết xuất", "Điểm gần nhất, phóng bội số nguyên")
                 }
             }
         }
 
         item {
-            SectionCard(title = "STORAGE") {
+            SectionCard(title = "LƯU TRỮ") {
                 Column {
-                    FieldRow("Installed games", games.size.toString())
-                    FieldRow("Suites on disk", formatBytes(totalBytes))
-                    FieldRow("Root", layout.root())
+                    FieldRow("Trò chơi đã cài", games.size.toString())
+                    FieldRow("Dung lượng bộ cài", formatBytes(totalBytes))
+                    FieldRow("Thư mục gốc", layout.root())
                     Spacer(Modifier.height(6.dp))
                     StorageLayout.TOP_LEVEL.forEach { directory ->
                         Text(
@@ -62,24 +62,24 @@ fun SettingsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
         }
 
         item {
-            SectionCard(title = "SECURITY") {
+            SectionCard(title = "BẢO MẬT") {
                 Column {
-                    FieldRow("Sandbox", "One directory per game")
-                    FieldRow("Filesystem access", "Import only, no broad permission")
-                    FieldRow("Network", "Off until a game's profile allows it")
+                    FieldRow("Vùng cách ly", "Mỗi trò chơi một thư mục riêng")
+                    FieldRow("Truy cập tệp", "Chỉ khi nhập, không xin quyền rộng")
+                    FieldRow("Mạng", "Tắt cho tới khi hồ sơ trò chơi cho phép")
                 }
             }
         }
 
         item {
-            SectionCard(title = "ABOUT") {
+            SectionCard(title = "GIỚI THIỆU") {
                 Column {
                     FieldRow("MobiCore", "1.0")
                     Text(
-                        "A J2ME game platform: run, manage and customise Java ME games "
-                            + "on a modern device.",
+                        "Nền tảng chơi game J2ME: chạy, quản lý và tuỳ biến game Java ME "
+                            + "trên thiết bị hiện đại.",
                         color = MobiColors.TextDim,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                     )
                 }
             }

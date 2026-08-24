@@ -48,10 +48,10 @@ fun HomeScreen(
     if (games.isEmpty()) {
         EmptyState(
             icon = Icons.Filled.VideogameAsset,
-            title = "No games yet",
-            body = "Import a .jar file, or a .jar and .jad pair, to get started.",
+            title = "Chưa có trò chơi nào",
+            body = "Chọn một tệp .jar, hoặc cặp .jar và .jad, để bắt đầu.",
             action = onImport,
-            actionLabel = "Import game",
+            actionLabel = "Nhập trò chơi",
         )
         return
     }
@@ -66,11 +66,11 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("MobiCore", color = MobiColors.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text("MobiCore", color = MobiColors.Text, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    text = "Import",
+                    text = "Nhập trò chơi",
                     color = MobiColors.Accent,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     modifier = Modifier.clickable(onClick = onImport),
                 )
             }
@@ -79,7 +79,7 @@ fun HomeScreen(
         if (recent.isNotEmpty()) {
             item {
                 Column {
-                    Text("Recently played", color = MobiColors.TextDim, fontSize = 12.sp)
+                    Text("VỪA CHƠI", color = MobiColors.TextDim, fontSize = 12.sp)
                     Spacer(Modifier.height(10.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(recent, key = { it.suiteId() }) { entry ->
@@ -91,13 +91,13 @@ fun HomeScreen(
         }
 
         if (favourites.isNotEmpty()) {
-            item { Text("Favourites", color = MobiColors.TextDim, fontSize = 12.sp) }
+            item { Text("YÊU THÍCH", color = MobiColors.TextDim, fontSize = 12.sp) }
             items(favourites, key = { "fav-" + it.suiteId() }) { entry ->
                 GameRow(library, entry, profiles[entry.suiteId()], onOpen)
             }
         }
 
-        item { Text("All games", color = MobiColors.TextDim, fontSize = 12.sp) }
+        item { Text("TẤT CẢ TRÒ CHƠI", color = MobiColors.TextDim, fontSize = 12.sp) }
         items(games, key = { it.suiteId() }) { entry ->
             GameRow(library, entry, profiles[entry.suiteId()], onOpen)
         }
@@ -118,7 +118,7 @@ private fun RecentTile(library: LibraryRepository, entry: LibraryEntry, onOpen: 
         Text(
             text = entry.title(),
             color = MobiColors.Text,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -141,7 +141,7 @@ fun GameRow(
                 Text(
                     text = entry.title(),
                     color = MobiColors.Text,
-                    fontSize = 15.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -149,7 +149,7 @@ fun GameRow(
                 Text(
                     text = "${entry.vendor()} · ${entry.version()}",
                     color = MobiColors.TextDim,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

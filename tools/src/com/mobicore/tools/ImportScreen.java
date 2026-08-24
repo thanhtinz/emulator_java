@@ -2,6 +2,7 @@ package com.mobicore.tools;
 
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
+import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.model.MidletSuiteInfo;
 import com.mobicore.core.storage.StorageLayout;
@@ -9,8 +10,8 @@ import com.mobicore.tools.ui.Theme;
 import com.mobicore.tools.ui.Ui;
 
 /**
- * Preview of the import flow: the user picked a JAR + JAD pair and MobiCore is
- * showing what it parsed before the suite is installed into the library.
+ * Preview of the import flow: the user picked a JAR and JAD pair and MobiCore
+ * is showing what it parsed before the suite is installed.
  */
 public final class ImportScreen {
 
@@ -21,101 +22,132 @@ public final class ImportScreen {
         Framebuffer frame = Preview.newScreen();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
-        ui.appBar("Import Game", "MobiCore");
+        ui.appBar("Nhập trò chơi", "MobiCore");
 
-        int margin = 16;
+        int margin = Ui.PAD;
         int width = frame.width() - margin * 2;
-        int y = 62;
+        int y = Ui.APP_BAR + 18;
 
-        // Source files ---------------------------------------------------
-        ui.panel(margin, y, width, 86, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.mediumBold(), "Selected files", margin + 14, y + 10, Theme.TEXT);
-        ui.text(ui.small(), "SkyRunner.jar", margin + 14, y + 34, Theme.TEXT);
-        ui.textRight(ui.small(), kb(SampleSuite.jar().length), margin + width - 14, y + 34, Theme.TEXT_DIM);
-        ui.text(ui.small(), "SkyRunner.jad", margin + 14, y + 54, Theme.TEXT);
-        ui.textRight(ui.small(), kb(SampleSuite.jad().length), margin + width - 14, y + 54, Theme.TEXT_DIM);
-        y += 98;
+        // Chosen files ---------------------------------------------------
+        int filesHeight = ui.sectionHeight(2);
+        int row = ui.section(margin, y, width, filesHeight, "TỆP ĐÃ CHỌN", null);
+        ui.field("SkyRunner.jar", kb(SampleSuite.jar().length), margin + Ui.PAD, row, width - Ui.PAD * 2);
+        ui.field("SkyRunner.jad", kb(SampleSuite.jad().length), margin + Ui.PAD, row + Ui.ROW,
+                width - Ui.PAD * 2);
+        y += filesHeight + 14;
 
         // Parsed metadata ------------------------------------------------
-        ui.panel(margin, y, width, 196, Theme.SURFACE, Theme.BORDER);
-        drawIcon(ui, margin + 14, y + 14);
-        int textLeft = margin + 14 + 56 + 14;
-        ui.text(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), info.title(), width - 100),
-                textLeft, y + 16, Theme.TEXT);
-        ui.text(ui.small(), info.vendor(), textLeft, y + 38, Theme.TEXT_DIM);
+        int iconSize = 72;
+        int metaHeight = iconSize + 24 + 5 * Ui.ROW + 14;
+        ui.panel(margin, y, width, metaHeight, Theme.SURFACE, Theme.BORDER);
+        drawIcon(ui, margin + Ui.PAD, y + Ui.PAD, iconSize);
+        int textLeft = margin + Ui.PAD + iconSize + 16;
+        ui.text(ui.largeBold(), ui.ellipsize(ui.largeBold(), info.title(), width - iconSize - 60),
+                textLeft, y + Ui.PAD, Theme.TEXT);
+        ui.text(ui.small(), info.vendor(), textLeft, y + Ui.PAD + ui.largeBold().height() + 2,
+                Theme.TEXT_DIM);
+        int chipY = y + Ui.PAD + ui.largeBold().height() + ui.small().height() + 8;
         int chipX = textLeft;
-        chipX += ui.chip(info.configuration(), chipX, y + 56, Theme.ACCENT, Theme.ACCENT_DIM) + 6;
-        ui.chip(info.profile(), chipX, y + 56, Theme.ACCENT, Theme.ACCENT_DIM);
+        chipX += ui.chip(info.configuration(), chipX, chipY, Theme.ACCENT, Theme.ACCENT_DIM) + 8;
+        ui.chip(info.profile(), chipX, chipY, Theme.ACCENT, Theme.ACCENT_DIM);
 
-        int fieldY = y + 92;
-        ui.field("Version", info.version(), margin + 14, fieldY, width - 28);
-        ui.field("Suite id", info.suiteId(), margin + 14, fieldY + 22, width - 28);
-        ui.field("Entries in JAR", suite.archive().size() + " files", margin + 14, fieldY + 44, width - 28);
-        ui.field("Uncompressed", kb(suite.archive().uncompressedSize()), margin + 14, fieldY + 66, width - 28);
-        ui.field("Descriptor", suite.jad() != null ? "JAD + manifest" : "manifest only",
-                margin + 14, fieldY + 88, width - 28);
-        y += 208;
+        int fieldY = y + iconSize + 24;
+        int fieldX = margin + Ui.PAD;
+        int fieldWidth = width - Ui.PAD * 2;
+        ui.field("Phiên bản", info.version(), fieldX, fieldY, fieldWidth);
+        ui.field("Mã bộ cài", info.suiteId(), fieldX, fieldY + Ui.ROW, fieldWidth);
+        ui.field("Số tệp trong JAR", suite.archive().size() + " tệp", fieldX, fieldY + Ui.ROW * 2,
+                fieldWidth);
+        ui.field("Sau giải nén", kb(suite.archive().uncompressedSize()), fieldX,
+                fieldY + Ui.ROW * 3, fieldWidth);
+        ui.field("Mô tả", suite.jad() != null ? "JAD + manifest" : "chỉ manifest", fieldX,
+                fieldY + Ui.ROW * 4, fieldWidth);
+        y += metaHeight + 14;
 
         // MIDlets --------------------------------------------------------
-        int midletPanelHeight = 34 + info.midlets().size() * 34;
-        ui.panel(margin, y, width, midletPanelHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "MIDLETS", margin + 14, y + 10, Theme.TEXT_DIM);
-        int rowY = y + 30;
+        int entryHeight = ui.small().height() + ui.mediumBold().height() + 14;
+        int midletHeight = 12 + ui.small().height() + 8 + info.midlets().size() * (entryHeight + 8);
+        row = ui.section(margin, y, width, midletHeight, "CÁC MIDLET", null);
         for (MidletEntry entry : info.midlets()) {
-            ui.bar(margin + 14, rowY, width - 28, 30, Theme.SURFACE_ALT);
-            ui.text(ui.smallBold(), entry.name(), margin + 22, rowY + 2, Theme.TEXT);
-            ui.text(ui.small(), entry.className(), margin + 22, rowY + 15, Theme.TEXT_DIM);
+            ui.panel(margin + Ui.PAD, row, width - Ui.PAD * 2, entryHeight, Theme.SURFACE_ALT,
+                    Theme.SURFACE_ALT);
+            ui.text(ui.mediumBold(), entry.name(), margin + Ui.PAD + 12, row + 6, Theme.TEXT);
+            ui.text(ui.small(), entry.className(), margin + Ui.PAD + 12,
+                    row + 6 + ui.mediumBold().height(), Theme.TEXT_DIM);
             if (entry.index() == 1) {
-                ui.chip("DEFAULT", margin + width - 90, rowY + 7, Theme.GOOD, 0xFF14361B);
+                int chipWidth = ui.small().stringWidth("MẶC ĐỊNH") + 18;
+                ui.chip("MẶC ĐỊNH", margin + width - Ui.PAD - 12 - chipWidth,
+                        row + (entryHeight - ui.chipHeight()) / 2, Theme.GOOD, 0xFF14361B);
             }
-            rowY += 34;
+            row += entryHeight + 8;
         }
-        y += midletPanelHeight + 12;
+        y += midletHeight + 14;
 
-        // Sandbox preview ------------------------------------------------
+        // Sandbox --------------------------------------------------------
         StorageLayout layout = new StorageLayout("MobiCore");
-        ui.panel(margin, y, width, 108, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "SANDBOX", margin + 14, y + 10, Theme.TEXT_DIM);
         String[] paths = {
                 layout.gameDir(info.suiteId()),
                 layout.profilePath(info.suiteId()),
                 layout.rmsDir(info.suiteId()),
                 layout.backupDir(info.suiteId()),
         };
-        int pathY = y + 30;
+        int sandboxHeight = 12 + ui.small().height() + 8 + paths.length * (ui.small().height() + 6) + 8;
+        row = ui.section(margin, y, width, sandboxHeight, "VÙNG DỮ LIỆU RIÊNG", null);
         for (String path : paths) {
-            ui.text(ui.small(), ui.ellipsize(ui.small(), path, width - 28), margin + 14, pathY, Theme.TEXT);
-            pathY += 18;
+            ui.text(ui.small(), ui.ellipsize(ui.small(), path, width - Ui.PAD * 2),
+                    margin + Ui.PAD, row, Theme.TEXT);
+            row += ui.small().height() + 6;
         }
-        y += 120;
+        y += sandboxHeight + 14;
+
+        // Device profile -------------------------------------------------
+        DeviceProfile suggested = DeviceProfile.suggestFor(info);
+        int chipRowHeight = ui.chipHeight() + 8;
+        int deviceHeight = 12 + ui.small().height() + 8 + chipRowHeight * 2 + Ui.ROW + 6;
+        row = ui.section(margin, y, width, deviceHeight, "MÁY GIẢ LẬP", suggested.keypadName());
+        int deviceX = margin + Ui.PAD;
+        int deviceY = row;
+        for (DeviceProfile candidate : DeviceProfile.catalog()) {
+            boolean selected = candidate.id().equals(suggested.id());
+            int chipWidth = ui.small().stringWidth(candidate.resolution()) + 18;
+            if (deviceX + chipWidth > margin + width - Ui.PAD) {
+                deviceX = margin + Ui.PAD;
+                deviceY += chipRowHeight;
+            }
+            ui.chip(candidate.resolution(), deviceX, deviceY,
+                    selected ? Theme.ACCENT : Theme.TEXT_DIM,
+                    selected ? Theme.ACCENT_DIM : Theme.SURFACE_ALT);
+            deviceX += chipWidth + 8;
+        }
+        ui.field("Đề xuất cho bộ cài này", suggested.name(), margin + Ui.PAD,
+                deviceY + chipRowHeight + 2, width - Ui.PAD * 2);
+        y += deviceHeight + 16;
 
         // Actions --------------------------------------------------------
         int buttonWidth = (width - 12) / 2;
-        ui.panel(margin, y, buttonWidth, 44, Theme.SURFACE_ALT, Theme.BORDER);
-        ui.textCenter(ui.mediumBold(), "Cancel", margin + buttonWidth / 2, y + 13, Theme.TEXT_DIM);
-        ui.panel(margin + buttonWidth + 12, y, buttonWidth, 44, Theme.ACCENT_DIM, Theme.ACCENT);
-        ui.textCenter(ui.mediumBold(), "Install", margin + buttonWidth + 12 + buttonWidth / 2, y + 13, Theme.ACCENT);
+        ui.button(margin, y, buttonWidth, "Hủy", false);
+        ui.button(margin + buttonWidth + 12, y, buttonWidth, "Cài đặt", true);
 
         return frame;
     }
 
-    private void drawIcon(Ui ui, int x, int y) {
+    private void drawIcon(Ui ui, int x, int y, int size) {
         Framebuffer frame = ui.frame();
         frame.setColor(0xFF1D4E63);
-        frame.fillRoundRect(x, y, 56, 56, 14, 14);
+        frame.fillRoundRect(x, y, size, size, 18, 18);
         frame.setColor(Theme.ACCENT);
-        frame.drawRoundRect(x, y, 55, 55, 14, 14);
-        frame.fillArc(x + 16, y + 14, 24, 24, 0, 360);
+        frame.drawRoundRect(x, y, size - 1, size - 1, 18, 18);
+        frame.fillArc(x + 20, y + 16, 32, 32, 0, 360);
         frame.setColor(0xFF1D4E63);
-        frame.fillArc(x + 22, y + 20, 12, 12, 0, 360);
+        frame.fillArc(x + 28, y + 24, 16, 16, 0, 360);
         frame.setColor(Theme.ACCENT);
-        frame.fillRect(x + 12, y + 42, 32, 3);
+        frame.fillRect(x + 16, y + 56, 40, 4);
     }
 
     private static String kb(long bytes) {
         if (bytes < 1024) {
             return bytes + " B";
         }
-        return (bytes / 1024) + "." + ((bytes % 1024) * 10 / 1024) + " KB";
+        return (bytes / 1024) + "," + ((bytes % 1024) * 10 / 1024) + " KB";
     }
 }

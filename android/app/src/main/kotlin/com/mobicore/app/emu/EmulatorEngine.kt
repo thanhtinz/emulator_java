@@ -114,7 +114,7 @@ class EmulatorEngine(
         } catch (interrupted: InterruptedException) {
             Thread.currentThread().interrupt()
         } catch (thrown: VmThrow) {
-            lastError = "The game threw ${thrown.type()?.binaryName() ?: "an exception"}: ${thrown.message}"
+            lastError = "Trò chơi ném ${thrown.type()?.binaryName() ?: "một ngoại lệ"}: ${thrown.message}"
         } catch (error: VmError) {
             lastError = error.message
         } catch (unexpected: RuntimeException) {

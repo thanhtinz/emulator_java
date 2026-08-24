@@ -158,12 +158,12 @@ public final class InputProfile {
 
     public void remap(String button, int keyCode) {
         mappings.put(button, Integer.valueOf(keyCode));
-        presetName = "Custom";
+        presetName = "Tùy chỉnh";
     }
 
     public void unbind(String button) {
         mappings.remove(button);
-        presetName = "Custom";
+        presetName = "Tùy chỉnh";
     }
 
     public Map<String, Integer> mappings() {

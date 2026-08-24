@@ -87,7 +87,7 @@ public final class ProfileTest extends Test {
 
         nokia.remap("fire", '5');
         eq('5', nokia.keyCodeFor("fire"), "remap takes effect");
-        eq("Custom", nokia.presetName(), "remapping marks the profile custom");
+        eq("Tùy chỉnh", nokia.presetName(), "remapping marks the profile custom");
         nokia.unbind("star");
         eq(0, nokia.keyCodeFor("star"), "unbind removes the mapping");
 

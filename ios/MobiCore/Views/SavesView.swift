@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Record stores, snapshots and reset. Every destructive action backs up first.
+/// Kho bản ghi, bản sao lưu và đặt lại. Mọi thao tác xoá đều sao lưu trước.
 struct SavesView: View {
 
     let suiteId: String
@@ -12,46 +12,46 @@ struct SavesView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                SectionCard(title: "RECORD STORES", trailing: "\(saves?.stores.count ?? 0)") {
+                SectionCard(title: "KHO BẢN GHI", trailing: "\(saves?.stores.count ?? 0)") {
                     VStack(spacing: 6) {
                         if let stores = saves?.stores, !stores.isEmpty {
                             ForEach(stores) { store in
                                 FieldRow(
                                     label: store.name,
-                                    value: "\(store.records) records · \(store.bytes) B"
+                                    value: "\(store.records) bản ghi · \(store.bytes) B"
                                 )
                             }
                         } else {
-                            Text("Nothing saved yet.")
+                            Text("Chưa lưu gì.")
                                 .font(.footnote)
                                 .foregroundStyle(Palette.textDim)
                         }
                     }
                 }
 
-                SectionCard(title: "BACKUPS", trailing: "\(saves?.backups.count ?? 0)") {
+                SectionCard(title: "SAO LƯU", trailing: "\(saves?.backups.count ?? 0)") {
                     VStack(alignment: .leading, spacing: 10) {
                         if let backups = saves?.backups, !backups.isEmpty {
                             ForEach(backups, id: \.self) { name in
-                                FieldRow(label: name, value: "snapshot")
+                                FieldRow(label: name, value: "bản sao lưu")
                             }
                         } else {
-                            Text("No snapshots yet.")
+                            Text("Chưa có bản sao lưu nào.")
                                 .font(.footnote)
                                 .foregroundStyle(Palette.textDim)
                         }
                         HStack(spacing: 10) {
-                            Button("Back up now") {
+                            Button("Sao lưu ngay") {
                                 client.backup(suiteId)
-                                status = "Snapshot saved"
+                                status = "Đã tạo bản sao lưu"
                                 reload()
                             }
                             .buttonStyle(.borderedProminent)
                             .tint(Palette.accentDim)
 
-                            Button("Restore latest") {
+                            Button("Khôi phục bản mới nhất") {
                                 client.restoreLatest(suiteId)
-                                status = client.lastError ?? "Restored"
+                                status = client.lastError ?? "Đã khôi phục"
                                 reload()
                             }
                             .buttonStyle(.bordered)
@@ -59,16 +59,16 @@ struct SavesView: View {
                     }
                 }
 
-                SectionCard(title: "RESET") {
+                SectionCard(title: "ĐẶT LẠI") {
                     VStack(alignment: .leading, spacing: 6) {
-                        Button("Clear all saved data") {
+                        Button("Xoá toàn bộ dữ liệu lưu") {
                             client.resetData(suiteId)
-                            status = "Cleared, a snapshot was taken first"
+                            status = "Đã xoá, một bản sao lưu đã được tạo trước"
                             reload()
                         }
                         .font(.footnote)
                         .foregroundStyle(Palette.bad)
-                        Text("A snapshot is taken automatically before anything is cleared.")
+                        Text("Một bản sao lưu luôn được tạo trước khi xoá.")
                             .font(.caption2)
                             .foregroundStyle(Palette.textDim)
                     }
@@ -81,7 +81,7 @@ struct SavesView: View {
             .padding(16)
         }
         .background(Palette.background)
-        .navigationTitle("Saves")
+        .navigationTitle("Dữ liệu lưu")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: reload)
     }

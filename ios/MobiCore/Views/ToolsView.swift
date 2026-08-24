@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Developer tools: inspect a suite's descriptor, MIDlets, classes and
-/// resources without running it.
+/// Công cụ nhà phát triển: xem mô tả, MIDlet, lớp Java và tài nguyên của một
+/// bộ cài mà không cần chạy nó.
 struct ToolsView: View {
 
     @EnvironmentObject private var client: MobiCoreClient
@@ -12,11 +12,11 @@ struct ToolsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 if client.games.isEmpty {
-                    Text("Install a game to inspect it.")
+                    Text("Hãy cài một trò chơi để xem bên trong.")
                         .font(.footnote)
                         .foregroundStyle(Palette.textDim)
                 } else {
-                    SectionCard(title: "SUITE") {
+                    SectionCard(title: "BỘ CÀI") {
                         VStack(alignment: .leading, spacing: 6) {
                             ForEach(client.games) { game in
                                 Button(game.title) {
@@ -39,7 +39,7 @@ struct ToolsView: View {
                             }
                         }
 
-                        SectionCard(title: "MIDLETS", trailing: "\(inspection.midlets.count)") {
+                        SectionCard(title: "CÁC MIDLET", trailing: "\(inspection.midlets.count)") {
                             VStack(spacing: 6) {
                                 ForEach(inspection.midlets) { midlet in
                                     FieldRow(label: midlet.name, value: midlet.className)
@@ -47,7 +47,7 @@ struct ToolsView: View {
                             }
                         }
 
-                        SectionCard(title: "CLASSES", trailing: "\(inspection.classes.count)") {
+                        SectionCard(title: "LỚP JAVA", trailing: "\(inspection.classes.count)") {
                             VStack(alignment: .leading, spacing: 3) {
                                 ForEach(inspection.classes.prefix(20), id: \.self) { name in
                                     Text(name).font(.caption2).foregroundStyle(Palette.textDim)
@@ -55,7 +55,7 @@ struct ToolsView: View {
                             }
                         }
 
-                        SectionCard(title: "RESOURCES",
+                        SectionCard(title: "TÀI NGUYÊN",
                                     trailing: byteString(inspection.uncompressed)) {
                             VStack(spacing: 6) {
                                 ForEach(inspection.resources) { resource in
@@ -70,7 +70,7 @@ struct ToolsView: View {
             .padding(16)
         }
         .background(Palette.background)
-        .navigationTitle("Tools")
+        .navigationTitle("Công cụ")
         .onAppear {
             if selected == nil, let first = client.games.first {
                 selected = first.suiteId

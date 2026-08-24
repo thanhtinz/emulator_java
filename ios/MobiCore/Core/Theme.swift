@@ -77,6 +77,33 @@ struct Chip: View {
     }
 }
 
+/// Placeholder shown when a screen has nothing to display.
+struct EmptyState: View {
+    let icon: String
+    let title: String
+    let body_: String
+
+    init(icon: String, title: String, body: String) {
+        self.icon = icon
+        self.title = title
+        self.body_ = body
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 36))
+                .foregroundStyle(Palette.textDim)
+            Text(title).font(.headline).foregroundStyle(Palette.text)
+            Text(body_)
+                .font(.footnote)
+                .foregroundStyle(Palette.textDim)
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
+    }
+}
+
 /// Cover art with an initial as the fallback, because many suites ship no icon.
 struct GameArtwork: View {
     let title: String

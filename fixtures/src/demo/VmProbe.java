@@ -216,8 +216,8 @@ public class VmProbe {
     }
 
     public static void printBanner() {
-        System.out.println("MobiCore VM ready - " + greeting + " x" + counter);
-        System.out.println("platform=" + System.getProperty("microedition.platform"));
+        System.out.println("Máy ảo MobiCore sẵn sàng · " + greeting + " x" + counter);
+        System.out.println("nền tảng: " + System.getProperty("microedition.platform"));
     }
 
     static class Counter {

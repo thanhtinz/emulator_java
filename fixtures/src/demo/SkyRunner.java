@@ -168,7 +168,7 @@ public class SkyRunner extends MIDlet implements CommandListener {
         private int playerY;
         private int score;
         private int frame;
-        private String lastKey = "-";
+        private String lastKey = "—";
 
         Scene() {
             Image sheet = buildRunnerSheet();
@@ -302,11 +302,11 @@ public class SkyRunner extends MIDlet implements CommandListener {
             g.fillRect(0, 0, width, 18);
             g.setFont(Font.getFont(Font.FACE_SYSTEM, Font.STYLE_BOLD, Font.SIZE_SMALL));
             g.setColor(0xFFFFFF);
-            g.drawString("SCORE " + score, 4, 2, Graphics.TOP | Graphics.LEFT);
+            g.drawString("ĐIỂM " + score, 4, 2, Graphics.TOP | Graphics.LEFT);
             g.drawString("F" + frame, width - 4, 2, Graphics.TOP | Graphics.RIGHT);
             g.setFont(Font.getFont(Font.FACE_SYSTEM, Font.STYLE_PLAIN, Font.SIZE_SMALL));
             g.setColor(0x9FD3FF);
-            g.drawString("KEY " + lastKey, width / 2, 2, Graphics.TOP | Graphics.HCENTER);
+            g.drawString("PHÍM " + lastKey, width / 2, 2, Graphics.TOP | Graphics.HCENTER);
         }
 
         private static int blend(int from, int to, int step, int steps) {

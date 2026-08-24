@@ -18,8 +18,13 @@ import java.io.IOException;
  */
 public final class Preview {
 
-    public static final int SCREEN_WIDTH = 380;
-    public static final int SCREEN_HEIGHT = 760;
+    /**
+     * A phone-shaped canvas. 480 is exactly twice the width of a QVGA handset
+     * screen, so an emulated 240x320 game fills it at a clean integer scale
+     * with no filtering and no letterboxing at the sides.
+     */
+    public static final int SCREEN_WIDTH = 480;
+    public static final int SCREEN_HEIGHT = 1040;
 
     private Preview() {
     }

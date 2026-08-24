@@ -42,8 +42,8 @@ import com.mobicore.core.model.InputProfile
 fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -> Unit) {
     val profile = remember(suiteId) { library.profile(suiteId) }
     if (profile == null) {
-        EmptyState(Icons.AutoMirrored.Filled.ArrowBack, "No profile",
-            "This game is not installed.", onBack, "Back")
+        EmptyState(Icons.AutoMirrored.Filled.ArrowBack, "Không có hồ sơ",
+            "Trò chơi này chưa được cài.", onBack, "Quay lại")
         return
     }
 
@@ -67,15 +67,15 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
         item {
             Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MobiColors.Text)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Quay lại", tint = MobiColors.Text)
                 }
-                Text("Game settings", color = MobiColors.Text, fontSize = 20.sp,
+                Text("Cài đặt trò chơi", color = MobiColors.Text, fontSize = 23.sp,
                     fontWeight = FontWeight.Bold)
             }
         }
 
         item {
-            SectionCard(title = "DEVICE PROFILE", trailing = profile.device().keypadName()) {
+            SectionCard(title = "MÁY GIẢ LẬP", trailing = profile.device().keypadName()) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     DeviceProfile.catalog().forEach { candidate ->
                         val selected = candidate.id() == deviceId
@@ -96,13 +96,14 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
         }
 
         item {
-            SectionCard(title = "DISPLAY") {
+            SectionCard(title = "HIỂN THỊ") {
                 Column {
-                    OptionRow("Scaling", listOf("Fit", "Integer", "Stretch", "Original"), scaleMode) {
+                    OptionRow("Phóng ảnh", listOf("Vừa khung", "Bội số nguyên", "Kéo đầy", "Nguyên cỡ"), scaleMode) {
                         scaleMode = it
                         persist { profile -> profile.setScaleMode(it) }
                     }
-                    FieldRow("Frame limit", if (frameLimit == 0) "Unlimited" else "$frameLimit fps")
+                    FieldRow("Giới hạn khung hình",
+                        if (frameLimit == 0) "Không giới hạn" else "$frameLimit hình/giây")
                     Slider(
                         value = frameLimit.toFloat(),
                         onValueChange = { frameLimit = it.toInt() },
@@ -114,7 +115,7 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Show FPS", color = MobiColors.TextDim, fontSize = 13.sp)
+                        Text("Hiện số khung hình", color = MobiColors.TextDim, fontSize = 14.sp)
                         Switch(checked = showFps, onCheckedChange = {
                             showFps = it
                             persist { profile -> profile.setShowFps(it) }
@@ -125,9 +126,9 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
         }
 
         item {
-            SectionCard(title = "AUDIO") {
+            SectionCard(title = "ÂM THANH") {
                 Column {
-                    FieldRow("Volume", "$volume%")
+                    FieldRow("Âm lượng", "$volume%")
                     Slider(
                         value = volume.toFloat(),
                         onValueChange = { volume = it.toInt() },
@@ -139,7 +140,7 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
         }
 
         item {
-            SectionCard(title = "INPUT", trailing = preset) {
+            SectionCard(title = "GÁN PHÍM", trailing = preset) {
                 Column {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         PresetChip("Nokia", preset) {
@@ -156,18 +157,17 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    listOf("up", "down", "left", "right", "fire", "softLeft", "softRight")
-                        .forEach { button ->
-                            val code = profile.input().keyCodeFor(button)
-                            FieldRow(button, "${MidpContext.keyName(code)} ($code)")
-                        }
+                    BUTTON_LABELS.forEach { (button, label) ->
+                        val code = profile.input().keyCodeFor(button)
+                        FieldRow(label, "${MidpContext.keyName(code)}  ($code)")
+                    }
                 }
             }
         }
 
         item {
-            SectionCard(title = "NETWORK") {
-                OptionRow("Access", listOf("Blocked", "Ask", "Allowed"), networkMode) {
+            SectionCard(title = "MẠNG") {
+                OptionRow("Truy cập mạng", listOf("Chặn", "Hỏi trước", "Cho phép"), networkMode) {
                     networkMode = it
                     persist { profile -> profile.setNetworkMode(it) }
                 }
@@ -178,10 +178,21 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
     }
 }
 
+/** Virtual buttons in the order the keypad shows them, with Vietnamese names. */
+private val BUTTON_LABELS = listOf(
+    "up" to "Lên",
+    "down" to "Xuống",
+    "left" to "Trái",
+    "right" to "Phải",
+    "fire" to "Chọn",
+    "softLeft" to "Phím mềm 1",
+    "softRight" to "Phím mềm 2",
+)
+
 @Composable
 private fun OptionRow(label: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(label, color = MobiColors.TextDim, fontSize = 13.sp)
+        Text(label, color = MobiColors.TextDim, fontSize = 14.sp)
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             options.forEachIndexed { index, option ->

@@ -41,6 +41,17 @@ tồn tại một bản core duy nhất, dùng chung với iOS.
 | Tools | `ui/ToolsScreen.kt` | Manifest/JAD, MIDlet, class, resource |
 | Settings | `ui/SettingsScreen.kt` | Thông tin emulator, storage, bảo mật |
 
+## Bố cục màn hình chơi
+
+Toàn bộ giao diện là tiếng Việt. Khi vào một trò chơi, thanh trạng thái và
+thanh điều hướng của hệ thống được ẩn (`WindowInsetsControllerCompat`), vuốt
+từ mép để hiện tạm — màn hình giả lập vốn đã nhỏ, nhường một dải cho thanh hệ
+thống là phí đúng phần người chơi đang nhìn.
+
+Bàn phím ảo đặt **cụm mũi tên bên phải**, bàn số 3×4 bên trái, hàng phím mềm ở
+trên. Đây là cách cầm máy J2ME ngày trước: ngón cái tay phải điều hướng, tay
+trái giữ máy và bấm số.
+
 ## Các quyết định đáng chú ý
 
 - **MIDlet chạy trên thread riêng** (`emu/EmulatorEngine.kt`). Game loop J2ME

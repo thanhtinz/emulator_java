@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Per-game configuration: device, display, audio, input and network.
+/// Cấu hình riêng từng trò chơi: máy giả lập, hiển thị, âm thanh, phím, mạng.
 struct GameSettingsView: View {
 
     let suiteId: String
@@ -12,7 +12,7 @@ struct GameSettingsView: View {
         ScrollView {
             if var current = settings {
                 VStack(alignment: .leading, spacing: 14) {
-                    SectionCard(title: "DEVICE PROFILE", trailing: current.device.keypadName) {
+                    SectionCard(title: "MÁY GIẢ LẬP", trailing: current.device.keypadName) {
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(current.devices ?? []) { device in
                                 Button {
@@ -36,9 +36,9 @@ struct GameSettingsView: View {
                         }
                     }
 
-                    SectionCard(title: "DISPLAY") {
+                    SectionCard(title: "HIỂN THỊ") {
                         VStack(alignment: .leading, spacing: 10) {
-                            Picker("Scaling", selection: Binding(
+                            Picker("Phóng ảnh", selection: Binding(
                                 get: { current.scaleMode },
                                 set: { current.scaleMode = $0; save(current) }
                             )) {
@@ -49,8 +49,8 @@ struct GameSettingsView: View {
                             .pickerStyle(.segmented)
 
                             FieldRow(
-                                label: "Frame limit",
-                                value: current.frameLimit == 0 ? "Unlimited" : "\(current.frameLimit) fps"
+                                label: "Giới hạn khung hình",
+                                value: current.frameLimit == 0 ? "Không giới hạn" : "\(current.frameLimit) hình/giây"
                             )
                             Slider(
                                 value: Binding(
@@ -64,7 +64,7 @@ struct GameSettingsView: View {
                                 }
                             )
 
-                            Toggle("Show FPS", isOn: Binding(
+                            Toggle("Hiện số khung hình", isOn: Binding(
                                 get: { current.showFps },
                                 set: { current.showFps = $0; save(current) }
                             ))
@@ -72,9 +72,9 @@ struct GameSettingsView: View {
                         }
                     }
 
-                    SectionCard(title: "AUDIO") {
+                    SectionCard(title: "ÂM THANH") {
                         VStack(alignment: .leading, spacing: 8) {
-                            FieldRow(label: "Volume", value: "\(current.volume)%")
+                            FieldRow(label: "Âm lượng", value: "\(current.volume)%")
                             Slider(
                                 value: Binding(
                                     get: { Double(current.volume) },
@@ -89,7 +89,7 @@ struct GameSettingsView: View {
                         }
                     }
 
-                    SectionCard(title: "INPUT", trailing: current.input.preset) {
+                    SectionCard(title: "GÁN PHÍM", trailing: current.input.preset) {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 14) {
                                 ForEach(["Nokia", "Sony Ericsson", "Samsung"], id: \.self) { preset in
@@ -101,18 +101,17 @@ struct GameSettingsView: View {
                                     .tint(current.input.preset == preset ? Palette.accent : Palette.textDim)
                                 }
                             }
-                            ForEach(["up", "down", "left", "right", "fire", "softLeft", "softRight"],
-                                    id: \.self) { button in
+                            ForEach(GameSettings.buttonLabels, id: \.button) { entry in
                                 FieldRow(
-                                    label: button,
-                                    value: String(current.input.mappings[button] ?? 0)
+                                    label: entry.label,
+                                    value: String(current.input.mappings[entry.button] ?? 0)
                                 )
                             }
                         }
                     }
 
-                    SectionCard(title: "NETWORK") {
-                        Picker("Access", selection: Binding(
+                    SectionCard(title: "MẠNG") {
+                        Picker("Truy cập mạng", selection: Binding(
                             get: { current.networkMode },
                             set: { current.networkMode = $0; save(current) }
                         )) {
@@ -129,7 +128,7 @@ struct GameSettingsView: View {
             }
         }
         .background(Palette.background)
-        .navigationTitle("Game settings")
+        .navigationTitle("Cài đặt trò chơi")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: reload)
     }

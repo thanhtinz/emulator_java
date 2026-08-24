@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Library: search and browse everything installed.
+/// Thư viện: tìm kiếm và duyệt toàn bộ trò chơi đã cài.
 struct LibraryView: View {
 
     @EnvironmentObject private var client: MobiCoreClient
@@ -8,9 +8,9 @@ struct LibraryView: View {
     @State private var sort = SortMode.title
 
     enum SortMode: String, CaseIterable, Identifiable {
-        case title = "Title"
-        case recent = "Recent"
-        case vendor = "Vendor"
+        case title = "Tên"
+        case recent = "Vừa chơi"
+        case vendor = "Nhà phát hành"
 
         var id: String { rawValue }
     }
@@ -33,13 +33,13 @@ struct LibraryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Picker("Sort", selection: $sort) {
+                Picker("Sắp xếp", selection: $sort) {
                     ForEach(SortMode.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
 
                 if visible.isEmpty {
-                    Text(client.games.isEmpty ? "Nothing installed yet." : "Nothing matches.")
+                    Text(client.games.isEmpty ? "Chưa cài trò chơi nào." : "Không có kết quả.")
                         .font(.footnote)
                         .foregroundStyle(Palette.textDim)
                         .padding(.top, 40)
@@ -51,8 +51,8 @@ struct LibraryView: View {
             .padding(16)
         }
         .background(Palette.background)
-        .searchable(text: $query, prompt: "Search title or vendor")
-        .navigationTitle("Library")
+        .searchable(text: $query, prompt: "Tìm theo tên hoặc nhà phát hành")
+        .navigationTitle("Thư viện")
         .navigationDestination(for: String.self) { GameDetailView(suiteId: $0) }
     }
 }

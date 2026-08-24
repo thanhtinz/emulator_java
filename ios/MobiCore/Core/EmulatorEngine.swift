@@ -4,7 +4,7 @@ import Foundation
 import QuartzCore
 import SwiftUI
 
-/// Drives one running game.
+/// Điều khiển một trò chơi đang chạy.
 ///
 /// A J2ME game loop blocks and sleeps, so the MIDlet runs on a background
 /// queue; only the finished frame is handed to the main actor. The display
@@ -32,7 +32,7 @@ final class EmulatorEngine: ObservableObject {
         stop()
         let response = bridge.start(suiteId)
         guard let result: ActionResult = decode(response), result.ok else {
-            error = decode(response).flatMap { (r: ActionResult) in r.error } ?? "Cannot start the game"
+            error = decode(response).flatMap { (r: ActionResult) in r.error } ?? "Không khởi động được trò chơi"
             return
         }
         error = nil

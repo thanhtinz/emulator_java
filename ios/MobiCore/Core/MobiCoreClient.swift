@@ -131,6 +131,6 @@ final class MobiCoreClient: ObservableObject {
     }
 
     private func report(_ result: ActionResult?) {
-        lastError = (result?.ok ?? false) ? nil : (result?.error ?? "Something went wrong")
+        lastError = (result?.ok ?? false) ? nil : (result?.error ?? "Đã có lỗi xảy ra")
     }
 }

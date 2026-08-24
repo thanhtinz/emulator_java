@@ -1,7 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Home: recently played first, then favourites, then everything installed.
+/// Trang chủ: vừa chơi, yêu thích, rồi toàn bộ trò chơi đã cài.
 struct HomeView: View {
 
     @EnvironmentObject private var client: MobiCoreClient
@@ -15,7 +15,7 @@ struct HomeView: View {
             } else {
                 VStack(alignment: .leading, spacing: 18) {
                     if !client.recent.isEmpty {
-                        Text("RECENTLY PLAYED")
+                        Text("VỪA CHƠI")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(Palette.textDim)
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -29,7 +29,7 @@ struct HomeView: View {
                                                 size: 84
                                             )
                                             Text(game.title)
-                                                .font(.caption)
+                                                .font(.footnote)
                                                 .foregroundStyle(Palette.text)
                                                 .lineLimit(1)
                                                 .frame(width: 88)
@@ -42,7 +42,7 @@ struct HomeView: View {
                     }
 
                     if !client.favourites.isEmpty {
-                        Text("FAVOURITES")
+                        Text("YÊU THÍCH")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(Palette.textDim)
                         ForEach(client.favourites) { game in
@@ -50,7 +50,7 @@ struct HomeView: View {
                         }
                     }
 
-                    Text("ALL GAMES")
+                    Text("TẤT CẢ TRÒ CHƠI")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(Palette.textDim)
                     ForEach(client.games) { game in
@@ -64,7 +64,7 @@ struct HomeView: View {
         .navigationTitle("MobiCore")
         .navigationDestination(for: String.self) { GameDetailView(suiteId: $0) }
         .toolbar {
-            Button("Import") { importing = true }
+            Button("Nhập trò chơi") { importing = true }
         }
         .fileImporter(
             isPresented: $importing,
@@ -105,11 +105,11 @@ struct GameRowLink: View {
                     GameArtwork(title: game.title, image: client.artwork(game.suiteId))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(game.title)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.body.weight(.semibold))
                             .foregroundStyle(Palette.text)
                             .lineLimit(1)
                         Text("\(game.vendor) · \(game.version)")
-                            .font(.caption)
+                            .font(.footnote)
                             .foregroundStyle(Palette.textDim)
                             .lineLimit(1)
                     }
@@ -130,14 +130,14 @@ struct EmptyLibraryView: View {
             Image(systemName: "gamecontroller")
                 .font(.system(size: 44))
                 .foregroundStyle(Palette.textDim)
-            Text("No games yet")
+            Text("Chưa có trò chơi nào")
                 .font(.headline)
                 .foregroundStyle(Palette.text)
-            Text("Import a .jar file, or a .jar and .jad pair, to get started.")
+            Text("Chọn một tệp .jar, hoặc cặp .jar và .jad, để bắt đầu.")
                 .font(.footnote)
                 .foregroundStyle(Palette.textDim)
                 .multilineTextAlignment(.center)
-            Button("Import game", action: onImport)
+            Button("Nhập trò chơi", action: onImport)
                 .buttonStyle(.borderedProminent)
                 .tint(Palette.accentDim)
                 .padding(.top, 8)

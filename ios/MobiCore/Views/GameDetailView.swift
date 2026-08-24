@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Cover, metadata and everything you can do with one installed game.
+/// Ảnh bìa, thông tin và mọi thao tác với một trò chơi đã cài.
 struct GameDetailView: View {
 
     let suiteId: String
@@ -20,7 +20,7 @@ struct GameDetailView: View {
                         GameArtwork(title: game.title, image: client.artwork(suiteId), size: 84)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(game.title)
-                                .font(.title3.weight(.bold))
+                                .font(.title2.weight(.bold))
                                 .foregroundStyle(Palette.text)
                             Text(game.vendor)
                                 .font(.footnote)
@@ -36,7 +36,7 @@ struct GameDetailView: View {
                         Button {
                             playing = true
                         } label: {
-                            Text("Play").frame(maxWidth: .infinity)
+                            Text("Chơi").frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(Palette.accentDim)
@@ -44,20 +44,20 @@ struct GameDetailView: View {
                         NavigationLink {
                             GameSettingsView(suiteId: suiteId)
                         } label: {
-                            Text("Settings").frame(maxWidth: .infinity)
+                            Text("Cài đặt").frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
                     }
 
-                    SectionCard(title: "DETAILS") {
+                    SectionCard(title: "THÔNG TIN") {
                         VStack(spacing: 6) {
-                            FieldRow(label: "Version", value: game.version)
-                            FieldRow(label: "Suite id", value: game.suiteId)
-                            FieldRow(label: "Size", value: byteString(game.jarSize))
-                            FieldRow(label: "Device",
+                            FieldRow(label: "Phiên bản", value: game.version)
+                            FieldRow(label: "Mã bộ cài", value: game.suiteId)
+                            FieldRow(label: "Dung lượng", value: byteString(game.jarSize))
+                            FieldRow(label: "Máy giả lập",
                                      value: game.settings?.device.resolution ?? "—")
-                            FieldRow(label: "Scaling", value: game.settings?.scaleModeName ?? "—")
-                            FieldRow(label: "Times played",
+                            FieldRow(label: "Phóng ảnh", value: game.settings?.scaleModeName ?? "—")
+                            FieldRow(label: "Số lần chơi",
                                      value: String(game.settings?.playCount ?? 0))
                         }
                     }
@@ -65,19 +65,19 @@ struct GameDetailView: View {
                     NavigationLink {
                         SavesView(suiteId: suiteId)
                     } label: {
-                        SectionCard(title: "SAVES", trailing: "\(game.stores) store") {
+                        SectionCard(title: "DỮ LIỆU LƯU", trailing: "\(game.stores) kho") {
                             Text(game.stores == 0
-                                 ? "This game has not saved anything yet."
-                                 : "Manage record stores and backups")
+                                 ? "Trò chơi này chưa lưu gì."
+                                 : "Quản lý kho bản ghi và bản sao lưu")
                                 .font(.footnote)
                                 .foregroundStyle(game.stores == 0 ? Palette.textDim : Palette.accent)
                         }
                     }
                     .buttonStyle(.plain)
 
-                    SectionCard(title: "DANGER ZONE") {
+                    SectionCard(title: "VÙNG NGUY HIỂM") {
                         VStack(alignment: .leading, spacing: 6) {
-                            Button(confirmUninstall ? "Tap again to uninstall" : "Uninstall game") {
+                            Button(confirmUninstall ? "Chạm lần nữa để gỡ" : "Gỡ trò chơi") {
                                 if confirmUninstall {
                                     client.uninstall(suiteId)
                                     dismiss()
@@ -87,7 +87,7 @@ struct GameDetailView: View {
                             }
                             .font(.footnote)
                             .foregroundStyle(Palette.bad)
-                            Text("Saves are backed up automatically before anything is removed.")
+                            Text("Dữ liệu lưu luôn được sao lưu trước khi xoá bất cứ thứ gì.")
                                 .font(.caption2)
                                 .foregroundStyle(Palette.textDim)
                         }
@@ -95,13 +95,13 @@ struct GameDetailView: View {
                 }
                 .padding(16)
             } else {
-                Text("This game is no longer installed.")
-                    .foregroundStyle(Palette.textDim)
-                    .padding(40)
+                EmptyState(icon: "questionmark.folder",
+                           title: "Không tìm thấy trò chơi",
+                           body: "Có thể nó đã được gỡ.")
             }
         }
         .background(Palette.background)
-        .navigationTitle(game?.title ?? "Game")
+        .navigationTitle(game?.title ?? "Trò chơi")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             Button {

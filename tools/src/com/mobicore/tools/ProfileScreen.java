@@ -68,91 +68,106 @@ public final class ProfileScreen {
         Framebuffer frame = Preview.newScreen();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
-        ui.appBar(entry.title(), "Game settings");
+        ui.appBar(entry.title(), "Cài đặt");
 
-        int margin = 16;
+        int margin = Ui.PAD;
         int width = frame.width() - margin * 2;
-        int y = 60;
+        int fieldX = margin + Ui.PAD;
+        int fieldWidth = width - Ui.PAD * 2;
+        int y = Ui.APP_BAR + 18;
 
         // Device profile -------------------------------------------------
-        ui.panel(margin, y, width, 96, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "DEVICE PROFILE", margin + 14, y + 10, Theme.TEXT_DIM);
-        int chipX = margin + 14;
-        int chipY = y + 28;
+        int chipRow = ui.chipHeight() + 8;
+        int deviceHeight = 12 + ui.small().height() + 8 + chipRow * 2 + Ui.ROW + 6;
+        int row = ui.section(margin, y, width, deviceHeight, "MÁY GIẢ LẬP", null);
+        int chipX = fieldX;
+        int chipY = row;
         for (DeviceProfile candidate : DeviceProfile.catalog()) {
             boolean selected = candidate.id().equals(profile.device().id());
-            int chipWidth = ui.small().stringWidth(candidate.resolution()) + 12;
-            if (chipX + chipWidth > margin + width - 14) {
-                chipX = margin + 14;
-                chipY += 20;
+            int chipWidth = ui.small().stringWidth(candidate.resolution()) + 18;
+            if (chipX + chipWidth > margin + width - Ui.PAD) {
+                chipX = fieldX;
+                chipY += chipRow;
             }
             ui.chip(candidate.resolution(), chipX, chipY,
                     selected ? Theme.ACCENT : Theme.TEXT_DIM,
                     selected ? Theme.ACCENT_DIM : Theme.SURFACE_ALT);
-            chipX += chipWidth + 6;
+            chipX += chipWidth + 8;
         }
-        ui.field("Keypad", profile.device().keypadName(), margin + 14, y + 74, width - 28);
-        y += 108;
+        ui.field("Kiểu bàn phím", profile.device().keypadName(), fieldX, chipY + chipRow + 2,
+                fieldWidth);
+        y += deviceHeight + 14;
 
-        // Display --------------------------------------------------------
-        ui.panel(margin, y, width, 96, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "DISPLAY & AUDIO", margin + 14, y + 10, Theme.TEXT_DIM);
-        ui.field("Scaling", profile.scaleModeName(), margin + 14, y + 30, width - 28);
-        ui.field("Frame limit", profile.frameLimit() + " fps", margin + 14, y + 50, width - 28);
-        ui.field("Volume", profile.volume() + "%", margin + 14, y + 70, width - 28);
-        y += 108;
+        // Display and audio ----------------------------------------------
+        int displayHeight = ui.sectionHeight(4);
+        row = ui.section(margin, y, width, displayHeight, "HIỂN THỊ & ÂM THANH", null);
+        ui.field("Phóng ảnh", scaleName(profile), fieldX, row, fieldWidth);
+        ui.field("Giới hạn khung hình", profile.frameLimit() + " hình/giây", fieldX,
+                row + Ui.ROW, fieldWidth);
+        ui.field("Âm lượng", profile.volume() + "%", fieldX, row + Ui.ROW * 2, fieldWidth);
+        ui.field("Giữ tỉ lệ khung", profile.keepAspect() ? "Bật" : "Tắt", fieldX,
+                row + Ui.ROW * 3, fieldWidth);
+        y += displayHeight + 14;
 
         // Input mapping --------------------------------------------------
-        String[] shown = {"up", "down", "left", "right", "fire", "softLeft", "softRight", "num5"};
-        int mappingHeight = 48 + ((shown.length + 1) / 2) * 20;
-        ui.panel(margin, y, width, mappingHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "INPUT MAPPING", margin + 14, y + 10, Theme.TEXT_DIM);
-        ui.textRight(ui.small(), profile.input().presetName(), margin + width - 14, y + 10, Theme.ACCENT);
-        int rowY = y + 30;
-        int columnWidth = (width - 28) / 2;
-        for (int i = 0; i < shown.length; i++) {
-            String button = shown[i];
-            int column = i % 2;
-            int x = margin + 14 + column * columnWidth;
-            int code = profile.input().keyCodeFor(button);
-            ui.text(ui.small(), button, x, rowY, Theme.TEXT_DIM);
-            String label = MidpContext.keyName(code) + " (" + code + ")";
-            int turbo = profile.input().turboFor(button);
+        String[][] buttons = {
+                {"up", "Lên"}, {"down", "Xuống"}, {"left", "Trái"}, {"right", "Phải"},
+                {"fire", "Chọn"}, {"softLeft", "Phím mềm 1"}, {"softRight", "Phím mềm 2"},
+                {"num5", "Phím 5"},
+        };
+        int mappingHeight = ui.sectionHeight(buttons.length);
+        row = ui.section(margin, y, width, mappingHeight, "GÁN PHÍM", profile.input().presetName());
+        for (String[] button : buttons) {
+            int code = profile.input().keyCodeFor(button[0]);
+            String value = MidpContext.keyName(code) + "  (" + code + ")";
+            int turbo = profile.input().turboFor(button[0]);
             if (turbo > 0) {
-                label = label + " T" + turbo;
+                value = value + "  ·  liên thanh " + turbo + "ms";
             }
-            ui.textRight(ui.smallBold(), label, x + columnWidth - 12, rowY, Theme.TEXT);
-            if (column == 1) {
-                rowY += 20;
-            }
+            ui.field(button[1], value, fieldX, row, fieldWidth);
+            row += Ui.ROW;
         }
-        y += mappingHeight + 12;
+        y += mappingHeight + 14;
 
         // Saves ----------------------------------------------------------
         RecordStoreManager records = library.records(entry.suiteId());
         List<String> stores = records.listStoreNames();
-        int saveHeight = 52 + stores.size() * 20;
-        ui.panel(margin, y, width, saveHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "SAVES (RMS)", margin + 14, y + 10, Theme.TEXT_DIM);
-        int storeY = y + 30;
+        int saveHeight = ui.sectionHeight(Math.max(1, stores.size()) + 1);
+        row = ui.section(margin, y, width, saveHeight, "DỮ LIỆU LƯU (RMS)", null);
         for (String storeName : stores) {
             RecordStoreManager.Store store = records.openStore(storeName, false);
-            ui.text(ui.small(), storeName, margin + 14, storeY, Theme.TEXT);
-            ui.textRight(ui.smallBold(), store.size() + " records / " + store.byteSize() + " B",
-                    margin + width - 14, storeY, Theme.GOOD);
-            storeY += 20;
+            ui.field(storeName, store.size() + " bản ghi  ·  " + store.byteSize() + " B",
+                    fieldX, row, fieldWidth);
+            row += Ui.ROW;
         }
-        ui.field("Backups", library.backupsFor(entry.suiteId()).size() + " snapshot",
-                margin + 14, storeY + 4, width - 28);
-        y += saveHeight + 12;
+        ui.field("Sao lưu", library.backupsFor(entry.suiteId()).size() + " bản", fieldX, row,
+                fieldWidth);
+        y += saveHeight + 14;
 
-        // Sandbox + network ----------------------------------------------
-        ui.panel(margin, y, width, 76, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "SANDBOX", margin + 14, y + 10, Theme.TEXT_DIM);
-        ui.field("Network", profile.networkModeName(), margin + 14, y + 30, width - 28);
-        ui.text(ui.small(), ui.ellipsize(ui.small(), backupPath, width - 28),
-                margin + 14, y + 52, Theme.TEXT_DIM);
+        // Network --------------------------------------------------------
+        int netHeight = 12 + ui.small().height() + 8 + Ui.ROW + ui.small().height() + 12;
+        row = ui.section(margin, y, width, netHeight, "MẠNG", null);
+        ui.field("Truy cập mạng", networkName(profile), fieldX, row, fieldWidth);
+        ui.text(ui.small(), ui.ellipsize(ui.small(), backupPath, fieldWidth), fieldX,
+                row + Ui.ROW, Theme.TEXT_DIM);
 
         return frame;
+    }
+
+    private static String scaleName(GameProfile profile) {
+        switch (profile.scaleMode()) {
+            case GameProfile.SCALE_FIT: return "Vừa khung";
+            case GameProfile.SCALE_STRETCH: return "Kéo đầy";
+            case GameProfile.SCALE_ORIGINAL: return "Nguyên cỡ";
+            default: return "Bội số nguyên";
+        }
+    }
+
+    private static String networkName(GameProfile profile) {
+        switch (profile.networkMode()) {
+            case GameProfile.NETWORK_BLOCKED: return "Chặn";
+            case GameProfile.NETWORK_ALLOWED: return "Cho phép";
+            default: return "Hỏi trước";
+        }
     }
 }

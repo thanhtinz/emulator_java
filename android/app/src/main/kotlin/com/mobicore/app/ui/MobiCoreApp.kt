@@ -77,12 +77,12 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
                             ?.let { bytes -> uri.toString() to bytes }
                     }
                     val jar = payloads.firstOrNull { looksLikeJar(it.second) }
-                        ?: error("Select a .jar file, optionally together with its .jad")
+                        ?: error("Hãy chọn tệp .jar, kèm theo .jad nếu có")
                     val jad = payloads.firstOrNull { it !== jar }?.second
                     library.importSuite(jar.second, jad)
                 }.fold(
-                    onSuccess = { "Installed ${it.title()}" },
-                    onFailure = { "Import failed: ${it.message}" },
+                    onSuccess = { "Đã cài ${it.title()}" },
+                    onFailure = { "Nhập thất bại: ${it.message}" },
                 )
             }
             snackbar.showSnackbar(message)

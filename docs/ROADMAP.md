@@ -155,3 +155,16 @@ Xem `docs/IOS.md`.
   như cách game ghi; mọi thay đổi được flush xuống đĩa ngay.
 - `CrashReport`: gộp loại exception, stack trace giả lập, log và metadata
   suite. Cố tình không kèm bất kỳ thông tin nào về thiết bị hay người dùng.
+
+## Bản địa hoá và giao diện toàn màn hình
+
+- Font bitmap phủ ASCII + toàn bộ tiếng Việt (kể cả dấu chồng như Ẫ, Ẵ, Ỡ),
+  bốn cỡ 17/21/26/37px thay cho 13/17/21px trước đây.
+- Chiều cao mỗi cỡ chữ được đo từ phạm vi mực thật; metrics của font báo
+  thiếu nên dấu ngã trên chữ hoa từng bị cắt mất.
+- Mọi chữ trong giao diện Android, iOS và bộ xem trước đều là tiếng Việt,
+  kể cả tên phím `Canvas.getKeyName()` mà trò chơi in ra màn hình.
+- Màn hình chơi chạy toàn màn hình: ẩn thanh hệ thống, khung hình phóng theo
+  bội số nguyên, không làm mượt.
+- Bàn phím ảo: cụm mũi tên bên phải, bàn số 3×4 bên trái, hàng phím mềm trên
+  cùng — đúng cách cầm một chiếc máy J2ME.

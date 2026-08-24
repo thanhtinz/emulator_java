@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -21,20 +20,29 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * The virtual phone keypad.
+ * Bàn phím ảo của điện thoại.
  *
- * Buttons report press and release separately rather than a single tap: a
- * J2ME game reads held keys through {@code GameCanvas.getKeyStates}, so a
- * button that only ever fires a press would make the player look stuck.
+ * The directional pad sits on the right: that is the thumb most people use
+ * while the other hand holds the phone, and it matches how a handset was held
+ * when these games were made.
+ *
+ * Buttons report press and release separately, because a J2ME game reads held
+ * keys through `GameCanvas.getKeyStates` and a press-only button reads as if
+ * the player were stuck against a wall.
  */
 @Composable
 fun Keypad(
@@ -42,70 +50,86 @@ fun Keypad(
     onRelease: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            DirectionalPad(onPress, onRelease)
-            Spacer(Modifier.width(12.dp))
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            KeyButton("Phím mềm 1", "softLeft", onPress, onRelease, Modifier.weight(1f))
+            KeyButton("Xóa", "clear", onPress, onRelease, Modifier.weight(1f))
+            KeyButton("Phím mềm 2", "softRight", onPress, onRelease, Modifier.weight(1f))
+        }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             NumericPad(onPress, onRelease)
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            KeyButton("Soft 1", "softLeft", onPress, onRelease, width = 84)
-            KeyButton("Clear", "clear", onPress, onRelease, width = 84)
-            KeyButton("Soft 2", "softRight", onPress, onRelease, width = 84)
+            DirectionalPad(onPress, onRelease)
         }
     }
 }
 
-@Composable
-private fun DirectionalPad(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        ArrowButton(Icons.Filled.KeyboardArrowUp, "up", onPress, onRelease)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ArrowButton(Icons.Filled.KeyboardArrowLeft, "left", onPress, onRelease)
-            KeyButton("OK", "fire", onPress, onRelease, width = 56, accent = true)
-            ArrowButton(Icons.Filled.KeyboardArrowRight, "right", onPress, onRelease)
-        }
-        ArrowButton(Icons.Filled.KeyboardArrowDown, "down", onPress, onRelease)
-    }
-}
-
+/** The 3x4 grid, laid out the way a handset does. */
 @Composable
 private fun NumericPad(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
     val rows = listOf(
-        listOf("1" to "num1", "2" to "num2", "3" to "num3"),
-        listOf("4" to "num4", "5" to "num5", "6" to "num6"),
-        listOf("7" to "num7", "8" to "num8", "9" to "num9"),
-        listOf("*" to "star", "0" to "num0", "#" to "hash"),
+        listOf(Triple("1", "num1", ""), Triple("2", "num2", "abc"), Triple("3", "num3", "def")),
+        listOf(Triple("4", "num4", "ghi"), Triple("5", "num5", "jkl"), Triple("6", "num6", "mno")),
+        listOf(Triple("7", "num7", "pqrs"), Triple("8", "num8", "tuv"), Triple("9", "num9", "wxyz")),
+        listOf(Triple("*", "star", ""), Triple("0", "num0", "+"), Triple("#", "hash", "")),
     )
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
         rows.forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                row.forEach { (label, button) ->
-                    KeyButton(label, button, onPress, onRelease, width = 46)
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                row.forEach { (label, button, hint) ->
+                    NumberKey(label, hint, button, onPress, onRelease)
                 }
             }
         }
     }
 }
 
+/** The directional cluster, with fire in the middle. */
 @Composable
-private fun ArrowButton(
-    icon: ImageVector,
+private fun DirectionalPad(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        ArrowKey(Icons.Filled.KeyboardArrowUp, "up", "Lên", onPress, onRelease)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ArrowKey(Icons.Filled.KeyboardArrowLeft, "left", "Trái", onPress, onRelease)
+            FireKey(onPress, onRelease)
+            ArrowKey(Icons.Filled.KeyboardArrowRight, "right", "Phải", onPress, onRelease)
+        }
+        ArrowKey(Icons.Filled.KeyboardArrowDown, "down", "Xuống", onPress, onRelease)
+    }
+}
+
+@Composable
+private fun NumberKey(
+    label: String,
+    hint: String,
     button: String,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
 ) {
-    Box(
+    var held by remember { mutableStateOf(false) }
+    Column(
         Modifier
-            .size(56.dp, 40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(MobiColors.AccentDim)
-            .border(1.dp, MobiColors.Accent, RoundedCornerShape(10.dp))
-            .holdable(button, onPress, onRelease),
-        contentAlignment = Alignment.Center,
+            .size(64.dp, 50.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
+            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, RoundedCornerShape(12.dp))
+            .holdable(button, onPress, onRelease) { held = it },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        Icon(icon, contentDescription = button, tint = MobiColors.Accent)
+        Text(label, color = MobiColors.Text, fontSize = 19.sp, fontWeight = FontWeight.Medium)
+        if (hint.isNotEmpty()) {
+            Text(hint, color = MobiColors.TextDim, fontSize = 10.sp)
+        }
     }
 }
 
@@ -115,23 +139,58 @@ private fun KeyButton(
     button: String,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
-    width: Int,
-    accent: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
+    var held by remember { mutableStateOf(false) }
     Box(
-        Modifier
-            .size(width.dp, 40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (accent) MobiColors.AccentDim else MobiColors.SurfaceAlt)
-            .border(1.dp, if (accent) MobiColors.Accent else MobiColors.Border, RoundedCornerShape(10.dp))
-            .holdable(button, onPress, onRelease),
+        modifier
+            .height(46.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
+            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, RoundedCornerShape(12.dp))
+            .holdable(button, onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label,
-            color = if (accent) MobiColors.Accent else MobiColors.Text,
-            fontSize = 14.sp,
-        )
+        Text(label, color = MobiColors.Text, fontSize = 15.sp)
+    }
+}
+
+@Composable
+private fun ArrowKey(
+    icon: ImageVector,
+    button: String,
+    description: String,
+    onPress: (String) -> Unit,
+    onRelease: (String) -> Unit,
+) {
+    var held by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .size(68.dp, 56.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
+            .border(1.dp, MobiColors.Accent, RoundedCornerShape(14.dp))
+            .holdable(button, onPress, onRelease) { held = it },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = description, tint = MobiColors.Accent,
+            modifier = Modifier.size(30.dp))
+    }
+}
+
+@Composable
+private fun FireKey(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
+    var held by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .size(68.dp, 56.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
+            .border(1.dp, MobiColors.Accent, RoundedCornerShape(14.dp))
+            .holdable("fire", onPress, onRelease) { held = it },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("OK", color = MobiColors.Accent, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -140,11 +199,14 @@ private fun Modifier.holdable(
     button: String,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
+    onHeldChange: (Boolean) -> Unit,
 ): Modifier = this.pointerInput(button) {
     detectTapGestures(
         onPress = {
+            onHeldChange(true)
             onPress(button)
             tryAwaitRelease()
+            onHeldChange(false)
             onRelease(button)
         },
     )

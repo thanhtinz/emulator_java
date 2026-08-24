@@ -77,7 +77,8 @@ public final class FontGen {
         for (char c = 0x1EA0; c <= 0x1EF9; c++) {
             chars.add(Character.valueOf(c));
         }
-        String symbols = "·…–—×°«»“”‘’€₫";
+        // Arrows and marks the interface draws as text rather than as shapes.
+        String symbols = "·…–—×°«»‹›“”‘’€₫←→↑↓▲▼◀▶●○✓✕★☆♪";
         for (int i = 0; i < symbols.length(); i++) {
             chars.add(Character.valueOf(symbols.charAt(i)));
         }

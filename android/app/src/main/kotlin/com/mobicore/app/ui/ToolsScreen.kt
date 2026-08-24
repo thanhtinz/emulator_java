@@ -35,25 +35,25 @@ fun ToolsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text("Tools", color = MobiColors.Text, fontSize = 24.sp,
+            Text("Công cụ", color = MobiColors.Text, fontSize = 28.sp,
                 fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
         }
 
         if (games.isEmpty()) {
             item {
-                Text("Install a game to inspect it.", color = MobiColors.TextDim, fontSize = 13.sp)
+                Text("Hãy cài một trò chơi để xem bên trong.", color = MobiColors.TextDim, fontSize = 14.sp)
             }
             return@LazyColumn
         }
 
         item {
-            SectionCard(title = "SUITE") {
+            SectionCard(title = "BỘ CÀI") {
                 Column {
                     games.forEach { entry ->
                         Text(
                             text = entry.title(),
                             color = if (entry.suiteId() == selected) MobiColors.Accent else MobiColors.Text,
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { selected = entry.suiteId() }
@@ -79,7 +79,7 @@ fun ToolsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
             }
 
             item {
-                SectionCard(title = "MIDLETS", trailing = "${suite.info().midlets().size}") {
+                SectionCard(title = "CÁC MIDLET", trailing = "${suite.info().midlets().size}") {
                     Column {
                         suite.info().midlets().forEach { midlet ->
                             FieldRow(midlet.name(), midlet.className())
@@ -89,7 +89,7 @@ fun ToolsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
             }
 
             item {
-                SectionCard(title = "CLASSES", trailing = "${suite.archive().classNames().size}") {
+                SectionCard(title = "LỚP JAVA", trailing = "${suite.archive().classNames().size}") {
                     Column {
                         suite.archive().classNames().take(12).forEach { name ->
                             Text(name, color = MobiColors.TextDim, fontSize = 12.sp)
@@ -99,7 +99,7 @@ fun ToolsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
             }
 
             item {
-                SectionCard(title = "RESOURCES") {
+                SectionCard(title = "TÀI NGUYÊN") {
                     Column {
                         suite.archive().names()
                             .filterNot { it.endsWith(".class") }

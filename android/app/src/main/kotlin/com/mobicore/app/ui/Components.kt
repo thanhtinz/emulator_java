@@ -75,11 +75,11 @@ fun FieldRow(label: String, value: String, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = MobiColors.TextDim, fontSize = 13.sp)
+        Text(label, color = MobiColors.TextDim, fontSize = 14.sp)
         Text(
             text = value,
             color = MobiColors.Text,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -93,7 +93,7 @@ fun Chip(text: String, accent: Color = MobiColors.Accent, background: Color = Mo
     Text(
         text = text,
         color = accent,
-        fontSize = 11.sp,
+        fontSize = 12.sp,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .background(background)
@@ -144,9 +144,9 @@ fun EmptyState(icon: ImageVector, title: String, body: String, action: (() -> Un
     ) {
         Icon(icon, contentDescription = null, tint = MobiColors.TextDim, modifier = Modifier.size(48.dp))
         Spacer(Modifier.size(12.dp))
-        Text(title, color = MobiColors.Text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+        Text(title, color = MobiColors.Text, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.size(6.dp))
-        Text(body, color = MobiColors.TextDim, fontSize = 13.sp)
+        Text(body, color = MobiColors.TextDim, fontSize = 14.sp)
         if (action != null) {
             Spacer(Modifier.size(16.dp))
             Text(

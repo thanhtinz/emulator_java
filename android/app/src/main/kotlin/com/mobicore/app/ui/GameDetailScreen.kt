@@ -46,8 +46,8 @@ fun GameDetailScreen(
     var confirmUninstall by remember { mutableStateOf(false) }
 
     if (entry == null) {
-        EmptyState(Icons.AutoMirrored.Filled.ArrowBack, "Game not found",
-            "It may have been uninstalled.", onBack, "Back")
+        EmptyState(Icons.AutoMirrored.Filled.ArrowBack, "Không tìm thấy trò chơi",
+            "Có thể nó đã được gỡ.", onBack, "Quay lại")
         return
     }
 
@@ -65,7 +65,7 @@ fun GameDetailScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back",
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại",
                         tint = MobiColors.Text)
                 }
                 Spacer(Modifier.weight(1f))
@@ -76,7 +76,7 @@ fun GameDetailScreen(
                         } else {
                             Icons.Filled.StarBorder
                         },
-                        contentDescription = "Favourite",
+                        contentDescription = "Yêu thích",
                         tint = if (profile?.isFavourite == true) MobiColors.Warn else MobiColors.TextDim,
                     )
                 }
@@ -88,9 +88,9 @@ fun GameDetailScreen(
                 GameArtwork(entry.title(), artwork, size = 84)
                 Spacer(Modifier.width(14.dp))
                 Column {
-                    Text(entry.title(), color = MobiColors.Text, fontSize = 20.sp,
+                    Text(entry.title(), color = MobiColors.Text, fontSize = 23.sp,
                         fontWeight = FontWeight.Bold)
-                    Text(entry.vendor(), color = MobiColors.TextDim, fontSize = 13.sp)
+                    Text(entry.vendor(), color = MobiColors.TextDim, fontSize = 14.sp)
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Chip(entry.configuration())
@@ -102,39 +102,39 @@ fun GameDetailScreen(
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PrimaryButton("Play", Modifier.weight(1f), onPlay)
-                SecondaryButton("Settings", Modifier.weight(1f), onSettings)
+                PrimaryButton("Chơi", Modifier.weight(1f), onPlay)
+                SecondaryButton("Cài đặt", Modifier.weight(1f), onSettings)
             }
         }
 
         item {
-            SectionCard(title = "DETAILS") {
+            SectionCard(title = "THÔNG TIN") {
                 Column {
-                    FieldRow("Version", entry.version())
-                    FieldRow("Suite id", entry.suiteId())
-                    FieldRow("Size", formatBytes(entry.jarSize()))
-                    FieldRow("Device", profile?.device()?.toString() ?: "—")
-                    FieldRow("Scaling", profile?.scaleModeName() ?: "—")
-                    FieldRow("Times played", (profile?.playCount() ?: 0).toString())
+                    FieldRow("Phiên bản", entry.version())
+                    FieldRow("Mã bộ cài", entry.suiteId())
+                    FieldRow("Dung lượng", formatBytes(entry.jarSize()))
+                    FieldRow("Máy giả lập", profile?.device()?.toString() ?: "—")
+                    FieldRow("Phóng ảnh", profile?.scaleModeName() ?: "—")
+                    FieldRow("Số lần chơi", (profile?.playCount() ?: 0).toString())
                 }
             }
         }
 
         item {
-            SectionCard(title = "SAVES", trailing = "${stores.size} store") {
+            SectionCard(title = "DỮ LIỆU LƯU", trailing = "${stores.size} kho") {
                 Column {
                     if (stores.isEmpty()) {
-                        Text("This game has not saved anything yet.",
+                        Text("Trò chơi này chưa lưu gì.",
                             color = MobiColors.TextDim, fontSize = 13.sp)
                     } else {
                         stores.forEach { name ->
                             val store = library.records(suiteId).openStore(name, false)
-                            FieldRow(name, "${store?.size() ?: 0} records")
+                            FieldRow(name, "${store?.size() ?: 0} bản ghi")
                         }
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Manage saves and backups",
+                        text = "Quản lý dữ liệu lưu và sao lưu",
                         color = MobiColors.Accent,
                         fontSize = 13.sp,
                         modifier = Modifier.clickable(onClick = onSaves),
@@ -144,10 +144,10 @@ fun GameDetailScreen(
         }
 
         item {
-            SectionCard(title = "DANGER ZONE") {
+            SectionCard(title = "VÙNG NGUY HIỂM") {
                 Column {
                     Text(
-                        text = if (confirmUninstall) "Tap again to uninstall" else "Uninstall game",
+                        text = if (confirmUninstall) "Chạm lần nữa để gỡ" else "Gỡ trò chơi",
                         color = MobiColors.Bad,
                         fontSize = 13.sp,
                         modifier = Modifier.clickable {
@@ -161,7 +161,7 @@ fun GameDetailScreen(
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Saves are backed up automatically before anything is removed.",
+                        "Dữ liệu lưu luôn được sao lưu trước khi xoá bất cứ thứ gì.",
                         color = MobiColors.TextDim,
                         fontSize = 11.sp,
                     )

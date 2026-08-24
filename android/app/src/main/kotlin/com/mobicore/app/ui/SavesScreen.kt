@@ -48,23 +48,23 @@ fun SavesScreen(library: LibraryRepository, suiteId: String, onBack: () -> Unit)
         item {
             Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MobiColors.Text)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Quay lại", tint = MobiColors.Text)
                 }
-                Text("Saves", color = MobiColors.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("Dữ liệu lưu", color = MobiColors.Text, fontSize = 23.sp, fontWeight = FontWeight.Bold)
             }
         }
 
         item {
-            SectionCard(title = "RECORD STORES", trailing = "${stores.size}") {
+            SectionCard(title = "KHO BẢN GHI", trailing = "${stores.size}") {
                 Column {
                     if (stores.isEmpty()) {
-                        Text("Nothing saved yet.", color = MobiColors.TextDim, fontSize = 13.sp)
+                        Text("Chưa lưu gì.", color = MobiColors.TextDim, fontSize = 13.sp)
                     } else {
                         stores.forEach { name ->
                             val store = records.openStore(name, false)
                             FieldRow(
                                 label = name,
-                                value = "${store?.size() ?: 0} records · ${store?.byteSize() ?: 0} B",
+                                value = "${store?.size() ?: 0} bản ghi · ${store?.byteSize() ?: 0} B",
                             )
                         }
                     }
@@ -73,29 +73,29 @@ fun SavesScreen(library: LibraryRepository, suiteId: String, onBack: () -> Unit)
         }
 
         item {
-            SectionCard(title = "BACKUPS", trailing = "${backups.size}") {
+            SectionCard(title = "SAO LƯU", trailing = "${backups.size}") {
                 Column {
                     if (backups.isEmpty()) {
-                        Text("No snapshots yet.", color = MobiColors.TextDim, fontSize = 13.sp)
+                        Text("Chưa có bản sao lưu nào.", color = MobiColors.TextDim, fontSize = 13.sp)
                     } else {
-                        backups.forEach { name -> FieldRow(name, "snapshot") }
+                        backups.forEach { name -> FieldRow(name, "bản sao lưu") }
                     }
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        PrimaryButton("Back up now", Modifier.weight(1f)) {
-                            status = "Saved to ${library.backup(suiteId).substringAfterLast('/')}"
+                        PrimaryButton("Sao lưu ngay", Modifier.weight(1f)) {
+                            status = "Đã lưu vào ${library.backup(suiteId).substringAfterLast('/')}"
                             revision++
                         }
-                        SecondaryButton("Restore latest", Modifier.weight(1f)) {
+                        SecondaryButton("Khôi phục bản mới nhất", Modifier.weight(1f)) {
                             val latest = library.backupsFor(suiteId).lastOrNull()
                             status = if (latest == null) {
-                                "There is no backup to restore"
+                                "Không có bản sao lưu nào để khôi phục"
                             } else {
                                 val path = com.mobicore.core.storage.StorageLayout.join(
                                     library.storageLayout().backupDir(suiteId), latest,
                                 )
                                 library.restore(com.mobicore.core.storage.LocalVfs().read(path))
-                                "Restored $latest"
+                                "Đã khôi phục $latest"
                             }
                             revision++
                         }
@@ -105,21 +105,21 @@ fun SavesScreen(library: LibraryRepository, suiteId: String, onBack: () -> Unit)
         }
 
         item {
-            SectionCard(title = "RESET") {
+            SectionCard(title = "ĐẶT LẠI") {
                 Column {
                     Text(
-                        text = "Clear all saved data",
+                        text = "Xoá toàn bộ dữ liệu lưu",
                         color = MobiColors.Bad,
                         fontSize = 13.sp,
                         modifier = Modifier.clickable {
                             val path = library.resetGameData(suiteId)
-                            status = "Cleared. Backup at ${path.substringAfterLast('/')}"
+                            status = "Đã xoá. Bản sao lưu: ${path.substringAfterLast('/')}"
                             revision++
                         },
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "A snapshot is taken automatically before anything is cleared.",
+                        "Một bản sao lưu luôn được tạo trước khi xoá.",
                         color = MobiColors.TextDim,
                         fontSize = 11.sp,
                     )

@@ -104,93 +104,91 @@ public final class DevToolsScreen {
         Framebuffer frame = Preview.newScreen();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
-        ui.appBar("Developer Tools", entry.title());
+        ui.appBar("Công cụ", entry.title());
 
-        int margin = 16;
+        int margin = Ui.PAD;
         int width = frame.width() - margin * 2;
-        int y = 60;
+        int fieldX = margin + Ui.PAD;
+        int fieldWidth = width - Ui.PAD * 2;
+        int y = Ui.APP_BAR + 18;
 
         // Network monitor ------------------------------------------------
         List<NetworkMonitor.Exchange> exchanges = session.network().monitor().exchanges();
-        int netHeight = 46 + exchanges.size() * 30;
-        ui.panel(margin, y, width, netHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "NETWORK MONITOR", margin + 14, y + 10, Theme.TEXT_DIM);
+        int entryHeight = ui.mediumBold().height() + ui.small().height() + 8;
+        int netHeight = 12 + ui.small().height() + 8 + exchanges.size() * entryHeight + 6;
         int[] totals = session.network().monitor().totals();
-        ui.textRight(ui.small(), totals[0] + " B up / " + totals[1] + " B down",
-                margin + width - 14, y + 10, Theme.ACCENT);
-        int rowY = y + 28;
+        int row = ui.section(margin, y, width, netHeight, "THEO DÕI MẠNG",
+                "gửi " + totals[0] + " B  ·  nhận " + totals[1] + " B");
         for (NetworkMonitor.Exchange exchange : exchanges) {
             boolean blocked = "blocked".equals(exchange.outcome());
             String label = exchange.method() + "  " + exchange.host();
-            ui.text(ui.smallBold(), ui.ellipsize(ui.smallBold(), label, width - 110),
-                    margin + 14, rowY, blocked ? Theme.BAD : Theme.TEXT);
-            String status = blocked ? "BLOCKED"
-                    : exchange.status() + " " + exchange.durationMs() + "ms";
-            ui.textRight(ui.small(), status, margin + width - 14, rowY,
+            String status = blocked ? "ĐÃ CHẶN" : exchange.status() + "  ·  " + exchange.durationMs() + "ms";
+            int statusWidth = ui.small().stringWidth(status) + 12;
+            ui.text(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), label, fieldWidth - statusWidth),
+                    fieldX, row, blocked ? Theme.BAD : Theme.TEXT);
+            ui.textRight(ui.small(), status, fieldX + fieldWidth, row + 3,
                     blocked ? Theme.BAD : (exchange.status() >= 400 ? Theme.WARN : Theme.GOOD));
-            String detail = blocked ? "refused by policy"
+            String detail = blocked ? "bị chính sách từ chối"
                     : (exchange.responsePreview() == null ? "" : exchange.responsePreview());
-            ui.text(ui.small(), ui.ellipsize(ui.small(), detail, width - 28),
-                    margin + 14, rowY + 13, Theme.TEXT_DIM);
-            rowY += 30;
+            ui.text(ui.small(), ui.ellipsize(ui.small(), detail, fieldWidth),
+                    fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
+            row += entryHeight;
         }
-        y += netHeight + 12;
+        y += netHeight + 14;
 
         // Mods -----------------------------------------------------------
         List<ModPackage> installed = mods.installed();
-        int modHeight = 40 + installed.size() * 30;
-        ui.panel(margin, y, width, modHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "MODS", margin + 14, y + 10, Theme.TEXT_DIM);
-        rowY = y + 28;
+        int modHeight = 12 + ui.small().height() + 8 + installed.size() * entryHeight + 6;
+        row = ui.section(margin, y, width, modHeight, "BẢN MOD", null);
         for (ModPackage mod : installed) {
-            ui.text(ui.smallBold(), mod.name() + "  " + mod.version(), margin + 14, rowY, Theme.TEXT);
-            ui.chip(mod.isEnabled() ? "ON" : "OFF", margin + width - 46, rowY - 1,
+            ui.text(ui.mediumBold(), mod.name() + "  " + mod.version(), fieldX, row, Theme.TEXT);
+            String state = mod.isEnabled() ? "BẬT" : "TẮT";
+            int chipWidth = ui.small().stringWidth(state) + 18;
+            ui.chip(state, fieldX + fieldWidth - chipWidth, row + 2,
                     mod.isEnabled() ? Theme.GOOD : Theme.TEXT_DIM,
                     mod.isEnabled() ? 0xFF14361B : Theme.SURFACE_ALT);
-            ui.text(ui.small(), mod.replacedResources().size() + " resource replaced  -  "
-                            + (mod.touchesCode() ? "touches code" : "resources only"),
-                    margin + 14, rowY + 13, Theme.TEXT_DIM);
-            rowY += 30;
+            ui.text(ui.small(), "thay " + mod.replacedResources().size() + " tài nguyên  ·  "
+                            + (mod.touchesCode() ? "có chạm mã nguồn" : "chỉ tài nguyên"),
+                    fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
+            row += entryHeight;
         }
-        y += modHeight + 12;
+        y += modHeight + 14;
 
         // Descriptor -----------------------------------------------------
         JadEditor editor = new JadEditor(library.load(entry.suiteId()).info().attributes());
         List<JadEditor.Problem> problems = editor.validate();
-        int jadHeight = 46 + Math.max(1, problems.size()) * 16;
-        ui.panel(margin, y, width, jadHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "JAD EDITOR", margin + 14, y + 10, Theme.TEXT_DIM);
-        ui.textRight(ui.small(), editor.isValid() ? "valid" : "has errors",
-                margin + width - 14, y + 10, editor.isValid() ? Theme.GOOD : Theme.BAD);
-        rowY = y + 28;
+        int jadRows = Math.max(1, problems.size());
+        int jadHeight = 12 + ui.small().height() + 8 + jadRows * (ui.medium().height() + 6) + 6;
+        row = ui.section(margin, y, width, jadHeight, "TRÌNH SỬA JAD",
+                editor.isValid() ? "hợp lệ" : "có lỗi");
         if (problems.isEmpty()) {
-            ui.text(ui.small(), editor.keys().size() + " attributes, no problems found",
-                    margin + 14, rowY, Theme.TEXT_DIM);
+            ui.text(ui.medium(), editor.keys().size() + " thuộc tính, không có lỗi nào",
+                    fieldX, row, Theme.TEXT_DIM);
         } else {
             for (JadEditor.Problem problem : problems) {
-                ui.text(ui.small(), ui.ellipsize(ui.small(), problem.toString(), width - 28),
-                        margin + 14, rowY, problem.isError() ? Theme.BAD : Theme.WARN);
-                rowY += 16;
+                ui.text(ui.medium(), ui.ellipsize(ui.medium(), problem.toString(), fieldWidth),
+                        fieldX, row, problem.isError() ? Theme.BAD : Theme.WARN);
+                row += ui.medium().height() + 6;
             }
         }
-        y += jadHeight + 12;
+        y += jadHeight + 14;
 
         // RMS editor -----------------------------------------------------
         List<RmsEditor.Record> records = rms.records("skyrunner-scores");
-        int rmsHeight = 46 + records.size() * 30;
-        ui.panel(margin, y, width, rmsHeight, Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "RMS EDITOR", margin + 14, y + 10, Theme.TEXT_DIM);
-        ui.textRight(ui.small(), "skyrunner-scores", margin + width - 14, y + 10, Theme.ACCENT);
-        rowY = y + 28;
+        int rmsHeight = 12 + ui.small().height() + 8 + records.size() * entryHeight + 6;
+        row = ui.section(margin, y, width, rmsHeight, "TRÌNH SỬA RMS", "skyrunner-scores");
         for (RmsEditor.Record record : records) {
-            ui.text(ui.smallBold(), "#" + record.id() + "  " + record.asHex(),
-                    margin + 14, rowY, Theme.TEXT);
-            ui.textRight(ui.small(), record.size() + " B", margin + width - 14, rowY, Theme.TEXT_DIM);
-            ui.text(ui.small(), "as int: " + record.asInt() + "    as text: \"" + record.asText() + "\"",
-                    margin + 14, rowY + 13, Theme.TEXT_DIM);
-            rowY += 30;
+            ui.text(ui.mediumBold(), "#" + record.id() + "   " + record.asHex(), fieldX, row,
+                    Theme.TEXT);
+            ui.textRight(ui.small(), record.size() + " B", fieldX + fieldWidth, row + 3,
+                    Theme.TEXT_DIM);
+            ui.text(ui.small(), "số nguyên: " + record.asInt() + "     văn bản: \""
+                            + record.asText() + "\"",
+                    fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
+            row += entryHeight;
         }
 
+        ui.tabBar(new String[]{"Trang chủ", "Thư viện", "Công cụ", "Cài đặt"}, 2);
         return frame;
     }
 }
