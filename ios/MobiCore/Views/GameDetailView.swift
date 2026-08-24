@@ -31,6 +31,11 @@ struct GameDetailView: View {
                             Text(game.vendor)
                                 .font(.footnote)
                                 .foregroundStyle(Palette.textDim)
+                            // Whether the game runs at all, decided at
+                            // import: a J2ME game missing a package does not
+                            // run badly, it fails to start with nothing on
+                            // screen to explain it.
+                            CompatibilityLabel(level: game.settings?.compatibility ?? 0)
                             HStack(spacing: 6) {
                                 Chip(text: game.configuration)
                                 Chip(text: game.profile)
@@ -196,4 +201,33 @@ func byteString(_ bytes: Int64) -> String {
         return String(format: "%.1f KB", Double(bytes) / 1024)
     }
     return "\(bytes) B"
+}
+
+
+/// "Chạy tốt", or exactly what is missing.
+private struct CompatibilityLabel: View {
+
+    let level: Int
+
+    var body: some View {
+        Label(text, systemImage: level >= 2 ? "xmark.circle.fill" : "checkmark.circle.fill")
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(colour)
+    }
+
+    private var text: String {
+        switch level {
+        case 0: return "Chạy tốt"
+        case 1: return "Thiếu vài thứ"
+        default: return "Chưa chạy được"
+        }
+    }
+
+    private var colour: Color {
+        switch level {
+        case 0: return Palette.good
+        case 1: return Palette.warn
+        default: return Palette.bad
+        }
+    }
 }

@@ -56,6 +56,8 @@ public final class GameProfile {
      * a detected one.</p>
      */
     private boolean auto;
+    /** What the pre-flight scan concluded; see {@link Compatibility}. */
+    private int compatibility = Compatibility.LEVEL_FULL;
     private List<String> setupNotes = new ArrayList<String>();
     private boolean favourite;
     private long lastPlayed;
@@ -105,6 +107,14 @@ public final class GameProfile {
     /** Why the emulator set the game up this way, one line per decision. */
     public List<String> setupNotes() {
         return setupNotes;
+    }
+
+    public int compatibility() {
+        return compatibility;
+    }
+
+    public void setCompatibility(int level) {
+        this.compatibility = level;
     }
 
     public void setAuto(boolean auto, List<String> notes) {
@@ -291,6 +301,7 @@ public final class GameProfile {
         json.put("networkMode", Integer.valueOf(networkMode));
         json.put("skin", skin);
         json.put("auto", Boolean.valueOf(auto));
+        json.put("compatibility", Integer.valueOf(compatibility));
         json.put("setupNotes", new ArrayList<Object>(setupNotes));
         json.put("favourite", Boolean.valueOf(favourite));
         json.put("lastPlayed", Long.valueOf(lastPlayed));
@@ -314,6 +325,7 @@ public final class GameProfile {
         profile.networkMode = Json.integer(json, "networkMode", NETWORK_ASK);
         profile.skin = Json.string(json, "skin", "classic");
         profile.auto = Json.bool(json, "auto", false);
+        profile.compatibility = Json.integer(json, "compatibility", Compatibility.LEVEL_FULL);
         List<Object> notes = Json.array(json, "setupNotes");
         for (int i = 0; i < notes.size(); i++) {
             profile.setupNotes.add(String.valueOf(notes.get(i)));

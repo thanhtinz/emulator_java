@@ -39,6 +39,8 @@ struct GameSettings: Codable, Hashable {
     var skin: String
     /// True while every setting is still the one the import worked out.
     var auto: Bool
+    /// 0 runs, 1 runs with something emulated incompletely, 2 will not start.
+    var compatibility: Int
     /// Why the emulator set the game up this way, in the user's language.
     var setupNotes: [String]
     var favourite: Bool

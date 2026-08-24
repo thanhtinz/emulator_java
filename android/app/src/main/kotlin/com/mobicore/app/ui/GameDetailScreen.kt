@@ -13,9 +13,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.StarBorder
@@ -125,6 +129,11 @@ fun GameDetailScreen(
                         fontWeight = FontWeight.Bold)
                     Text(entry.vendor(), color = MobiColors.TextDim, fontSize = 14.sp)
                     Spacer(Modifier.height(8.dp))
+                    // Whether the game runs at all, decided at import: a
+                    // J2ME game missing a package does not run badly, it
+                    // fails to start with nothing on screen to explain it.
+                    CompatibilityChip(profile?.compatibility() ?: 0)
+                    Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Chip(entry.configuration())
                         Chip(entry.profile())
@@ -268,6 +277,26 @@ fun GameDetailScreen(
  * A blank name is refused here rather than at the store, so the user finds
  * out while the keyboard is still up instead of through a failure afterwards.
  */
+/** "Chạy tốt", or exactly what is missing. */
+@Composable
+private fun CompatibilityChip(level: Int) {
+    val (label, colour) = when (level) {
+        0 -> "Chạy tốt" to MobiColors.Good
+        1 -> "Thiếu vài thứ" to MobiColors.Warn
+        else -> "Chưa chạy được" to MobiColors.Bad
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            if (level >= 2) Icons.Filled.Cancel else Icons.Filled.CheckCircle,
+            contentDescription = null,
+            tint = colour,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = colour, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
 @Composable
 private fun RenameDialog(current: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf(current) }

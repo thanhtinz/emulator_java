@@ -65,7 +65,8 @@ public final class DetailScreen {
         int y = Ui.APP_BAR + 18;
 
         // Header ---------------------------------------------------------
-        int cover = 92;
+        // Tall enough for the title, the vendor and two rows of chips.
+        int cover = 112;
         byte[] artwork = facade.artwork(suiteId);
         if (artwork.length > 0 && PngReader.looksLikePng(artwork)) {
             PngReader.Image decoded = PngReader.decode(artwork);
@@ -92,6 +93,10 @@ public final class DetailScreen {
                 Theme.ACCENT, Theme.ACCENT_DIM) + 8;
         chipX += ui.chip(Json.string(game, "profile", ""), chipX, chipY,
                 Theme.ACCENT, Theme.ACCENT_DIM) + 8;
+        // On its own line above the version chips: it is the one thing here
+        // that decides whether pressing Chơi will do anything at all.
+        compatibilityChip(ui, textLeft, chipY - ui.chipHeight() - 8,
+                Json.integer(settings, "compatibility", 0));
         if (Json.bool(settings, "favourite", false)) {
             ui.iconChip(Icons.STAR, "YÊU THÍCH", chipX, chipY, Theme.WARN, 0xFF3A2E10);
         }
@@ -173,6 +178,23 @@ public final class DetailScreen {
                 fieldX, y + 12 + ui.medium().height() + 4, Theme.TEXT_DIM);
 
         return frame;
+    }
+
+    /**
+     * Says whether the game will run at all, before the user tries it.
+     *
+     * <p>A J2ME game that needs a package the emulator lacks does not run
+     * badly — it fails to start, on a black screen, with nothing to explain
+     * it. The scan at import knows; this is where it gets said.</p>
+     */
+    private int compatibilityChip(Ui ui, int x, int y, int level) {
+        if (level == 1) {
+            return ui.iconChip(Icons.CHECK, "THIẾU VÀI THỨ", x, y, Theme.WARN, 0xFF3A2E10);
+        }
+        if (level >= 2) {
+            return ui.iconChip(Icons.CLOSE, "CHƯA CHẠY ĐƯỢC", x, y, Theme.BAD, 0xFF3A1A1A);
+        }
+        return ui.iconChip(Icons.CHECK, "CHẠY TỐT", x, y, Theme.GOOD, 0xFF12301E);
     }
 
     private static String kb(long bytes) {

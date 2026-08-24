@@ -8,9 +8,14 @@ public final class Cldc {
     private Cldc() {
     }
 
-    public static void install(Vm vm) {
+    /**
+     * @return the timer queue, which the emulator must pump between frames —
+     *     nothing here runs on a thread of its own
+     */
+    public static TimerClasses.Queue install(Vm vm) {
         LangClasses.install(vm);
         IoClasses.install(vm);
         UtilClasses.install(vm);
+        return TimerClasses.install(vm);
     }
 }

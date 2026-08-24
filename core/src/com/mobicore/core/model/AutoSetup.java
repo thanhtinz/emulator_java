@@ -88,6 +88,14 @@ public final class AutoSetup {
             notes.add("Game theo màn hình — 20 hình/giây, đỡ tốn pin");
         }
 
+        Compatibility.Report report = Compatibility.scan(suite);
+        if (report.level() != Compatibility.LEVEL_FULL) {
+            // Worth saying up front: a game that cannot start says nothing
+            // useful itself — it just fails to appear.
+            notes.addAll(report.notes());
+        }
+        profile.setCompatibility(report.level());
+
         profile.setAuto(true, notes);
         return new Result(profile, notes);
     }

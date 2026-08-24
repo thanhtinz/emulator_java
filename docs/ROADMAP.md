@@ -10,7 +10,8 @@
 | 6 | Ứng dụng iOS (SwiftUI + J2ObjC) | Xong (chưa biên dịch được ở CI) |
 | 7 | Developer tools, network layer, modding | Xong |
 | 8 | Âm thanh: javax.microedition.media | Xong |
-| 9 | Tối ưu tương thích và hiệu năng | Kế tiếp |
+| 9 | Tương thích: Timer và kiểm tra trước khi chơi | Xong |
+| 10 | Tối ưu hiệu năng | Kế tiếp |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -372,3 +373,41 @@ khi game chạy sai". Chỉnh tay bất cứ giá trị nào đã dò thì cờ 
 diện thôi nhận là đã "đo được" thứ thực ra do người dùng chọn — và nút **Dò lại**
 cấu hình lại từ đầu, giữ nguyên âm lượng và mục yêu thích vì đó là lựa chọn của
 người dùng chứ không phải kết quả dò.
+
+
+## Timer — đồng hồ mà phần lớn MIDlet chạy bằng
+
+Rất nhiều game J2ME không có vòng lặp riêng: chúng `new Timer().schedule(task,
+0, 50)` rồi để `TimerTask` lo tất cả. Thiếu hai lớp này thì game không chạy
+chậm hay lạ — trình nạp lớp hỏng và game không khởi động được.
+
+`java.util.Timer` và `java.util.TimerTask` nay có đủ: `schedule` (một lần, và
+lặp theo khoảng cách giữa hai lần chạy), `scheduleAtFixedRate` (giữ đúng nhịp
+gốc), `cancel` cả ở cấp timer lẫn cấp task, và `scheduledExecutionTime`.
+
+Không có luồng nào được tạo ra. Task nằm trong hàng đợi và được emulator chạy
+**giữa hai khung hình, trên đúng luồng của MIDlet**. Đây là khác biệt cố ý so
+với máy thật, và là phía an toàn hơn: callback của game gần như luôn động vào
+màn hình hoặc trạng thái của chính nó, và game thời đó được viết với giả định
+lúc ấy không có gì khác chạy song song. Task trễ nhịp chỉ chạy **một lần** chứ
+không chạy bù từng nhịp đã lỡ — game bị treo nền một phút thì chơi tiếp, không
+phải "đuổi" một phút.
+
+## Kiểm tra tương thích trước khi chơi
+
+Thiếu một lớp trong J2ME không làm game yếu đi: game chết ngay lúc nạp, màn
+hình đen, không một lời giải thích. Thông tin để đoán trước điều đó nằm sẵn
+trong JAR, nên `Compatibility` đọc **constant pool của từng lớp** lúc nhập và
+kết luận:
+
+- **Chạy tốt** — chỉ dùng API đã hỗ trợ.
+- **Thiếu vài thứ** — chạy được nhưng có phần mô phỏng chưa đủ (ví dụ nhạc
+  MIDI).
+- **Chưa chạy được** — cần gói chưa hỗ trợ, và nói rõ gói nào: 3D (M3G),
+  Bluetooth, định vị, API riêng của Nokia/Siemens/Samsung/Motorola…
+
+Đọc constant pool chứ không tìm chuỗi trong bytes: một hằng chuỗi trong game
+tình cờ chứa tên gói không phải là bằng chứng game dùng gói đó — bộ test có
+hẳn một trường hợp cho chuyện này.
+
+Kết quả hiện thành huy hiệu ngay trên trang chi tiết, cạnh nút Chơi.

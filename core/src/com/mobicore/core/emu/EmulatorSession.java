@@ -23,6 +23,7 @@ import com.mobicore.core.net.NetworkPolicy;
 import com.mobicore.core.net.NetworkStack;
 import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.rt.Cldc;
+import com.mobicore.core.rt.TimerClasses;
 import com.mobicore.core.storage.MemoryVfs;
 import com.mobicore.core.storage.StorageLayout;
 import com.mobicore.core.storage.Vfs;
@@ -54,6 +55,8 @@ public final class EmulatorSession {
     public static final int STATE_DESTROYED = 3;
 
     private final Vm vm;
+    /** Scheduled TimerTasks, run from the frame loop; see pumpTimers. */
+    private TimerClasses.Queue timers;
     private final MidpContext context;
     private final MidletSuiteInfo info;
     private final JarClassSource source;
@@ -124,14 +127,17 @@ public final class EmulatorSession {
 
         SystemChrome.measure(context);
 
-        Cldc.install(vm);
+        TimerClasses.Queue timers = Cldc.install(vm);
         Midp.install(vm, context);
         MidpRms.install(vm, rms, context);
         MidpNet.install(vm, network);
 
         JarClassSource source = new JarClassSource(suite.archive());
         vm.addSource(source);
-        return new EmulatorSession(vm, context, suite.info(), source, log, rms, profile, network);
+        EmulatorSession created = new EmulatorSession(vm, context, suite.info(), source, log,
+                rms, profile, network);
+        created.timers = timers;
+        return created;
     }
 
     /** Convenience for previews and tests: default profile at a fixed size. */
@@ -157,6 +163,27 @@ public final class EmulatorSession {
     /** What the game has played, when the sink is the recording one. */
     public AudioSink audio() {
         return context.audio();
+    }
+
+    /**
+     * Runs any TimerTask that has come due.
+     *
+     * <p>Called from the frame loop rather than from a thread: a MIDlet's
+     * timer callback almost always touches the screen, and the games of the
+     * era were written expecting that to happen while nothing else did.</p>
+     *
+     * @return how many tasks ran
+     */
+    public int pumpTimers() {
+        if (timers == null || state != STATE_ACTIVE) {
+            return 0;
+        }
+        return timers.runDue(vm, vm.host().currentTimeMillis());
+    }
+
+    /** How many timer tasks are waiting; for the developer tools. */
+    public int scheduledTimers() {
+        return timers == null ? 0 : timers.size();
     }
 
     public MidpContext context() {
@@ -345,6 +372,9 @@ public final class EmulatorSession {
         if (state != STATE_ACTIVE) {
             return false;
         }
+        // Timers first: a MIDlet that drives itself from a TimerTask expects
+        // its tick to have happened before the frame it paints.
+        pumpTimers();
         context.drainCallbacks();
         VmObject current = context.current();
         if (current == null) {
