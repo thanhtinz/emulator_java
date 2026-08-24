@@ -87,8 +87,12 @@ public final class MenuScreen {
         ui.textRight(ui.small(), GAME_WIDTH + "×" + GAME_HEIGHT,
                 frame.width() - Ui.PAD, (barHeight - ui.small().height()) / 2, Theme.TEXT_DIM);
 
-        Framebuffer scaled = session.screen()
-                .scaleNearest(GAME_WIDTH * SCALE, GAME_HEIGHT * SCALE);
+        // Smoothed, like every other preview and like the phone: a handset
+        // packed these pixels into about two inches, and blowing them up as
+        // hard blocks looks more pixelated than the hardware ever did.
+        Framebuffer scaled = session.profile().smoothing()
+                ? session.screen().scaleSmooth(GAME_WIDTH * SCALE, GAME_HEIGHT * SCALE)
+                : session.screen().scaleNearest(GAME_WIDTH * SCALE, GAME_HEIGHT * SCALE);
         frame.setBlendMode(Framebuffer.BLEND_REPLACE);
         frame.drawFramebuffer(scaled, 0, barHeight);
         frame.setBlendMode(Framebuffer.BLEND_SRC_OVER);

@@ -56,13 +56,12 @@ fun Keypad(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) {
         // Directly under the screen, so they line up with the labels the
         // system draws along its bottom edge, as they do on a handset.
+        // The two softkeys and nothing else. The call, end and clear keys a
+        // handset carried are gone from the pad: they were there because the
+        // device was a phone, and on screen they crowd the keys games read.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SoftKey(leftSoftKey, "softLeft", TextAlign.Start, onPress, onRelease,
                 Modifier.weight(1f))
-            // The clear key sits between them, where a handset put it. The call
-            // and end keys are gone: nothing maps them, so pressing one did
-            // nothing but crowd the keys that do.
-            PhoneKey("Xóa", "clear", onPress, onRelease, Modifier.weight(0.6f))
             SoftKey(rightSoftKey, "softRight", TextAlign.End, onPress, onRelease,
                 Modifier.weight(1f))
         }
@@ -117,30 +116,6 @@ private fun SoftKey(
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
         )
-    }
-}
-
-/** The clear key, the one key of the handset's phone row that games read. */
-@Composable
-private fun PhoneKey(
-    label: String,
-    button: String,
-    onPress: (String) -> Unit,
-    onRelease: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var held by remember { mutableStateOf(false) }
-    Box(
-        modifier
-            .height(44.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
-            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border,
-                RoundedCornerShape(10.dp))
-            .holdable(button, onPress, onRelease) { held = it },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, color = MobiColors.Text, fontSize = 14.sp)
     }
 }
 

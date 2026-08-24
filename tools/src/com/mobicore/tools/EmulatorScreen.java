@@ -95,9 +95,9 @@ public final class EmulatorScreen {
     /**
      * The keypad, cut down to the keys a game actually reads: the two softkeys
      * directly under the screen, so they line up with the labels the system
-     * draws there, the numbers, the directional pad, and clear. The call and
-     * end keys a handset carried are gone — they were there because the device
-     * was a phone, and on screen they only crowded the keys that matter.
+     * draws there, the numbers and the directional pad. The call, end and clear
+     * keys a handset carried are gone — they were there because the device was
+     * a phone, and on screen they only crowded the keys that matter.
      */
     private void controls(Ui ui, int top, int height) {
         Framebuffer frame = ui.frame();
@@ -114,11 +114,7 @@ public final class EmulatorScreen {
 
         int padTop = y + softHeight + 14;
         numericPad(ui, Ui.PAD + 4, padTop);
-        int padX = frame.width() - Ui.PAD - 208;
-        directionalPad(ui, padX, padTop + 16);
-        // Clear sits under the d-pad, in the gap the numeric pad's fourth row
-        // leaves beside it, so it costs no extra height.
-        phoneKey(ui, padX, padTop + 200, 208, ui.medium().height() + 14, "Xóa", Theme.TEXT);
+        directionalPad(ui, frame.width() - Ui.PAD - 208, padTop + 16);
     }
 
     /**
@@ -138,12 +134,6 @@ public final class EmulatorScreen {
             ui.textRight(ui.mediumBold(), text, x + width - 14, textY,
                     bound ? Theme.TEXT : Theme.TEXT_DIM);
         }
-    }
-
-    /** Clear: the one non-game key a MIDlet does read, through KEY_CLEAR. */
-    private void phoneKey(Ui ui, int x, int y, int w, int h, String label, int color) {
-        ui.panel(x, y, w, h, Theme.SURFACE_ALT, Theme.BORDER);
-        ui.textCenter(ui.small(), label, x + w / 2, y + (h - ui.small().height()) / 2, color);
     }
 
     /** The 3x4 grid, in the order a handset lays it out. */

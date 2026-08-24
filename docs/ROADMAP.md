@@ -216,9 +216,11 @@ thống mà mọi máy J2ME đều có. Hai chỗ sai về **chức năng**, kh�
 
 Ngoài ra: thanh của emulator không còn lặp lại tên game hay chữ "Tạm dừng" —
 trùng chữ với lệnh của chính game là cách nhanh nhất khiến người chơi bấm nhầm.
-Bàn phím ảo chỉ giữ những phím game thật sự đọc: phím Gọi và Kết thúc từng có
-mặt vì máy là điện thoại, không phải vì MIDlet đọc chúng, và không preset nào
-ánh xạ chúng, nên chúng chỉ chiếm chỗ của những phím có tác dụng.
+Bàn phím ảo chỉ giữ những phím game thật sự bấm tới: hai phím mềm, bàn số và
+phím hướng. Gọi, Kết thúc và Xóa từng có mặt vì máy là một cái điện thoại,
+không phải vì MIDlet cần chúng, và trên màn hình chúng chỉ chiếm chỗ của những
+phím có tác dụng. `KEY_CLEAR` vẫn còn trong bảng ánh xạ, chỉ là không còn nút
+nào trên bàn phím ảo gửi nó.
 
 ## LCDUI cấp cao
 
