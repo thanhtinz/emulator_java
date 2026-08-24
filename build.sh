@@ -37,17 +37,28 @@ build_tools() {
   fi
 }
 
+# Fixtures are ordinary Java programs compiled to bytecode; the test suite
+# feeds them to the interpreter, so they must be built for the class file
+# version the emulator targets, not for the host JDK.
+build_fixtures() {
+  if [ -d "$ROOT/fixtures/src" ]; then
+    compile "$OUT/fixtures" "" "$ROOT/fixtures/src"
+  fi
+}
+
 build_tests() {
   build_tools
+  build_fixtures
   compile "$OUT/tests" "$OUT/core:$OUT/tools" "$ROOT/tests/src"
 }
 
 case "${1:-test}" in
   core) build_core; echo "core compiled -> $OUT/core" ;;
   tools) build_tools; echo "tools compiled -> $OUT/tools" ;;
+  fixtures) build_fixtures; echo "fixtures compiled -> $OUT/fixtures" ;;
   test)
     build_tests
-    java -cp "$OUT/core:$OUT/tools:$OUT/tests" com.mobicore.tests.Runner
+    java -cp "$OUT/core:$OUT/tools:$OUT/tests" com.mobicore.tests.Runner "$OUT/fixtures"
     ;;
   run)
     shift
@@ -55,5 +66,5 @@ case "${1:-test}" in
     java -cp "$OUT/core:$OUT/tools" "$@"
     ;;
   clean) rm -rf "$ROOT/build"; echo "cleaned" ;;
-  *) echo "usage: $0 {core|tools|test|run|clean}" >&2; exit 2 ;;
+  *) echo "usage: $0 {core|tools|fixtures|test|run|clean}" >&2; exit 2 ;;
 esac

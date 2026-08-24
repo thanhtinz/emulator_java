@@ -29,7 +29,9 @@ public final class Preview {
         Vfs vfs = new LocalVfs();
         vfs.mkdirs(outDir);
 
+        String fixtures = args.length > 1 ? args[1] : "build/classes/fixtures";
         write(vfs, outDir, "01-import.png", new ImportScreen().render());
+        write(vfs, outDir, "02-vm-inspector.png", new VmScreen(fixtures).render());
 
         System.out.println("Screenshots written to " + outDir);
     }
