@@ -107,10 +107,15 @@ public final class EmulatorScreen {
         frame.fillRect(0, top, frame.width(), 1);
 
         int y = top + 12;
-        int softWidth = (frame.width() - Ui.PAD * 2 - 12) / 2;
+        // Both softkeys get exactly the same box, and the row is symmetric
+        // about the middle: whatever the two labels are, neither key looks
+        // like the more important one.
+        int gap = 12;
+        int softWidth = (frame.width() - Ui.PAD * 2 - gap) / 2;
         int softHeight = ui.medium().height() + 18;
-        softKey(ui, Ui.PAD, y, softWidth, session.leftSoftKeyLabel(), true);
-        softKey(ui, Ui.PAD + softWidth + 12, y, softWidth, session.rightSoftKeyLabel(), false);
+        int rightX = frame.width() - Ui.PAD - softWidth;
+        softKey(ui, Ui.PAD, y, softWidth, session.leftSoftKeyLabel());
+        softKey(ui, rightX, y, softWidth, session.rightSoftKeyLabel());
 
         int padTop = y + softHeight + 14;
         numericPad(ui, Ui.PAD + 4, padTop);
@@ -121,19 +126,20 @@ public final class EmulatorScreen {
      * A softkey button showing whatever label the running screen has mapped to
      * it, which is the whole point of the pair: on a handset these are blank
      * until a MIDlet registers a Command.
+     *
+     * <p>The label is centred. Which side of the screen the key is on already
+     * says which command it runs — the label bar the system draws inside the
+     * screen sits directly above it — so pushing the text out to the edges
+     * only made "Tạm dừng" and "Thoát" lean away from each other.</p>
      */
-    private void softKey(Ui ui, int x, int y, int width, String label, boolean left) {
+    private void softKey(Ui ui, int x, int y, int width, String label) {
         int height = ui.medium().height() + 18;
         boolean bound = label != null && label.length() > 0;
         ui.panel(x, y, width, height, bound ? Theme.SURFACE_ALT : Theme.BG, Theme.BORDER);
         String text = bound ? label : "—";
         int textY = y + (height - ui.mediumBold().height()) / 2;
-        if (left) {
-            ui.text(ui.mediumBold(), text, x + 14, textY, bound ? Theme.TEXT : Theme.TEXT_DIM);
-        } else {
-            ui.textRight(ui.mediumBold(), text, x + width - 14, textY,
-                    bound ? Theme.TEXT : Theme.TEXT_DIM);
-        }
+        ui.textCenter(ui.mediumBold(), text, x + width / 2, textY,
+                bound ? Theme.TEXT : Theme.TEXT_DIM);
     }
 
     /** The 3x4 grid, in the order a handset lays it out. */

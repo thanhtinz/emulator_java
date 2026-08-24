@@ -20,9 +20,9 @@ struct Keypad: View {
             // Directly under the screen, so they line up with the labels the
             // system draws along its bottom edge, as they do on a handset.
             HStack(spacing: 10) {
-                SoftKey(label: leftSoftKey, button: "softLeft", alignment: .leading,
+                SoftKey(label: leftSoftKey, button: "softLeft",
                         onPress: onPress, onRelease: onRelease)
-                SoftKey(label: rightSoftKey, button: "softRight", alignment: .trailing,
+                SoftKey(label: rightSoftKey, button: "softRight",
                         onPress: onPress, onRelease: onRelease)
             }
             HStack(spacing: 6) {
@@ -121,10 +121,14 @@ private struct NumberKey: View {
 /// A softkey. Blank until the running screen registers a Command, and then
 /// showing that command's label — the only way a player can reach a MIDlet's
 /// own menu.
+///
+/// The two keys share a width and centre their labels, so neither reads as the
+/// more important one; which side a key is on already says which command it
+/// runs, because the label bar the system draws inside the screen sits directly
+/// above it.
 private struct SoftKey: View {
     let label: String?
     let button: String
-    let alignment: Alignment
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
 
@@ -137,7 +141,7 @@ private struct SoftKey: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(bound ? Palette.text : Palette.textDim)
             .lineLimit(1)
-            .frame(maxWidth: .infinity, alignment: alignment)
+            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 14)
             .frame(height: 44)
             .background(held ? Palette.accentDim : (bound ? Palette.surfaceAlt : Palette.background),

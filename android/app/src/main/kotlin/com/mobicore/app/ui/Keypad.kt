@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,10 +59,8 @@ fun Keypad(
         // handset carried are gone from the pad: they were there because the
         // device was a phone, and on screen they crowd the keys games read.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SoftKey(leftSoftKey, "softLeft", TextAlign.Start, onPress, onRelease,
-                Modifier.weight(1f))
-            SoftKey(rightSoftKey, "softRight", TextAlign.End, onPress, onRelease,
-                Modifier.weight(1f))
+            SoftKey(leftSoftKey, "softLeft", onPress, onRelease, Modifier.weight(1f))
+            SoftKey(rightSoftKey, "softRight", onPress, onRelease, Modifier.weight(1f))
         }
         Row(
             Modifier.fillMaxWidth(),
@@ -80,12 +77,16 @@ fun Keypad(
  * A softkey. Blank until the running screen registers a Command, and then
  * showing that command's label — which is the only way a player can reach a
  * MIDlet's menu.
+ *
+ * The two keys share a width and centre their labels, so neither reads as the
+ * more important one; which side a key is on already says which command it
+ * runs, because the label bar the system draws inside the screen sits directly
+ * above it.
  */
 @Composable
 private fun SoftKey(
     label: String?,
     button: String,
-    align: TextAlign,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -107,7 +108,7 @@ private fun SoftKey(
                 RoundedCornerShape(12.dp))
             .holdable(button, onPress, onRelease) { held = it }
             .padding(horizontal = 14.dp),
-        contentAlignment = if (align == TextAlign.Start) Alignment.CenterStart else Alignment.CenterEnd,
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = if (bound) label!! else "—",
