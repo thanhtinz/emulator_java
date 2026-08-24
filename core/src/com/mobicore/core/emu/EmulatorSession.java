@@ -9,6 +9,8 @@ import com.mobicore.core.midp.Midp;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.midp.MidpGfx;
 import com.mobicore.core.midp.MidpUi;
+import com.mobicore.core.midp.ScreenInput;
+import com.mobicore.core.midp.ScreenRenderer;
 import com.mobicore.core.midp.MidpNet;
 import com.mobicore.core.midp.MidpRms;
 import com.mobicore.core.midp.SystemChrome;
@@ -327,8 +329,9 @@ public final class EmulatorSession {
             return false;
         }
         if (!isCanvas(current)) {
-            // High level screens are drawn by the shell, not by the game.
-            return false;
+            // Form, List, TextBox and Alert are the device's to draw: MIDP
+            // describes what they hold and leaves the look to the handset.
+            return ScreenRenderer.render(context);
         }
         Framebuffer screen = context.screen();
         screen.setTranslation(0, 0);
@@ -354,6 +357,24 @@ public final class EmulatorSession {
      * @return true when a command was actually run
      */
     public boolean pressSoftKey(boolean left) {
+        if (context.isMenuOpen()) {
+            // Both keys belong to the open menu: the left one runs the row it
+            // is sitting on, the right one backs out.
+            if (!left) {
+                context.closeMenu();
+                return false;
+            }
+            VmObject selected = context.menuSelection();
+            context.closeMenu();
+            return selected != null && invokeCommand(selected);
+        }
+        if (left && !context.menuCommands().isEmpty()) {
+            // More commands than the two keys can label, so the left key opens
+            // the list instead of running the first one. Without this the rest
+            // of a screen's commands can never be reached.
+            context.openMenu();
+            return false;
+        }
         VmObject command = left ? context.leftCommand() : context.rightCommand();
         if (command == null) {
             // No command there: the game may still want the raw key.
@@ -388,7 +409,21 @@ public final class EmulatorSession {
         if (action != 0) {
             context.setKeyState(action, true);
         }
+        if (ScreenInput.keyPressed(context, keyCode, commandSink())) {
+            // The menu or a high level screen took it. A Canvas underneath must
+            // not also see the key that walked a menu.
+            return;
+        }
         deliver("keyPressed", keyCode);
+    }
+
+    /** Lets the screen layer run a command through the MIDlet's listener. */
+    private ScreenInput.Commands commandSink() {
+        return new ScreenInput.Commands() {
+            public void invoke(VmObject command) {
+                invokeCommand(command);
+            }
+        };
     }
 
     public void keyReleased(int keyCode) {
@@ -397,6 +432,11 @@ public final class EmulatorSession {
             context.setKeyState(action, false);
         }
         deliver("keyReleased", keyCode);
+    }
+
+    /** True while the "Options" list is over the screen. */
+    public boolean isMenuOpen() {
+        return context.isMenuOpen();
     }
 
     public void keyRepeated(int keyCode) {
@@ -412,6 +452,9 @@ public final class EmulatorSession {
     }
 
     public void pointerPressed(int x, int y) {
+        if (ScreenInput.pointerPressed(context, x, y, commandSink())) {
+            return;
+        }
         deliverPointer("pointerPressed", x, y);
     }
 

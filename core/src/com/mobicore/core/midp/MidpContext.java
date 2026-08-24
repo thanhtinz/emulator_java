@@ -219,6 +219,14 @@ public final class MidpContext {
 
     public void setCurrent(VmObject displayable) {
         this.current = displayable;
+        // The menu listed the old screen's commands; it cannot outlive it.
+        menuOpen = false;
+        menuIndex = 0;
+        // A handset shows the title of whatever screen it is on. Only setTitle
+        // used to reach here, so switching screens left the previous screen's
+        // title in the bar.
+        Object next = displayable == null ? null : displayable.get("title");
+        this.title = next == null ? null : vm.stringOf(next);
         requestRepaint();
     }
 
@@ -288,6 +296,105 @@ public final class MidpContext {
             return height();
         }
         return height() - canvasTop() - (hasSoftKeys() ? softKeyBarHeight : 0);
+    }
+
+    // ---------------------------------------------------------- multi-tap
+
+    /**
+     * Where multi-tap text entry got to: the field being typed into, the key
+     * held down, how far around its letters the player has cycled and when.
+     *
+     * <p>State per running MIDlet rather than per process, so two sessions in
+     * one emulator do not type into each other.</p>
+     */
+    private VmObject tapField;
+    private int tapKey;
+    private int tapIndex;
+    private long tapAt;
+
+    public VmObject tapField() {
+        return tapField;
+    }
+
+    public int tapKey() {
+        return tapKey;
+    }
+
+    public int tapIndex() {
+        return tapIndex;
+    }
+
+    public long tapAt() {
+        return tapAt;
+    }
+
+    public void setTap(VmObject field, int keyCode, int index, long at) {
+        this.tapField = field;
+        this.tapKey = keyCode;
+        this.tapIndex = index;
+        this.tapAt = at;
+    }
+
+    public void clearTap() {
+        this.tapField = null;
+    }
+
+    // ------------------------------------------------------------- menu
+
+    private boolean menuOpen;
+    private int menuIndex;
+
+    /**
+     * Whether the "Options" list is open over the screen.
+     *
+     * <p>A handset could only ever label two commands, so everything past the
+     * first went behind a menu. Without the menu those commands exist, are
+     * counted, and can never be run.</p>
+     */
+    public boolean isMenuOpen() {
+        return menuOpen;
+    }
+
+    public int menuIndex() {
+        return menuIndex;
+    }
+
+    public void openMenu() {
+        if (menuCommands().isEmpty()) {
+            return;
+        }
+        menuOpen = true;
+        menuIndex = 0;
+        requestRepaint();
+    }
+
+    public void closeMenu() {
+        if (!menuOpen) {
+            return;
+        }
+        menuOpen = false;
+        menuIndex = 0;
+        requestRepaint();
+    }
+
+    /** Moves the menu selection, wrapping as a handset's list does. */
+    public void moveMenu(int delta) {
+        List<VmObject> commands = menuCommands();
+        if (!menuOpen || commands.isEmpty()) {
+            return;
+        }
+        int size = commands.size();
+        menuIndex = ((menuIndex + delta) % size + size) % size;
+        requestRepaint();
+    }
+
+    /** The command the menu is sitting on, or {@code null}. */
+    public VmObject menuSelection() {
+        List<VmObject> commands = menuCommands();
+        if (!menuOpen || commands.isEmpty()) {
+            return null;
+        }
+        return commands.get(Math.max(0, Math.min(menuIndex, commands.size() - 1)));
     }
 
     /** True when the current screen has a title the system should show. */

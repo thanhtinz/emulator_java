@@ -214,7 +214,45 @@ thống mà mọi máy J2ME đều có. Hai chỗ sai về **chức năng**, kh�
   được gọi khi đổi, toạ độ chạm quy đổi về hệ toạ độ canvas, và vùng vẽ bị
   clip nên game không vẽ đè lên phần của hệ thống.
 
-Ngoài ra: bàn phím có thêm hàng Gọi / Xóa / Kết thúc như mọi máy J2ME
-(`KEY_SEND`, `KEY_END`), và thanh của emulator không còn lặp lại tên game hay
-chữ "Tạm dừng" — trùng chữ với lệnh của chính game là cách nhanh nhất khiến
-người chơi bấm nhầm.
+Ngoài ra: thanh của emulator không còn lặp lại tên game hay chữ "Tạm dừng" —
+trùng chữ với lệnh của chính game là cách nhanh nhất khiến người chơi bấm nhầm.
+Bàn phím ảo chỉ giữ những phím game thật sự đọc: phím Gọi và Kết thúc từng có
+mặt vì máy là điện thoại, không phải vì MIDlet đọc chúng, và không preset nào
+ánh xạ chúng, nên chúng chỉ chiếm chỗ của những phím có tác dụng.
+
+## LCDUI cấp cao
+
+Trước đây emulator chỉ có nửa dưới của LCDUI: `Canvas`, `Graphics`, `Image`,
+`Font` và bộ `game`. Đủ cho một game tự vẽ từng điểm ảnh, nhưng gần như mọi
+MIDlet thương mại vẫn dựng menu, ô nhập tên và hộp thoại bằng nửa còn lại —
+và ở đây, một lớp thiếu không phải là thiếu tính năng: nó là
+`NoClassDefFoundError` ngay khi game được nạp.
+
+Nay có đủ: `Screen`, `Form`, `List`, `TextBox`, `Alert`, `AlertType`,
+`Ticker`, `Item`, `StringItem`, `ImageItem`, `TextField`, `Gauge`,
+`DateField`, `Choice`, `ChoiceGroup`, `ItemStateListener`.
+
+- **Máy vẽ, không phải game vẽ.** Đúng như MIDP quy định: đặc tả mô tả một
+  `List` *là gì*, không bao giờ mô tả nó *trông ra sao*, vì đó là việc của
+  thiết bị. `ScreenRenderer` vẽ chúng bằng chính framebuffer của core, nên
+  Android, iOS và bản xem trước desktop nhận cùng một giao diện.
+- **Bàn phím điều khiển màn hình.** `ScreenInput` xử lý lên/xuống, chọn, bật
+  tắt ô đánh dấu, kéo `Gauge` và gõ chữ. Gõ theo kiểu đa chạm — cách duy nhất
+  một bàn phím số từng nhập được chữ, và là thứ một game hỏi tên người chơi
+  mong đợi. Khi con trỏ đang ở một `TextField`, các phím số thuộc về nó: số 2
+  gõ ra "a" chứ không đi lên, đúng như máy thật.
+- **Cảm ứng.** Không có trong đặc tả, vì máy dùng LCDUI cấp cao đều là máy
+  bàn phím. Có ở đây vì emulator chạy trên điện thoại không có bàn phím nào
+  cả: chạm lần đầu chọn dòng, chạm lại mới chạy.
+
+## Menu "Tuỳ chọn"
+
+Nhãn phím mềm trái đổi thành "Tuỳ chọn" khi có nhiều hơn một lệnh muốn nó —
+nhưng danh sách phía sau chưa từng được vẽ, nên lệnh thứ ba trở đi được đọc,
+được đếm, và không bao giờ bấm tới được. Nay bấm phím mềm trái mở đúng danh
+sách đó: lên/xuống chọn, phím giữa chạy, phím mềm phải thoát ra. Áp dụng cho
+cả `Canvas` lẫn màn hình cấp cao.
+
+MIDlet `demo/MenuDemo.java` là chương trình J2ME thật dựng hoàn toàn bằng
+`List`, `Form`, `TextBox` và `Alert` — bộ test lái nó bằng bàn phím, và
+`./build.sh run com.mobicore.tools.Preview` chụp lại từng màn hình.

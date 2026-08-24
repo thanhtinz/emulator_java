@@ -83,7 +83,7 @@ public final class FacadeTest extends Test {
 
         Map<String, Object> inspect = Json.readObject(facade.inspectJson(suiteId));
         check(Json.child(inspect, "attributes").size() > 5, "the inspector exposes the descriptor");
-        eq(2, Json.array(inspect, "midlets").size(), "the inspector lists both MIDlets");
+        eq(3, Json.array(inspect, "midlets").size(), "the inspector lists every MIDlet");
         check(Json.array(inspect, "resources").size() > 0, "the inspector lists resources");
         check(facade.resource(suiteId, "res/level1.dat").length == 1024, "resources read back");
 

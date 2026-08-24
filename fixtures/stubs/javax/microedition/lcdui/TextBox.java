@@ -1,0 +1,48 @@
+package javax.microedition.lcdui;
+
+/** Compile-time stub; the emulator implements this natively. */
+public class TextBox extends Screen {
+
+    public TextBox(String title, String text, int maxSize, int constraints) {
+    }
+
+    public String getString() {
+        return null;
+    }
+
+    public void setString(String text) {
+    }
+
+    public void insert(String text, int position) {
+    }
+
+    public void delete(int offset, int length) {
+    }
+
+    public int size() {
+        return 0;
+    }
+
+    public int getMaxSize() {
+        return 0;
+    }
+
+    public int setMaxSize(int maxSize) {
+        return 0;
+    }
+
+    public int getConstraints() {
+        return 0;
+    }
+
+    public void setConstraints(int constraints) {
+    }
+
+    public int getCaretPosition() {
+        return 0;
+    }
+
+    public int getChars(char[] data) {
+        return 0;
+    }
+}

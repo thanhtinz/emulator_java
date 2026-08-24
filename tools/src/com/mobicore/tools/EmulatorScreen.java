@@ -204,7 +204,7 @@ public final class EmulatorScreen {
     }
 
     /** Deterministic clock so screenshots are reproducible. */
-    static final class FixedClock implements VmHost {
+    public static final class FixedClock implements VmHost {
 
         private long now = 1_700_000_000_000L;
 

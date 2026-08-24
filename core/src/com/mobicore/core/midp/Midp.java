@@ -11,6 +11,7 @@ public final class Midp {
     public static void install(Vm vm, MidpContext context) {
         MidpGfx.install(vm);
         MidpUi.install(vm, context);
+        MidpForms.install(vm, context);
         MidpGame.install(vm);
     }
 }

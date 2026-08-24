@@ -174,10 +174,10 @@ class EmulatorEngine(
 
     fun pressButton(button: String) {
         session?.pressButton(button)
-        if (button == "softLeft" || button == "softRight") {
-            // A command may have swapped the screen, and with it the labels.
-            commandRevision++
-        }
+        // Any key can swap the screen, and with it the softkey labels: picking
+        // a row on a List opens the next screen just as a softkey command does,
+        // and the labels have to follow.
+        commandRevision++
     }
 
     fun releaseButton(button: String) {

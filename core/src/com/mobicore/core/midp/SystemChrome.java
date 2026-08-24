@@ -97,7 +97,7 @@ public final class SystemChrome {
             screen.setColor(LABEL);
             font.draw(screen, clip(font, left, half), 4, textY);
         }
-        String right = context.labelOf(context.rightCommand());
+        String right = rightLabel(context);
         if (right != null) {
             String text = clip(font, right, half);
             screen.setColor(LABEL);
@@ -110,6 +110,9 @@ public final class SystemChrome {
      * exactly what a handset does.
      */
     public static String leftLabel(MidpContext context) {
+        if (context.isMenuOpen()) {
+            return "Chọn";
+        }
         VmObject command = context.leftCommand();
         if (command == null) {
             return null;
@@ -118,6 +121,11 @@ public final class SystemChrome {
     }
 
     public static String rightLabel(MidpContext context) {
+        // While the menu is open both keys belong to the menu: the right one
+        // backs out of it, whatever the screen's own right command is.
+        if (context.isMenuOpen()) {
+            return "Huỷ";
+        }
         return context.labelOf(context.rightCommand());
     }
 

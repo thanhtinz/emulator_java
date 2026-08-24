@@ -42,6 +42,11 @@ public final class Preview {
         write(vfs, outDir, "05-library.png", new LibraryScreen(fixtures).render());
         write(vfs, outDir, "06-game-detail.png", new DetailScreen(fixtures).render());
         write(vfs, outDir, "07-dev-tools.png", new DevToolsScreen(fixtures).render());
+        write(vfs, outDir, "08-list.png", new MenuScreen(fixtures, "list").render());
+        write(vfs, outDir, "09-form.png", new MenuScreen(fixtures, "form").render());
+        write(vfs, outDir, "10-options-menu.png", new MenuScreen(fixtures, "menu").render());
+        write(vfs, outDir, "11-textbox.png", new MenuScreen(fixtures, "textbox").render());
+        write(vfs, outDir, "12-alert.png", new MenuScreen(fixtures, "alert").render());
 
         System.out.println("Screenshots written to " + outDir);
     }

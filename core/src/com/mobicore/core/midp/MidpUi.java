@@ -196,7 +196,12 @@ public final class MidpUi {
                 .method("setTitle", "(Ljava/lang/String;)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         self.set("title", args[0]);
-                        context.setTitle(Rt.s(vm, args, 0));
+                        if (context.current() == self) {
+                            // Titling a screen that is not up must not relabel
+                            // the one that is; setCurrent picks the title up
+                            // when the screen is actually shown.
+                            context.setTitle(Rt.s(vm, args, 0));
+                        }
                         // The title bar takes height away from the canvas, and
                         // a game that has already measured needs telling.
                         context.notifySizeChanged(self);
@@ -234,6 +239,12 @@ public final class MidpUi {
                         return Rt.box(context.current() == self);
                     }
                 })
+                // Every Displayable answers these, not just a Canvas: the
+                // system calls them on whatever screen it puts up, and a Form
+                // that cannot be shown is a Form that cannot be used.
+                .method("showNotify", "()V", noop())
+                .method("hideNotify", "()V", noop())
+                .method("sizeChanged", "(II)V", noop())
                 .define();
     }
 
