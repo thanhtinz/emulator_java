@@ -11,7 +11,7 @@
 | 7 | Developer tools, network layer, modding | Xong |
 | 8 | Âm thanh: javax.microedition.media | Xong |
 | 9 | Tương thích: Timer và kiểm tra trước khi chơi | Xong |
-| 10 | Tối ưu hiệu năng | Kế tiếp |
+| 10 | Tối ưu hiệu năng | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -411,3 +411,38 @@ tình cờ chứa tên gói không phải là bằng chứng game dùng gói đ�
 hẳn một trường hợp cho chuyện này.
 
 Kết quả hiện thành huy hiệu ngay trên trang chi tiết, cạnh nút Chơi.
+
+
+## Hiệu năng
+
+Trước hết là **đo được đã**: `./build.sh run com.mobicore.tools.Benchmark` chạy
+ba phép đo trên đồng hồ đóng băng — bytecode thuần, gọi hàm ảo, một khung hình
+thật của MIDlet, và bộ phóng ảnh chạy mỗi khung. Lấy kết quả tốt nhất trong ba
+lần chứ không lấy trung bình: lần chậm nghĩa là máy bận, mà trung bình vào thì
+là đang đo cái máy.
+
+Kết quả trên cùng một máy, trước → sau:
+
+| Phép đo | Trước | Sau |
+| --- | --- | --- |
+| Bytecode | 1,5 M vòng/giây | 2,2 M vòng/giây |
+| Gọi hàm ảo | 3,6 M lượt/giây | 4,4 M lượt/giây |
+| Khung hình game | 150 hình/giây (6,66 ms) | **618 hình/giây (1,62 ms)** |
+| Phóng ảnh 2× | 12,83 ms | **3,46 ms** |
+
+Bốn thay đổi, tìm ra bằng cách lấy mẫu ngăn xếp chứ không đoán:
+
+- **Viền mềm chỉ tính ở viền.** `fillRegion` lấy 16 mẫu mỗi điểm ảnh để khử
+  răng cưa. Nhưng điểm ảnh có cả bốn góc nằm trong hình thì nằm trọn trong
+  hình, và cả bốn góc lẫn tâm nằm ngoài thì không thuộc hình. Thử bốn góc
+  trước biến một tam giác to từ 16 phép thử mỗi điểm xuống còn 4 ở gần như
+  toàn bộ diện tích. Đây là phần lớn thời gian vẽ của game — ảnh chụp trước và
+  sau giống hệt nhau.
+- **Phóng ảnh bằng số nguyên**, vị trí lấy mẫu theo cột tính một lần cho cả
+  khung thay vì mỗi điểm ảnh, và cho phép dùng lại đệm đích (`scaleSmoothInto`)
+  — một khung 480×640 hơn một megabyte, cấp phát mỗi khung thì bộ dọn rác làm
+  việc nhiều hơn cả emulator.
+- **Mô tả hàm phân tích một lần** lúc nạp lớp thay vì mỗi lần gọi.
+- **Nhớ kết quả tra hàm ảo** theo lớp: tra một lần rồi dùng lại, vì lớp ở đây
+  không bao giờ bị định nghĩa lại.
+- **Font đậm/nghiêng được nhớ** thay vì dựng lại mỗi lần vẽ chữ.

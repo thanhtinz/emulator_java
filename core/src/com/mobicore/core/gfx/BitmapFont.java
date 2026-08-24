@@ -117,6 +117,11 @@ public final class BitmapFont {
         return GLYPH_INDEX[c];
     }
 
+    /** Styles are a bit set — plain, bold, italic, underlined — so eight. */
+    private static final int STYLE_COUNT = 8;
+
+    private static final BitmapFont[] STYLED_FACES = new BitmapFont[FACE_COUNT * STYLE_COUNT];
+
     public static BitmapFont of(int size, int style) {
         int clamped = size < 0 ? 0 : (size >= FACE_COUNT ? FACE_COUNT - 1 : size);
         if (style == STYLE_PLAIN) {
@@ -125,7 +130,13 @@ public final class BitmapFont {
             }
             return PLAIN_FACES[clamped];
         }
-        return new BitmapFont(clamped, style);
+        // Bold and italic were rebuilt on every call, which meant decoding a
+        // face's rows again for every string a game drew.
+        int slot = clamped * STYLE_COUNT + (style & (STYLE_COUNT - 1));
+        if (STYLED_FACES[slot] == null) {
+            STYLED_FACES[slot] = new BitmapFont(clamped, style);
+        }
+        return STYLED_FACES[slot];
     }
 
     /** True when the faces can render a character rather than substituting. */

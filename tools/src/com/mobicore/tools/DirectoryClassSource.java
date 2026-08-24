@@ -1,4 +1,4 @@
-package com.mobicore.tests;
+package com.mobicore.tools;
 
 import com.mobicore.core.storage.LocalVfs;
 import com.mobicore.core.storage.Vfs;

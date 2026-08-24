@@ -225,6 +225,22 @@ public final class Framebuffer {
         int top = Math.max(clipY, y + translateY);
         int right = Math.min(clipX + clipW, x + translateX + w);
         int bottom = Math.min(clipY + clipH, y + translateY + h);
+        if (right <= left) {
+            return;
+        }
+        // An opaque fill is a memory fill, and a game clears its whole screen
+        // this way every frame: going through the per-pixel blend for it cost
+        // more than everything else the frame did.
+        if (blendMode == BLEND_REPLACE || (color >>> 24) == 0xFF) {
+            for (int py = top; py < bottom; py++) {
+                int row = py * width;
+                java.util.Arrays.fill(pixels, row + left, row + right, color);
+            }
+            return;
+        }
+        if ((color >>> 24) == 0) {
+            return;
+        }
         for (int py = top; py < bottom; py++) {
             for (int px = left; px < right; px++) {
                 blend(px, py, color);
@@ -330,9 +346,34 @@ public final class Framebuffer {
      * plenty for the shapes MIDP offers and costs nothing noticeable on a
      * screen this size.
      */
+    /**
+     * Fills a shape with anti-aliased edges.
+     *
+     * <p>Sixteen samples a pixel is what smooth edges cost, but only an edge
+     * needs them: a pixel with all four corners inside the shape is wholly
+     * inside it, and one with all four outside — and its centre outside too —
+     * is not in it at all. Testing the corners first turns a full-screen
+     * triangle from sixteen tests a pixel into four for nearly all of it,
+     * which is most of what a game's drawing costs.</p>
+     */
     private void fillRegion(int left, int top, int right, int bottom, Region region) {
         for (int py = top; py <= bottom; py++) {
             for (int px = left; px <= right; px++) {
+                boolean topLeft = region.contains(px, py);
+                boolean topRight = region.contains(px + 1, py);
+                boolean bottomLeft = region.contains(px, py + 1);
+                boolean bottomRight = region.contains(px + 1, py + 1);
+                if (topLeft && topRight && bottomLeft && bottomRight) {
+                    blendTranslated(px, py, 1.0);
+                    continue;
+                }
+                if (!topLeft && !topRight && !bottomLeft && !bottomRight
+                        && !region.contains(px + 0.5, py + 0.5)) {
+                    // Every corner and the centre are outside. A shape thin
+                    // enough to slip between them is thinner than a pixel,
+                    // and the samples below would find at most a trace of it.
+                    continue;
+                }
                 int hits = 0;
                 for (int sy = 0; sy < 4; sy++) {
                     for (int sx = 0; sx < 4; sx++) {
@@ -615,51 +656,82 @@ public final class Framebuffer {
      * than the original hardware ever did.</p>
      */
     public Framebuffer scaleSmooth(int targetWidth, int targetHeight) {
-        Framebuffer target = new Framebuffer(targetWidth, targetHeight);
-        if (targetWidth <= 0 || targetHeight <= 0) {
+        return scaleSmoothInto(new Framebuffer(targetWidth, targetHeight));
+    }
+
+    /**
+     * The same, into a surface the caller keeps.
+     *
+     * <p>This runs once per frame for the whole screen, so it is written in
+     * fixed point with the horizontal sample positions worked out once per
+     * call rather than once per pixel. The arithmetic was floating point and
+     * per channel, which cost more than everything the game itself did in the
+     * same frame. Reusing the target matters as much: a 480x640 surface is
+     * over a megabyte, and allocating one per frame gave the garbage
+     * collector more work than the emulator.</p>
+     */
+    public Framebuffer scaleSmoothInto(Framebuffer target) {
+        int targetWidth = target.width;
+        int targetHeight = target.height;
+        if (targetWidth <= 0 || targetHeight <= 0 || width <= 0 || height <= 0) {
             return target;
         }
+
         // Sample at pixel centres, so the edges of the image are not stretched
-        // half a source pixel outwards.
-        double stepX = (double) width / targetWidth;
-        double stepY = (double) height / targetHeight;
+        // half a source pixel outwards. Positions are 16.16 fixed point.
+        long stepX = ((long) width << 16) / targetWidth;
+        long stepY = ((long) height << 16) / targetHeight;
+
+        int[] leftOf = new int[targetWidth];
+        int[] rightOf = new int[targetWidth];
+        int[] weightOf = new int[targetWidth];
+        for (int x = 0; x < targetWidth; x++) {
+            long sourceX = (x * stepX) + (stepX >> 1) - (1 << 15);
+            int x0 = (int) (sourceX >> 16);
+            leftOf[x] = clamp(x0, width - 1);
+            rightOf[x] = clamp(x0 + 1, width - 1);
+            weightOf[x] = sourceX < 0 ? 0 : (int) ((sourceX >> 8) & 0xFF);
+        }
+
+        int[] out = target.pixels;
         for (int y = 0; y < targetHeight; y++) {
-            double sourceY = (y + 0.5) * stepY - 0.5;
-            int y0 = (int) Math.floor(sourceY);
-            double fy = sourceY - y0;
-            int topRow = clamp(y0, height - 1);
-            int bottomRow = clamp(y0 + 1, height - 1);
+            long sourceY = (y * stepY) + (stepY >> 1) - (1 << 15);
+            int y0 = (int) (sourceY >> 16);
+            int weightY = sourceY < 0 ? 0 : (int) ((sourceY >> 8) & 0xFF);
+            int topRow = clamp(y0, height - 1) * width;
+            int bottomRow = clamp(y0 + 1, height - 1) * width;
+            int row = y * targetWidth;
             for (int x = 0; x < targetWidth; x++) {
-                double sourceX = (x + 0.5) * stepX - 0.5;
-                int x0 = (int) Math.floor(sourceX);
-                double fx = sourceX - x0;
-                int left = clamp(x0, width - 1);
-                int right = clamp(x0 + 1, width - 1);
-                target.pixels[y * targetWidth + x] = mix(
-                        pixels[topRow * width + left], pixels[topRow * width + right],
-                        pixels[bottomRow * width + left], pixels[bottomRow * width + right],
-                        fx, fy);
+                int left = leftOf[x];
+                int right = rightOf[x];
+                int weightX = weightOf[x];
+                int top = lerp(pixels[topRow + left], pixels[topRow + right], weightX);
+                int bottom = lerp(pixels[bottomRow + left], pixels[bottomRow + right], weightX);
+                out[row + x] = lerp(top, bottom, weightY);
             }
         }
         return target;
     }
 
-    private static int clamp(int value, int max) {
-        return value < 0 ? 0 : (value > max ? max : value);
+    /**
+     * Blend of two ARGB pixels, {@code weight} running 0..255 towards
+     * {@code b}. Per channel on purpose: packing two channels into one
+     * multiply is faster still, but goes wrong the moment a difference is
+     * negative, and a wrong colour is worse than a slower one.
+     */
+    private static int lerp(int a, int b, int weight) {
+        if (weight == 0) {
+            return a;
+        }
+        int alpha = ((a >>> 24) & 0xFF) + ((((b >>> 24) & 0xFF) - ((a >>> 24) & 0xFF)) * weight >> 8);
+        int red = ((a >>> 16) & 0xFF) + ((((b >>> 16) & 0xFF) - ((a >>> 16) & 0xFF)) * weight >> 8);
+        int green = ((a >>> 8) & 0xFF) + ((((b >>> 8) & 0xFF) - ((a >>> 8) & 0xFF)) * weight >> 8);
+        int blue = (a & 0xFF) + (((b & 0xFF) - (a & 0xFF)) * weight >> 8);
+        return (alpha << 24) | (red << 16) | (green << 8) | blue;
     }
 
-    /** Bilinear mix of four ARGB samples. */
-    private static int mix(int topLeft, int topRight, int bottomLeft, int bottomRight,
-                           double fx, double fy) {
-        int result = 0;
-        for (int shift = 0; shift <= 24; shift += 8) {
-            double top = ((topLeft >>> shift) & 0xFF) * (1 - fx) + ((topRight >>> shift) & 0xFF) * fx;
-            double bottom = ((bottomLeft >>> shift) & 0xFF) * (1 - fx)
-                    + ((bottomRight >>> shift) & 0xFF) * fx;
-            int value = (int) Math.round(top * (1 - fy) + bottom * fy);
-            result |= (value < 0 ? 0 : (value > 255 ? 255 : value)) << shift;
-        }
-        return result;
+    private static int clamp(int value, int max) {
+        return value < 0 ? 0 : (value > max ? max : value);
     }
 
     /** Largest integer scale that still fits inside the given viewport. */

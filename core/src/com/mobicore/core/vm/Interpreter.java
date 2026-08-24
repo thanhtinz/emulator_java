@@ -69,10 +69,12 @@ public final class Interpreter {
         if (!method.isStatic()) {
             frame.setLocalRef(slot++, self);
         }
-        List<String> parameters = Descriptors.argumentTypes(method.descriptor());
-        for (int i = 0; i < parameters.size(); i++) {
+        // Parsed when the method was loaded, not per call: this runs on
+        // every invocation a game makes.
+        char[] parameters = method.argumentKinds();
+        for (int i = 0; i < parameters.length; i++) {
             Object value = args != null && i < args.length ? args[i] : null;
-            slot += store(frame, slot, parameters.get(i).charAt(0), value);
+            slot += store(frame, slot, parameters[i], value);
         }
 
         if (method.isSynchronized()) {
@@ -856,10 +858,10 @@ public final class Interpreter {
 
     /** Pops the declared arguments of a method, innermost last. */
     private Object[] popArguments(Frame frame, VmMethod method) {
-        List<String> types = Descriptors.argumentTypes(method.descriptor());
-        Object[] args = new Object[types.size()];
-        for (int i = types.size() - 1; i >= 0; i--) {
-            char kind = types.get(i).charAt(0);
+        char[] kinds = method.argumentKinds();
+        Object[] args = new Object[kinds.length];
+        for (int i = kinds.length - 1; i >= 0; i--) {
+            char kind = kinds[i];
             switch (kind) {
                 case 'J': args[i] = Long.valueOf(frame.popLong()); break;
                 case 'D': args[i] = Double.valueOf(frame.popDouble()); break;
@@ -900,7 +902,7 @@ public final class Interpreter {
         if (self == null) {
             throw vm.nullPointer("call to " + declared.name() + " on null");
         }
-        VmMethod target = self.type().findMethod(declared.name(), declared.descriptor());
+        VmMethod target = self.type().resolveVirtual(declared);
         if (target == null || target.isAbstract()) {
             throw vm.raise("java/lang/AbstractMethodError",
                     self.type().binaryName() + "." + declared.name() + declared.descriptor());

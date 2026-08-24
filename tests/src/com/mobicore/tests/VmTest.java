@@ -2,6 +2,7 @@ package com.mobicore.tests;
 
 import com.mobicore.core.rt.Cldc;
 import com.mobicore.core.vm.Vm;
+import com.mobicore.tools.DirectoryClassSource;
 import com.mobicore.core.vm.VmObject;
 
 import java.io.File;

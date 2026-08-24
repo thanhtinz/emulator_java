@@ -114,6 +114,26 @@ public final class GfxTest extends Test {
         check(partialPixels(soft) > 8,
                 "a smoothed triangle has partly lit edge pixels, was " + partialPixels(soft));
 
+        // The edge test that keeps a filled shape cheap must not change what
+        // the shape looks like: a big triangle's inside is solid, its edge is
+        // soft, and nothing outside it is touched.
+        Framebuffer big = new Framebuffer(64, 64);
+        big.fill(0xFF000000);
+        big.setAntialias(true);
+        big.setColor(0xFFFFFFFF);
+        big.fillTriangle(2, 2, 60, 8, 8, 60);
+        eq(0xFFFFFFFF, big.pixel(14, 14), "the inside of a large triangle is solid");
+        eq(0xFF000000, big.pixel(58, 58), "and the far corner is untouched");
+        check(partialPixels(big) > 40,
+                "its edges are still softened, was " + partialPixels(big));
+
+        // Scaling into a surface the caller keeps must match scaling into a
+        // fresh one; the frame loop reuses a buffer to avoid the garbage.
+        Framebuffer reusable = new Framebuffer(16, 16);
+        flat.scaleSmoothInto(reusable);
+        eq(flatBig.pixel(8, 8), reusable.pixel(8, 8), "scaling into a reused buffer matches");
+        eq(flatBig.pixel(0, 0), reusable.pixel(0, 0), "including at the edges");
+
         Framebuffer rect = new Framebuffer(24, 24);
         rect.fill(0xFF000000);
         rect.setAntialias(true);

@@ -200,8 +200,31 @@ public final class VmClass {
     // ------------------------------------------------------------- lookups
 
     /** Declared method, without walking the hierarchy. */
+    private final java.util.Map<VmMethod, VmMethod> virtualCache =
+            new java.util.IdentityHashMap<VmMethod, VmMethod>();
+
     public VmMethod declaredMethod(String name, String descriptor) {
         return methodIndex.get(name + descriptor);
+    }
+
+    /**
+     * The method a virtual call on this class actually reaches.
+     *
+     * <p>Cached per declared method. The lookup itself concatenates a name
+     * and a descriptor and walks the superclass chain, which is a small cost
+     * paid on every call a game makes — and games make millions. Classes are
+     * never redefined here, so a resolved target cannot go stale.</p>
+     */
+    public VmMethod resolveVirtual(VmMethod declared) {
+        VmMethod target = virtualCache.get(declared);
+        if (target != null) {
+            return target;
+        }
+        target = findMethod(declared.name(), declared.descriptor());
+        if (target != null) {
+            virtualCache.put(declared, target);
+        }
+        return target;
     }
 
     /** Method resolution: this class, then superclasses, then interfaces. */

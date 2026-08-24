@@ -16,6 +16,14 @@ public final class VmMethod {
     private final int access;
     private final int argumentSlots;
     private final char returnKind;
+    /**
+     * One character per argument, in order: the descriptor parsed once.
+     *
+     * <p>The interpreter used to parse the descriptor and build a list on
+     * every single call, which is the sort of cost that does not show up in
+     * any one place and shows up in all of them.</p>
+     */
+    private final char[] argumentKinds;
 
     private byte[] code;
     private int maxStack;
@@ -32,6 +40,22 @@ public final class VmMethod {
         this.access = access;
         this.argumentSlots = Descriptors.argumentSlots(descriptor);
         this.returnKind = Descriptors.returnKind(descriptor);
+        java.util.List<String> types = Descriptors.argumentTypes(descriptor);
+        this.argumentKinds = new char[types.size()];
+        for (int i = 0; i < types.size(); i++) {
+            this.argumentKinds[i] = types.get(i).charAt(0);
+        }
+    }
+
+    /**
+     * The kind of each argument — {@code I}, {@code J}, {@code L} and so on —
+     * parsed when the method was loaded rather than on every call.
+     *
+     * <p>Callers must not modify the array; it is shared, and copying it per
+     * call would put back exactly the cost it exists to remove.</p>
+     */
+    public char[] argumentKinds() {
+        return argumentKinds;
     }
 
     public VmClass owner() {
