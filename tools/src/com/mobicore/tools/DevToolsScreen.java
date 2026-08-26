@@ -146,7 +146,7 @@ public final class DevToolsScreen {
             int chipWidth = ui.small().stringWidth(state) + 18;
             ui.chip(state, fieldX + fieldWidth - chipWidth, row + 2,
                     mod.isEnabled() ? Theme.GOOD : Theme.TEXT_DIM,
-                    mod.isEnabled() ? 0xFF14361B : Theme.SURFACE_ALT);
+                    mod.isEnabled() ? Theme.GOOD_BG : Theme.SURFACE_ALT);
             ui.text(ui.small(), "thay " + mod.replacedResources().size() + " tài nguyên  ·  "
                             + (mod.touchesCode() ? "có chạm mã nguồn" : "chỉ tài nguyên"),
                     fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);

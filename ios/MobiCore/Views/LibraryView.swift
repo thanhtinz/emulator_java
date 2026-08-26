@@ -13,21 +13,30 @@ struct LibraryView: View {
         case vendor = "Nhà phát hành"
 
         var id: String { rawValue }
+
+        /// Matches `GameLibrary.SORT_*` in the core.
+        var coreValue: Int {
+            switch self {
+            case .title: return 0
+            case .recent: return 1
+            case .vendor: return 2
+            }
+        }
+
+        static func from(_ coreValue: Int) -> SortMode {
+            switch coreValue {
+            case 1: return .recent
+            case 2: return .vendor
+            default: return .title
+            }
+        }
     }
 
+    /// Filtering and ordering are the core's, not this view's: the same query
+    /// then gives the same list on both platforms, marks ignored and renamed
+    /// games found under either name.
     private var visible: [Game] {
-        let matches = query.isEmpty ? client.games : client.games.filter {
-            $0.title.localizedCaseInsensitiveContains(query)
-                || $0.vendor.localizedCaseInsensitiveContains(query)
-        }
-        switch sort {
-        case .title:
-            return matches.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-        case .vendor:
-            return matches.sorted { $0.vendor.localizedCaseInsensitiveCompare($1.vendor) == .orderedAscending }
-        case .recent:
-            return matches.sorted { ($0.settings?.lastPlayed ?? 0) > ($1.settings?.lastPlayed ?? 0) }
-        }
+        client.search(query, sort: sort.coreValue)
     }
 
     var body: some View {
@@ -52,6 +61,8 @@ struct LibraryView: View {
         }
         .background(Palette.background)
         .searchable(text: $query, prompt: "Tìm theo tên hoặc nhà phát hành")
+        .onAppear { sort = SortMode.from(client.librarySort) }
+        .onChange(of: sort) { _, mode in client.setLibrarySort(mode.coreValue) }
         .navigationTitle("Thư viện")
         .navigationDestination(for: String.self) { GameDetailView(suiteId: $0) }
     }

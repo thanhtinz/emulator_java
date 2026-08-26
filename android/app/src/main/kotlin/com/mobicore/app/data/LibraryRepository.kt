@@ -146,6 +146,18 @@ class LibraryRepository(filesDir: String) {
         _theme.value = settings.theme()
     }
 
+    private val _librarySort = MutableStateFlow(appSettings().librarySort())
+
+    /** The order the library opens in, remembered between sessions. */
+    val librarySort: StateFlow<Int> = _librarySort.asStateFlow()
+
+    fun setLibrarySort(sort: Int) {
+        val settings = appSettings()
+        settings.setLibrarySort(sort)
+        writeAppSettings(settings)
+        _librarySort.value = settings.librarySort()
+    }
+
     private fun loadTheme(): Int = appSettings().theme()
 
     private fun appSettings(): AppSettings {

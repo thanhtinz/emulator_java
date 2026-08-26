@@ -49,6 +49,7 @@ public final class Preview {
         write(vfs, outDir, "11-textbox.png", new MenuScreen(fixtures, "textbox").render());
         write(vfs, outDir, "12-alert.png", new MenuScreen(fixtures, "alert").render());
         write(vfs, outDir, "13-sound.png", new SoundScreen(fixtures).render());
+        write(vfs, outDir, "16-search.png", new SearchScreen(fixtures).render());
 
         // The same screens in the other theme, so both can be reviewed.
         Theme.setMode(Theme.DARK);

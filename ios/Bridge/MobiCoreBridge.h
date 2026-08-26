@@ -51,6 +51,13 @@ NS_ASSUME_NONNULL_BEGIN
 /// Re-runs the automatic setup for a game, discarding hand-set values.
 - (NSString *)autoSetupForSuite:(NSString *)suiteId;
 
+/// The library filtered and ordered by the core, so search behaves the same
+/// on both platforms — marks ignored, renamed games found under either name.
+- (NSString *)searchJSON:(NSString *)query sort:(int32_t)sort;
+
+/// Remembers the order the library opens in.
+- (NSString *)setLibrarySort:(int32_t)sort;
+
 #pragma mark - Appearance
 
 /// Settings that belong to the person: the theme, the library's sort order.

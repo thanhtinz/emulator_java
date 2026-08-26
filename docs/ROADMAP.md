@@ -14,6 +14,7 @@
 | 10 | Tối ưu hiệu năng | Xong |
 | 11 | Lưu trạng thái, chơi tiếp | Xong |
 | 12 | Giao diện sáng / tối | Xong |
+| 13 | Tìm game không dấu | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -506,3 +507,21 @@ cần nói một lần.
 Bộ test đo **tỉ lệ tương phản theo chuẩn WCAG** chứ không chỉ so mã màu: chữ
 thường trên nền > 7:1, chữ mờ và màu nhấn > 3:1, nền sáng không phải trắng
 tinh, và bar của máy giả lập đổi đúng theo chế độ.
+
+
+## Tìm game: gõ không dấu vẫn ra
+
+Người tìm "Người Chạy Trên Mây" sẽ gõ **"nguoi chay"** — dấu gõ chậm trên bàn
+phím điện thoại, và quá nửa tên game trong kho vốn dĩ được đặt không dấu. Tìm
+kiếm mà đòi đúng dấu thì ra rỗng và trông như hỏng.
+
+`Text.searchKey` hạ chữ thường và bỏ toàn bộ dấu tiếng Việt (kể cả `đ` → `d`),
+áp cho **cả hai phía**: từ khoá và tên game. `GameLibrary.search` còn tìm theo
+**tên gốc** của game nữa — người dùng đổi tên rồi vẫn có thể nhớ tên cũ.
+
+Việc lọc và sắp xếp nay nằm trong core cho cả hai nền tảng: iOS trước đây tự
+lọc bằng `localizedCaseInsensitiveContains` nên hành xử khác Android. Nay cả
+hai gọi `searchJson(query, sort)`, cùng một câu tìm cho cùng một danh sách.
+
+Thứ tự sắp xếp cũng được nhớ giữa các lần mở app — ai sắp theo "vừa chơi" thì
+lần nào cũng muốn thế.

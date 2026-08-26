@@ -5,6 +5,7 @@ import com.mobicore.core.jar.JarArchive;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
+import com.mobicore.core.util.Text;
 import com.mobicore.core.model.MidletSuiteInfo;
 import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.storage.Json;
@@ -368,13 +369,22 @@ public final class GameLibrary {
 
     // -------------------------------------------------------------- search
 
+    /**
+     * Games whose name or publisher contains {@code query}.
+     *
+     * <p>Marks are ignored on both sides: "nguoi chay" finds "Người Chạy",
+     * because that is how a name gets typed on a phone. A renamed game is
+     * found under either name — the one the user gave it and the one the
+     * suite declares — since they may remember either.</p>
+     */
     public List<LibraryEntry> search(String query) {
         List<LibraryEntry> matches = new ArrayList<LibraryEntry>();
-        String needle = query == null ? "" : query.trim().toLowerCase();
+        String needle = Text.searchKey(query == null ? "" : query.trim());
         for (LibraryEntry entry : entries.values()) {
             if (needle.length() == 0
-                    || entry.title().toLowerCase().indexOf(needle) >= 0
-                    || entry.vendor().toLowerCase().indexOf(needle) >= 0) {
+                    || Text.searchKey(entry.title()).indexOf(needle) >= 0
+                    || Text.searchKey(entry.originalTitle()).indexOf(needle) >= 0
+                    || Text.searchKey(entry.vendor()).indexOf(needle) >= 0) {
                 matches.add(entry);
             }
         }

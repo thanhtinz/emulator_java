@@ -96,6 +96,13 @@ struct LibraryResponse: Codable {
     let favourites: [String]
 }
 
+/// What `MobiCoreFacade.searchJson` reports: just the matches, in order.
+struct SearchResponse: Codable {
+    let games: [Game]
+    let query: String?
+    let sort: Int?
+}
+
 struct SavesResponse: Codable {
     struct Store: Codable, Identifiable, Hashable {
         let name: String

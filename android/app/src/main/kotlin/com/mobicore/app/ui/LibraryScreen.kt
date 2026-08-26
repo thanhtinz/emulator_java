@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,7 +43,8 @@ fun LibraryScreen(
     onImport: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
-    var sortMode by remember { mutableIntStateOf(GameLibrary.SORT_TITLE) }
+    // Remembered: someone who sorts by "vừa chơi" means it every time.
+    val sortMode by library.librarySort.collectAsState()
 
     val visible = remember(games, profiles, query, sortMode) {
         library.sorted(library.search(query), sortMode)
@@ -66,6 +68,7 @@ fun LibraryScreen(
             value = query,
             onValueChange = { query = it },
             singleLine = true,
+                // Marks are ignored on both sides: "nguoi chay" finds "Người Chạy".
             placeholder = { Text("Tìm theo tên hoặc nhà phát hành") },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             modifier = Modifier.fillMaxWidth(),
@@ -73,9 +76,11 @@ fun LibraryScreen(
 
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SortChip("Tên", GameLibrary.SORT_TITLE, sortMode) { sortMode = it }
-            SortChip("Vừa chơi", GameLibrary.SORT_RECENT, sortMode) { sortMode = it }
-            SortChip("Nhà phát hành", GameLibrary.SORT_VENDOR, sortMode) { sortMode = it }
+            SortChip("Tên", GameLibrary.SORT_TITLE, sortMode) { library.setLibrarySort(it) }
+            SortChip("Vừa chơi", GameLibrary.SORT_RECENT, sortMode) { library.setLibrarySort(it) }
+            SortChip("Nhà phát hành", GameLibrary.SORT_VENDOR, sortMode) {
+                library.setLibrarySort(it)
+            }
         }
         Spacer(Modifier.height(12.dp))
 

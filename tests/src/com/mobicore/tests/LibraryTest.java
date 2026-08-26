@@ -112,6 +112,18 @@ public final class LibraryTest extends Test {
         check(afterRename.artwork(entry.suiteId()).length != chosen.length,
                 "resetting puts the suite's own icon back");
 
+        // Searching the way a name gets typed on a phone ------------------
+        afterRename.rename(entry.suiteId(), "Người Chạy Trên Mây");
+        eq(1, afterRename.search("nguoi chay").size(),
+                "a search without marks finds a name that has them");
+        eq(1, afterRename.search("NGƯỜI").size(), "and case does not matter either");
+        eq(1, afterRename.search("Sky").size(),
+                "a renamed game is still found under the name the suite gave it");
+        eq(1, afterRename.search("mobicore").size(), "the publisher is searched too");
+        eq(0, afterRename.search("tetris").size(), "and a word that is in none of them finds none");
+        eq(1, afterRename.search("   ").size(), "a search of only spaces lists everything");
+        afterRename.resetTitle(entry.suiteId());
+
         GameProfile profile = reopened.profile(entry.suiteId());
         check(profile != null, "the stored profile loads");
         profile.setFavourite(true);

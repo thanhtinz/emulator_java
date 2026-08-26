@@ -78,7 +78,7 @@ public final class ImportScreen {
             if (entry.index() == 1) {
                 int chipWidth = ui.small().stringWidth("MẶC ĐỊNH") + 18;
                 ui.chip("MẶC ĐỊNH", margin + width - Ui.PAD - 12 - chipWidth,
-                        row + (entryHeight - ui.chipHeight()) / 2, Theme.GOOD, 0xFF14361B);
+                        row + (entryHeight - ui.chipHeight()) / 2, Theme.GOOD, Theme.GOOD_BG);
             }
             row += entryHeight + 8;
         }

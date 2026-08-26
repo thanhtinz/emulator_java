@@ -635,6 +635,50 @@ public final class MobiCoreFacade {
         }
     }
 
+    /**
+     * The library, filtered and ordered as the person asked for.
+     *
+     * <p>Same shape as {@link #libraryJson()} so a screen can swap one for
+     * the other: searching is not a different kind of listing.</p>
+     *
+     * @param query what was typed; marks are ignored, empty lists everything
+     * @param sort {@code GameLibrary.SORT_*}
+     */
+    public String searchJson(String query, int sort) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            Map<String, GameProfile> profiles = library.allProfiles();
+            List<LibraryEntry> found = library.sort(library.search(query), sort, profiles);
+            Map<String, Object> root = Json.object();
+            List<Object> games = new ArrayList<Object>();
+            for (int i = 0; i < found.size(); i++) {
+                LibraryEntry entry = found.get(i);
+                Map<String, Object> game = entry.toJson();
+                GameProfile profile = profiles.get(entry.suiteId());
+                if (profile != null) {
+                    game.put("settings", profile.toJson());
+                }
+                games.add(game);
+            }
+            root.put("ok", Boolean.TRUE);
+            root.put("query", query == null ? "" : query);
+            root.put("sort", Integer.valueOf(sort));
+            root.put("games", games);
+            return Json.write(root);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Remembers the order the library should open in. */
+    public String setLibrarySort(int sort) {
+        AppSettings settings = appSettings();
+        settings.setLibrarySort(sort);
+        return writeAppSettings(settings);
+    }
+
     // -------------------------------------------------------- app settings
 
     /**

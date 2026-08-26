@@ -91,6 +91,14 @@
     return [_facade autoSetupWithNSString:suiteId];
 }
 
+- (NSString *)searchJSON:(NSString *)query sort:(int32_t)sort {
+    return [_facade searchJsonWithNSString:query withInt:sort];
+}
+
+- (NSString *)setLibrarySort:(int32_t)sort {
+    return [_facade setLibrarySortWithInt:sort];
+}
+
 #pragma mark - Appearance
 
 - (NSString *)appSettingsJSON {

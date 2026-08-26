@@ -61,6 +61,20 @@ public final class LibraryScreen {
         library.saveProfile(profile);
     }
 
+    /** The two extra sample games, for any screen that wants a real library. */
+    static void installExtras(GameLibrary library) throws Exception {
+        new LibraryScreen(null).installExtra(library, "Night Racer", "Blue Fox Games", "2.1",
+                "racer.NightRacer");
+        new LibraryScreen(null).installExtra(library, "Dungeon Bell", "Iron Lantern", "0.9",
+                "rpg.DungeonBell");
+    }
+
+    /** The cover for one game, drawn the same way on every screen. */
+    static void drawCover(Ui ui, GameLibrary library, LibraryEntry entry, int x, int y, int size)
+            throws Exception {
+        new LibraryScreen(null).drawArtwork(ui, library, entry, x, y, size);
+    }
+
     private void installExtra(GameLibrary library, String title, String vendor, String version,
                               String midletClass) throws Exception {
         Map<String, byte[]> entries = new LinkedHashMap<String, byte[]>();

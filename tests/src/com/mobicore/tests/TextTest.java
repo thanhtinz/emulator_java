@@ -11,6 +11,16 @@ public final class TextTest extends Test {
 
     @Override
     public void run() {
+        // Search keys: what a Vietnamese name looks like once the marks are
+        // taken off, which is how it gets typed on a phone.
+        eq("nguoi chay tren may", Text.searchKey("Người Chạy Trên Mây"),
+                "every Vietnamese mark comes off");
+        eq("duong dua", Text.searchKey("Đường Đua"), "including the crossed D");
+        eq("ao anh", Text.searchKey("ẢO ẢNH"), "and capitals are lowered");
+        eq("sky runner 2", Text.searchKey("Sky Runner 2"),
+                "a name with no marks is left as it is");
+        eq("", Text.searchKey(null), "and nothing is not a crash");
+
         eq(3, Text.split("a,b,c", ',').length, "split counts parts");
         eq("b", Text.split("a,b,c", ',')[1], "split keeps order");
         eq(1, Text.split("solo", ',').length, "split without separator");

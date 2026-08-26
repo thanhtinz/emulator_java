@@ -72,6 +72,23 @@ final class MobiCoreClient: ObservableObject {
         return result?.ok ?? false
     }
 
+    // MARK: - Searching
+
+    /// The library's own sort order, remembered between sessions.
+    @Published private(set) var librarySort: Int = 0
+
+    /// Filtering and ordering happen in the core: the same query gives the
+    /// same list here as on Android, marks and renamed games included.
+    func search(_ query: String, sort: Int) -> [Game] {
+        let payload: SearchResponse? = decode(bridge.searchJSON(query, sort: Int32(sort)))
+        return payload?.games ?? []
+    }
+
+    func setLibrarySort(_ sort: Int) {
+        report(decode(bridge.setLibrarySort(Int32(sort))))
+        librarySort = sort
+    }
+
     // MARK: - Appearance
 
     /// Light, dark or follow the phone; see `AppSettings` in the core.
@@ -93,6 +110,7 @@ final class MobiCoreClient: ObservableObject {
     func loadTheme() {
         let stored: AppSettingsPayload? = decode(bridge.appSettingsJSON())
         theme = stored?.theme ?? ThemeChoice.light
+        librarySort = stored?.librarySort ?? 0
     }
 
     /// Resolves "follow the phone" and hands the answer to the palette and to

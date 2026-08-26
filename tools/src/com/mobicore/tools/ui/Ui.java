@@ -126,6 +126,32 @@ public final class Ui {
         return out.append(suffix).toString();
     }
 
+    /**
+     * A search field with what has been typed in it.
+     *
+     * <p>Drawn rather than described because a library of forty games is
+     * found through this box, not by scrolling.</p>
+     *
+     * @param typed what the user has entered; empty shows the hint
+     * @return the height it occupied
+     */
+    public int searchField(int x, int y, int width, String typed, String hint) {
+        int height = medium.height() + 20;
+        panel(x, y, width, height, Theme.SURFACE, Theme.BORDER);
+        int glyph = medium.height() + 2;
+        Icons.draw(frame, Icons.SEARCH, x + 12, y + (height - glyph) / 2, glyph, Theme.TEXT_DIM);
+        boolean empty = typed == null || typed.length() == 0;
+        text(medium, empty ? hint : typed, x + 12 + glyph + 10, y + 10,
+                empty ? Theme.TEXT_DIM : Theme.TEXT);
+        if (!empty) {
+            // The caret: a field with text in it and no caret reads as a
+            // label, not as something being typed into.
+            int caretX = x + 12 + glyph + 10 + medium.stringWidth(typed) + 2;
+            bar(caretX, y + 8, 2, height - 16, Theme.ACCENT);
+        }
+        return height;
+    }
+
     /** Rounded label used for tags such as "MIDP-2.0" or "Yêu thích". */
     public int chip(String label, int x, int y, int textColor, int fillColor) {
         int padding = 9;

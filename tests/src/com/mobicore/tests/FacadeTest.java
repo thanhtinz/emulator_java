@@ -110,6 +110,22 @@ public final class FacadeTest extends Test {
         eq("qvga-240x320", Json.string(Json.child(afterAuto, "device"), "id", ""),
                 "and the hand-set device was replaced by the detected one");
 
+        // Searching across the bridge --------------------------------------
+        facade.renameGame(suiteId, "Người Chạy Trên Mây");
+        Map<String, Object> hit = Json.readObject(facade.searchJson("nguoi chay", 0));
+        check(Json.bool(hit, "ok", false), "search answers");
+        eq(1, Json.array(hit, "games").size(), "a query without marks finds the marked name");
+        eq("nguoi chay", Json.string(hit, "query", ""), "and says what it searched for");
+        eq(0, Json.array(Json.readObject(facade.searchJson("tetris", 0)), "games").size(),
+                "a query that matches nothing finds nothing");
+        eq(1, Json.array(Json.readObject(facade.searchJson("", 0)), "games").size(),
+                "an empty query lists the library");
+        check(Json.bool(Json.readObject(facade.setLibrarySort(1)), "ok", false),
+                "the sort order can be remembered");
+        eq(1, Json.integer(Json.readObject(facade.appSettingsJson()), "librarySort", -1),
+                "and it is");
+        facade.resetTitle(suiteId);
+
         // The interface theme: the one setting people change often ---------
         Map<String, Object> appearance = Json.readObject(facade.appSettingsJson());
         eq(0, Json.integer(appearance, "theme", -1), "the interface starts light");
