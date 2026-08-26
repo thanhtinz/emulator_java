@@ -69,18 +69,25 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
     ) { uris ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
         scope.launch {
+            // Everything picked, not just the first: a collection is a folder
+            // of games, and importing them one at a time is a reason not to
+            // bother. The core pairs each .jad with its .jar, unpacks a zip of
+            // games, and reports on every file separately.
             val message = withContext(Dispatchers.IO) {
                 runCatching {
-                    val payloads = uris.mapNotNull { uri ->
-                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                            ?.let { bytes -> uri.toString() to bytes }
+                    val names = ArrayList<String>()
+                    val payloads = ArrayList<ByteArray>()
+                    uris.forEach { uri ->
+                        val bytes = context.contentResolver.openInputStream(uri)
+                            ?.use { it.readBytes() }
+                        if (bytes != null) {
+                            names.add(displayName(context, uri))
+                            payloads.add(bytes)
+                        }
                     }
-                    val jar = payloads.firstOrNull { looksLikeJar(it.second) }
-                        ?: error("Hãy chọn tệp .jar, kèm theo .jad nếu có")
-                    val jad = payloads.firstOrNull { it !== jar }?.second
-                    library.importSuite(jar.second, jad)
+                    library.importMany(names.toTypedArray(), payloads.toTypedArray())
                 }.fold(
-                    onSuccess = { "Đã cài ${it.title()}" },
+                    onSuccess = { it.summary() },
                     onFailure = { "Nhập thất bại: ${it.message}" },
                 )
             }
@@ -172,9 +179,22 @@ private fun iconFor(tab: Tab) = when (tab) {
     Tab.SETTINGS -> Icons.Filled.Settings
 }
 
-/** JAR files start with the ZIP local file header; JAD files are plain text. */
-private fun looksLikeJar(bytes: ByteArray): Boolean =
-    bytes.size > 4 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte()
+/**
+ * The file's own name, which is how a descriptor finds its archive.
+ *
+ * A content URI's last path segment is often an opaque id, so the display
+ * name is asked for; without it "game.jad" and "game.jar" cannot be paired.
+ */
+private fun displayName(context: android.content.Context, uri: android.net.Uri): String {
+    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        val column = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+        if (column >= 0 && cursor.moveToFirst()) {
+            val name = cursor.getString(column)
+            if (!name.isNullOrEmpty()) return name
+        }
+    }
+    return uri.lastPathSegment ?: "tệp"
+}
 
 private val IMPORT_MIME_TYPES = arrayOf(
     "application/java-archive",

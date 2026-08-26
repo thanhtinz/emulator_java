@@ -565,3 +565,25 @@ Chữ đi vào theo **cả chuỗi** chứ không theo từng phím: bàn phím 
 việc di con trỏ, sửa lỗi, dán — thứ game cần thấy là kết quả. Giới hạn của
 `TextField` vẫn được áp: game xin 12 ký tự thì nhận đúng 12, và ràng buộc
 `NUMERIC`/`PHONENUMBER`/`DECIMAL` vẫn lọc đúng ký tự cho phép.
+
+
+## Nhập cả thư mục game một lần
+
+Không ai có bộ sưu tập J2ME mà chỉ có một game. Họ có một thư mục tám mươi
+game, thường là từng cặp `.jar` + `.jad`, và thường nằm trong một tệp zip ai đó
+chia sẻ từ nhiều năm trước. Trước đây chọn hai mươi tệp thì app chỉ nhận **một**
+— lấy tệp `.jar` đầu tiên rồi bỏ hết phần còn lại.
+
+`BatchImport` nay nhận cả đống:
+
+- **Ghép cặp theo tên tệp**: `SkyRunner.jad` đi với `SkyRunner.jar`, bất kể
+  trình chọn tệp trả về theo thứ tự nào. Trên Android phải hỏi *display name*
+  của URI mới ghép được — phần cuối của content URI thường chỉ là một mã.
+- **Mở zip chứa game**: một JAR bản thân nó cũng là zip, nên phân biệt bằng
+  ruột — có manifest thì là game, chứa các tệp `.jar` thì là bộ sưu tập. Không
+  đệ quy tiếp vào zip trong zip: đó là việc của trình quản lý tệp.
+- **Từng tệp có kết quả riêng**: đã cài / đã thay / lỗi / bỏ qua, kèm lý do và
+  **tên tệp**. Một bản tải hỏng trong tám mươi tệp không được làm hỏng bảy mươi
+  chín tệp còn lại, và người dùng phải biết tệp nào hỏng chứ không phải nhận
+  câu "có lỗi xảy ra".
+- Cuối cùng là một dòng tóm tắt: "Đã nhập 12 trò chơi, 1 tệp lỗi, bỏ qua 2".

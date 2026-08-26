@@ -167,3 +167,21 @@ struct AppSettingsPayload: Codable {
     let librarySort: Int?
     let confirmBeforeDeleting: Bool?
 }
+
+
+/// What `MobiCoreFacade.importMany` reports: a line for the user, and a row
+/// per file so nothing fails silently.
+struct BatchImportResponse: Codable {
+    struct FileOutcome: Codable {
+        let name: String
+        /// 0 installed, 1 replaced, 2 failed, 3 skipped.
+        let status: Int
+        let detail: String?
+    }
+
+    let installed: Int
+    let failed: Int
+    let skipped: Int
+    let summary: String
+    let files: [FileOutcome]
+}

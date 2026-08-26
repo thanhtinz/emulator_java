@@ -71,6 +71,21 @@
     return [_facade uninstallWithNSString:suiteId withBoolean:keepData];
 }
 
+- (NSString *)importMany:(NSArray<NSString *> *)names payloads:(NSArray<NSData *> *)payloads {
+    IOSObjectArray *nameArray = [IOSObjectArray arrayWithLength:names.count
+                                                           type:NSString_class_()];
+    for (NSUInteger i = 0; i < names.count; i++) {
+        [nameArray replaceObjectAtIndex:i withObject:names[i]];
+    }
+    IOSObjectArray *payloadArray =
+            [IOSObjectArray arrayWithLength:payloads.count
+                                       type:IOSClass_arrayType([IOSClass byteClass], 1)];
+    for (NSUInteger i = 0; i < payloads.count; i++) {
+        [payloadArray replaceObjectAtIndex:i withObject:[self byteArrayFrom:payloads[i]]];
+    }
+    return [_facade importManyWithNSStringArray:nameArray withByteArray2:payloadArray];
+}
+
 - (NSString *)renameSuite:(NSString *)suiteId title:(NSString *)title {
     return [_facade renameGameWithNSString:suiteId withNSString:title];
 }

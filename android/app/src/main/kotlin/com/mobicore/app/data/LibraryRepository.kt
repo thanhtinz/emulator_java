@@ -1,6 +1,7 @@
 package com.mobicore.app.data
 
 import com.mobicore.core.jar.SuiteLoader
+import com.mobicore.core.library.BatchImport
 import com.mobicore.core.library.GameLibrary
 import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.model.AppSettings
@@ -53,6 +54,19 @@ class LibraryRepository(filesDir: String) {
         val result = library.install(jar, jad)
         refresh()
         return result.entry()
+    }
+
+    /**
+     * Imports everything the user picked, reporting on each file.
+     *
+     * One broken download in a folder of eighty must not stop the other
+     * seventy-nine; the core pairs descriptors with archives and unpacks a zip
+     * of games on the way.
+     */
+    fun importMany(names: Array<String>, payloads: Array<ByteArray>): BatchImport.Report {
+        val report = BatchImport.run(library, names, payloads)
+        refresh()
+        return report
     }
 
     fun uninstall(suiteId: String, keepData: Boolean) {

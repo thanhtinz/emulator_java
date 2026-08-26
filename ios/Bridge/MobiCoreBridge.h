@@ -36,6 +36,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *)uninstallSuite:(NSString *)suiteId keepData:(BOOL)keepData;
 
+/// Imports everything the user picked, pairing descriptors with archives and
+/// unpacking a zip of games. Every file is reported on separately.
+- (NSString *)importMany:(NSArray<NSString *> *)names payloads:(NSArray<NSData *> *)payloads;
+
 /// Renames a game as the library lists it; the manifest title is kept.
 - (NSString *)renameSuite:(NSString *)suiteId title:(NSString *)title;
 

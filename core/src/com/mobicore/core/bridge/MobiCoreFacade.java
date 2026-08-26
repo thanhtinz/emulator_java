@@ -7,6 +7,7 @@ import com.mobicore.core.emu.SaveState;
 import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
+import com.mobicore.core.library.BatchImport;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
@@ -735,6 +736,38 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
+    }
+
+    /**
+     * Imports everything the user picked at once.
+     *
+     * <p>Nobody with a J2ME collection has one game: they have a folder of
+     * eighty, often as {@code .jar} and {@code .jad} pairs and often inside a
+     * zip. Each file is reported on separately, because one bad download must
+     * not stop the rest and the user should be told which one it was.</p>
+     */
+    public String importMany(String[] names, byte[][] payloads) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        BatchImport.Report report = BatchImport.run(library, names, payloads);
+        List<Object> files = new ArrayList<Object>();
+        for (int i = 0; i < report.outcomes().size(); i++) {
+            BatchImport.Outcome outcome = report.outcomes().get(i);
+            Map<String, Object> file = Json.object();
+            file.put("name", outcome.name());
+            file.put("status", Integer.valueOf(outcome.status()));
+            file.put("detail", outcome.detail());
+            files.add(file);
+        }
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        json.put("installed", Integer.valueOf(report.installed()));
+        json.put("failed", Integer.valueOf(report.count(BatchImport.Outcome.FAILED)));
+        json.put("skipped", Integer.valueOf(report.count(BatchImport.Outcome.SKIPPED)));
+        json.put("summary", report.summary());
+        json.put("files", files);
+        return Json.write(json);
     }
 
     // ----------------------------------------------------------- text entry

@@ -12,6 +12,9 @@ final class MobiCoreClient: ObservableObject {
     @Published private(set) var recent: [Game] = []
     @Published private(set) var favourites: [Game] = []
     @Published private(set) var lastError: String?
+    /// The last thing worth telling the user that was not an error — the
+    /// summary of an import, for one.
+    @Published private(set) var lastMessage: String?
     /// Bumped whenever a cover changes, so views holding a decoded image
     /// know to ask for it again — the bytes change while the id does not.
     @Published private(set) var artworkRevision: Int = 0
@@ -55,6 +58,19 @@ final class MobiCoreClient: ObservableObject {
         report(result)
         refresh()
         return result?.ok ?? false
+    }
+
+    /// Imports everything picked at once, and reports what went in.
+    @discardableResult
+    func importMany(names: [String], payloads: [Data]) -> String {
+        let response: BatchImportResponse? =
+            decode(bridge.importMany(names, payloads: payloads))
+        refresh()
+        if let summary = response?.summary {
+            lastMessage = summary
+            return summary
+        }
+        return ""
     }
 
     func uninstall(_ suiteId: String, keepData: Bool = false) {

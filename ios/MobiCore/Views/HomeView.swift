@@ -140,21 +140,23 @@ struct HomeView: View {
         }
     }
 
+    /// Everything picked, not just the first. A collection is a folder of
+    /// games; the core pairs each descriptor with its archive, unpacks a zip
+    /// of games, and reports on every file separately.
     private func handleImport(_ result: Result<[URL], Error>) {
         guard case .success(let urls) = result else { return }
-        var jar: Data?
-        var descriptor: Data?
+        var names: [String] = []
+        var payloads: [Data] = []
         for url in urls {
+            // Files picked from another app are read inside a security scope.
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             guard let data = try? Data(contentsOf: url) else { continue }
-            // A JAR is a ZIP, so it starts with "PK"; a JAD is plain text.
-            if data.count > 2, data[0] == 0x50, data[1] == 0x4B {
-                jar = data
-            } else {
-                descriptor = data
-            }
+            names.append(url.lastPathComponent)
+            payloads.append(data)
         }
-        guard let jar else { return }
-        client.importSuite(jar: jar, descriptor: descriptor)
+        guard !names.isEmpty else { return }
+        client.importMany(names: names, payloads: payloads)
     }
 }
 
