@@ -15,21 +15,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -139,14 +147,63 @@ fun EmulatorScreen(
         // that swaps screens swaps the softkeys with it.
         @Suppress("UNUSED_EXPRESSION")
         engine.commandRevision
-        Keypad(
-            onPress = { engine.pressButton(it) },
-            onRelease = { engine.releaseButton(it) },
-            leftSoftKey = engine.leftSoftKeyLabel(),
-            rightSoftKey = engine.rightSoftKeyLabel(),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-        )
+        // While the game wants text, the phone's own keyboard takes this half
+        // of the screen: multi-tap on a numeric pad was the only way a handset
+        // could enter a name, and asking for that with a real keyboard in the
+        // user's hand would be a museum exhibit.
+        if (engine.isTextInputActive()) {
+            GameTextField(engine, Modifier.fillMaxWidth().padding(horizontal = 14.dp))
+        } else {
+            Keypad(
+                onPress = { engine.pressButton(it) },
+                onRelease = { engine.releaseButton(it) },
+                leftSoftKey = engine.leftSoftKeyLabel(),
+                rightSoftKey = engine.rightSoftKeyLabel(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            )
+        }
         Spacer(Modifier.height(6.dp))
+    }
+}
+
+/**
+ * The field the game is asking for, backed by the system keyboard.
+ *
+ * Whole strings rather than key events: an on-screen keyboard does its own
+ * editing — caret moves, autocorrect, a paste — and what the game should see
+ * is the result. The emulator applies the field's own limits to it.
+ */
+@Composable
+private fun GameTextField(engine: EmulatorEngine, modifier: Modifier = Modifier) {
+    var value by remember(engine.textInput()) { mutableStateOf(engine.textInput()) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+
+    Column(modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {
+                value = it
+                engine.setTextInput(it)
+            },
+            singleLine = true,
+            label = { Text("Nhập cho trò chơi") },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { engine.pressButton("softLeft") }),
+            modifier = Modifier.fillMaxWidth().focusRequester(focus),
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SecondaryButton(
+                label = engine.leftSoftKeyLabel() ?: "Xong",
+                modifier = Modifier.weight(1f),
+            ) { engine.pressButton("softLeft") }
+            SecondaryButton(
+                label = engine.rightSoftKeyLabel() ?: "Quay lại",
+                modifier = Modifier.weight(1f),
+            ) { engine.pressButton("softRight") }
+        }
+        Spacer(Modifier.height(10.dp))
     }
 }
 

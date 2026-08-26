@@ -50,14 +50,24 @@ struct EmulatorView: View {
                     .padding(.horizontal, 16)
             }
 
-            Keypad(
-                onPress: { engine.press($0) },
-                onRelease: { engine.release($0) },
-                leftSoftKey: engine.leftSoftKeyLabel,
-                rightSoftKey: engine.rightSoftKeyLabel
-            )
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            // While the game wants text, the system keyboard takes this half
+            // of the screen. Multi-tap on a numeric pad was the only way a
+            // handset could enter a name; asking for that with a real
+            // keyboard in the user's hand would be a museum exhibit.
+            if engine.wantsText {
+                GameTextField(engine: engine)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+            } else {
+                Keypad(
+                    onPress: { engine.press($0) },
+                    onRelease: { engine.release($0) },
+                    leftSoftKey: engine.leftSoftKeyLabel,
+                    rightSoftKey: engine.rightSoftKeyLabel
+                )
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+            }
         }
         .background(Palette.background)
         .statusBarHidden(true)
@@ -122,5 +132,38 @@ private struct GameSurface: View {
             width: width,
             height: height
         )
+    }
+}
+
+/// The field the game is asking for, backed by the system keyboard.
+private struct GameTextField: View {
+
+    @ObservedObject var engine: EmulatorEngine
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(spacing: 10) {
+            TextField("Nhập cho trò chơi", text: Binding(
+                get: { engine.text },
+                set: { value in
+                    engine.text = value
+                    engine.commitText(value)
+                }
+            ))
+            .textFieldStyle(.roundedBorder)
+            .submitLabel(.done)
+            .focused($focused)
+            .onSubmit { engine.press("softLeft") }
+
+            HStack(spacing: 10) {
+                Button(engine.leftSoftKeyLabel ?? "Xong") { engine.press("softLeft") }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
+                Button(engine.rightSoftKeyLabel ?? "Quay lại") { engine.press("softRight") }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .onAppear { focused = true }
     }
 }

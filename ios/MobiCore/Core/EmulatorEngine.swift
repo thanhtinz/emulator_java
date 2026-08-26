@@ -85,6 +85,7 @@ final class EmulatorEngine: ObservableObject {
         if let image = bridge.copyFrameImage()?.takeRetainedValue() {
             frame = image
         }
+        refreshTextInput()
         framesThisSecond += 1
         let now = CACurrentMediaTime()
         if now - secondMark >= 1 {
@@ -121,6 +122,27 @@ final class EmulatorEngine: ObservableObject {
         }
         isRunning = false
         isPaused = false
+    }
+
+    // MARK: - Text entry
+
+    /// True while the game is asking for text; the view raises the keyboard.
+    @Published private(set) var wantsText = false
+    @Published var text = ""
+
+    /// Called each frame: the game decides when it wants text, not the view.
+    private func refreshTextInput() {
+        let active = bridge.isTextInputActive()
+        if active != wantsText {
+            wantsText = active
+            text = active ? bridge.textInput() : ""
+        }
+    }
+
+    /// Whole strings rather than key events: the keyboard does its own
+    /// editing, and what the game should see is the result.
+    func commitText(_ value: String) {
+        bridge.setTextInput(value)
     }
 
     func press(_ button: String) {

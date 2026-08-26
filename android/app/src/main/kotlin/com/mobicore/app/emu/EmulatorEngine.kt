@@ -162,6 +162,19 @@ class EmulatorEngine(
         }
     }
 
+    // ------------------------------------------------------------ text entry
+
+    /** True while the game is showing a TextBox or a focused text field. */
+    fun isTextInputActive(): Boolean = session?.isTextInputActive ?: false
+
+    /** What that field holds now, so the keyboard opens on it. */
+    fun textInput(): String = session?.textInput() ?: ""
+
+    /** Puts what the phone's keyboard produced into the field. */
+    fun setTextInput(value: String) {
+        session?.setTextInput(value)
+    }
+
     /**
      * Captures the running game.
      *

@@ -72,6 +72,17 @@ NS_ASSUME_NONNULL_BEGIN
 /// Whether the emulated handset's title and softkey bars are drawn dark.
 - (void)setChromeDark:(BOOL)dark;
 
+#pragma mark - Text entry
+
+/// True while the game is showing a TextBox or a focused text field.
+- (BOOL)isTextInputActive;
+
+/// What that field holds now, so the keyboard opens on it.
+- (NSString *)textInput;
+
+/// Puts what the system keyboard produced into the field.
+- (NSString *)setTextInput:(NSString *)value;
+
 #pragma mark - Save states
 
 /// Saves the running game where it stands, with a picture of the screen.

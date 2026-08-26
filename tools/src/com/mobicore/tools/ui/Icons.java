@@ -44,6 +44,13 @@ public final class Icons {
     public static final String UNDO = "undo";
     public static final String CHECK = "check_circle";
     /** The sun and the moon: what a theme toggle looks like everywhere. */
+    /** The four corners of a d-pad, each meaning two directions at once. */
+    public static final String UP_LEFT = "north_west";
+    public static final String UP_RIGHT = "north_east";
+    public static final String DOWN_LEFT = "south_west";
+    public static final String DOWN_RIGHT = "south_east";
+    /** Shown when the game wants text and the phone's keyboard can be used. */
+    public static final String KEYBOARD = "keyboard";
     public static final String LIGHT_MODE = "brightness_high";
     public static final String DARK_MODE = "brightness_4";
 

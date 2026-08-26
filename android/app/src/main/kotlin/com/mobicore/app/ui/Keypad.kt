@@ -17,6 +17,10 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.NorthEast
+import androidx.compose.material.icons.filled.NorthWest
+import androidx.compose.material.icons.filled.SouthEast
+import androidx.compose.material.icons.filled.SouthWest
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -120,20 +124,26 @@ private fun SoftKey(
     }
 }
 
-/** The 3x4 grid, laid out the way a handset does. */
+/**
+ * The 3x4 grid, laid out the way a handset does.
+ *
+ * Digits only. The letters printed under them existed because multi-tap was
+ * the only way that keypad could enter a name; this phone has a keyboard, and
+ * it comes up by itself when a game asks for text.
+ */
 @Composable
 private fun NumericPad(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
     val rows = listOf(
-        listOf(Triple("1", "num1", ""), Triple("2", "num2", "abc"), Triple("3", "num3", "def")),
-        listOf(Triple("4", "num4", "ghi"), Triple("5", "num5", "jkl"), Triple("6", "num6", "mno")),
-        listOf(Triple("7", "num7", "pqrs"), Triple("8", "num8", "tuv"), Triple("9", "num9", "wxyz")),
-        listOf(Triple("*", "star", ""), Triple("0", "num0", "+"), Triple("#", "hash", "")),
+        listOf("1" to "num1", "2" to "num2", "3" to "num3"),
+        listOf("4" to "num4", "5" to "num5", "6" to "num6"),
+        listOf("7" to "num7", "8" to "num8", "9" to "num9"),
+        listOf("*" to "star", "0" to "num0", "#" to "hash"),
     )
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
         rows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                row.forEach { (label, button, hint) ->
-                    NumberKey(label, hint, button, onPress, onRelease)
+                row.forEach { (label, button) ->
+                    NumberKey(label, button, onPress, onRelease)
                 }
             }
         }
@@ -141,13 +151,24 @@ private fun NumericPad(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
 }
 
 /** The directional cluster, with fire in the middle. */
+/**
+ * The directional cluster: eight ways, with fire in the middle.
+ *
+ * The corners are not keys of their own. MIDP has no diagonal key code and no
+ * handset had a diagonal key — a corner of the pad was two directions held at
+ * once, which is what these send.
+ */
 @Composable
 private fun DirectionalPad(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        ArrowKey(Icons.Filled.KeyboardArrowUp, "up", "Lên", onPress, onRelease)
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            ArrowKey(Icons.Filled.NorthWest, "upLeft", "Lên trái", onPress, onRelease, true)
+            ArrowKey(Icons.Filled.KeyboardArrowUp, "up", "Lên", onPress, onRelease)
+            ArrowKey(Icons.Filled.NorthEast, "upRight", "Lên phải", onPress, onRelease, true)
+        }
         Row(
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -156,14 +177,17 @@ private fun DirectionalPad(onPress: (String) -> Unit, onRelease: (String) -> Uni
             FireKey(onPress, onRelease)
             ArrowKey(Icons.Filled.KeyboardArrowRight, "right", "Phải", onPress, onRelease)
         }
-        ArrowKey(Icons.Filled.KeyboardArrowDown, "down", "Xuống", onPress, onRelease)
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            ArrowKey(Icons.Filled.SouthWest, "downLeft", "Xuống trái", onPress, onRelease, true)
+            ArrowKey(Icons.Filled.KeyboardArrowDown, "down", "Xuống", onPress, onRelease)
+            ArrowKey(Icons.Filled.SouthEast, "downRight", "Xuống phải", onPress, onRelease, true)
+        }
     }
 }
 
 @Composable
 private fun NumberKey(
     label: String,
-    hint: String,
     button: String,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
@@ -180,9 +204,6 @@ private fun NumberKey(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(label, color = MobiColors.Text, fontSize = 19.sp, fontWeight = FontWeight.Medium)
-        if (hint.isNotEmpty()) {
-            Text(hint, color = MobiColors.TextDim, fontSize = 10.sp)
-        }
     }
 }
 
@@ -193,6 +214,7 @@ private fun ArrowKey(
     description: String,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
+    corner: Boolean = false,
 ) {
     var held by remember { mutableStateOf(false) }
     Box(
@@ -204,8 +226,10 @@ private fun ArrowKey(
             .holdable(button, onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {
+        // The corners are quieter than the four main directions: there when a
+        // game needs them, not competing for the thumb.
         Icon(icon, contentDescription = description, tint = MobiColors.Accent,
-            modifier = Modifier.size(30.dp))
+            modifier = Modifier.size(if (corner) 22.dp else 30.dp))
     }
 }
 

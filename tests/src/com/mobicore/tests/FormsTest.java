@@ -58,6 +58,8 @@ public final class FormsTest extends Test {
         typing(session, context, vm);
         optionsMenu(session, context, vm);
         alerts(session, context, vm);
+        diagonals(session);
+        systemKeyboard(session, context, vm);
     }
 
     private EmulatorSession boot() throws Exception {
@@ -206,5 +208,51 @@ public final class FormsTest extends Test {
             }
         }
         return true;
+    }
+
+    /**
+     * The phone's own keyboard: the emulator has to say when a game wants
+     * text, and take a whole string back.
+     */
+    private void systemKeyboard(EmulatorSession session, MidpContext context, Vm vm) {
+        check(!session.isTextInputActive(), "a list is not asking for text");
+
+        // "Nhập tên" is the third row, and opens a TextBox.
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_FIRE);
+        check(session.isTextInputActive(), "a TextBox is asking for text");
+        eq("", session.textInput(), "and starts empty");
+
+        check(session.setTextInput("Nguyễn"), "the keyboard's text reaches the game");
+        eq("Nguyễn", session.textInput(), "marks and all — this is not multi-tap");
+        eq("Nguyễn", MidpForms.textOf(context.current()).toString(),
+                "and it is the game's own field that holds it");
+
+        // The field's limit is the game's promise, not the keyboard's.
+        session.setTextInput("012345678901234567890123456789");
+        int max = MidpForms.intField(context.current(), "maxSize");
+        eq(max, session.textInput().length(), "a longer string is cut to what the game allows");
+
+        session.pressButton("softRight");
+        check(!session.isTextInputActive(), "leaving the screen ends the text entry");
+    }
+
+    /**
+     * The corners of the pad. MIDP has no diagonal key, so a corner is two
+     * directions at once — which is what a game reading key states expects.
+     */
+    private void diagonals(EmulatorSession session) {
+        int up = 1 << MidpContext.ACTION_UP;
+        int right = 1 << MidpContext.ACTION_RIGHT;
+        session.pressButton("upRight");
+        int states = session.context().keyStates();
+        check((states & up) != 0, "a corner presses up");
+        check((states & right) != 0, "and right, at the same time");
+        session.releaseButton("upRight");
+        eq(0, session.context().keyStates() & (up | right),
+                "and releasing it lets go of both");
+        eq(null, com.mobicore.core.model.InputProfile.diagonalOf("up"),
+                "a plain direction is not a corner");
     }
 }

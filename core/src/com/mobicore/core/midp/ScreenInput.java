@@ -320,6 +320,100 @@ public final class ScreenInput {
         return true;
     }
 
+    // ------------------------------------------------------- system keyboard
+
+    /**
+     * The field the game is asking the user to type into, if any.
+     *
+     * <p>A {@code TextBox} is a whole screen for typing; a {@code TextField}
+     * only counts while the focus is on it. Knowing this is what lets the app
+     * put the phone's own keyboard up: multi-tap on a numeric pad was the only
+     * way a handset could take letters, and asking someone to do that today
+     * when there is a real keyboard in their hand is a museum exhibit, not a
+     * feature.</p>
+     */
+    public static VmObject textInputTarget(MidpContext context) {
+        VmObject screen = context.current();
+        Vm vm = context.vm();
+        if (screen == null) {
+            return null;
+        }
+        if (isType(vm, screen, MidpForms.TEXT_BOX)) {
+            return screen;
+        }
+        if (!isType(vm, screen, MidpForms.FORM)) {
+            return null;
+        }
+        java.util.List<VmObject> items = MidpForms.itemsOf(screen);
+        int focus = MidpForms.intField(screen, "focus");
+        if (focus < 0 || focus >= items.size()) {
+            return null;
+        }
+        VmObject item = items.get(focus);
+        return isType(vm, item, MidpForms.TEXT_FIELD) ? item : null;
+    }
+
+    /** What is in that field now, for the keyboard to start from. */
+    public static String textInputValue(MidpContext context) {
+        VmObject field = textInputTarget(context);
+        return field == null ? null : MidpForms.textOf(field).toString();
+    }
+
+    /**
+     * Replaces the field's contents with what the system keyboard holds.
+     *
+     * <p>The whole string rather than key by key: an on-screen keyboard does
+     * its own editing — moving the caret, autocorrect, a paste — and the
+     * result is what the game should see. The field's own limits still apply,
+     * because a game that asked for eight characters gets eight.</p>
+     */
+    public static boolean setTextInput(MidpContext context, String value) {
+        VmObject field = textInputTarget(context);
+        if (field == null) {
+            return false;
+        }
+        int max = Math.max(1, MidpForms.intField(field, "maxSize"));
+        String accepted = value == null ? "" : value;
+        if (accepted.length() > max) {
+            accepted = accepted.substring(0, max);
+        }
+        accepted = filter(accepted, MidpForms.intField(field, "constraints"));
+
+        StringBuilder text = MidpForms.textOf(field);
+        text.setLength(0);
+        text.append(accepted);
+        context.clearTap();
+        field.set("caret", Integer.valueOf(text.length()));
+        context.requestRepaint();
+        return true;
+    }
+
+    /**
+     * Drops characters the field's constraints forbid.
+     *
+     * <p>A game asking for a phone number gets digits: MIDP promises it that,
+     * and the phone's keyboard cannot be relied on to have offered only those.</p>
+     */
+    private static String filter(String value, int constraints) {
+        int kind = constraints & MidpForms.CONSTRAINT_MASK;
+        if (kind != MidpForms.NUMERIC && kind != MidpForms.DECIMAL
+                && kind != MidpForms.PHONENUMBER) {
+            return value;
+        }
+        StringBuilder out = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            boolean digit = c >= '0' && c <= '9';
+            boolean point = kind == MidpForms.DECIMAL && c == '.' && out.indexOf(".") < 0;
+            boolean sign = c == '-' && out.length() == 0 && kind != MidpForms.PHONENUMBER;
+            boolean phone = kind == MidpForms.PHONENUMBER && (c == '+' || c == '#' || c == '*');
+            if (digit || point || sign || phone) {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
     // ----------------------------------------------------------------- touch
 
     /**

@@ -28,6 +28,32 @@ public final class InputProfile {
             "star", "hash", "clear",
     };
 
+    /**
+     * The corner buttons, and the two directions each one means.
+     *
+     * <p>Not in {@link #BUTTONS} because they are not keys: MIDP has no
+     * diagonal key code and no handset had a diagonal key. A corner on a
+     * handset's pad was two directions pressed at once, so a corner button
+     * sends both — which is also what any game reading
+     * {@code getKeyStates} already understands.</p>
+     */
+    private static final String[][] DIAGONALS = {
+            {"upLeft", "up", "left"},
+            {"upRight", "up", "right"},
+            {"downLeft", "down", "left"},
+            {"downRight", "down", "right"},
+    };
+
+    /** @return the two buttons a corner stands for, or null if it is not one */
+    public static String[] diagonalOf(String button) {
+        for (int i = 0; i < DIAGONALS.length; i++) {
+            if (DIAGONALS[i][0].equals(button)) {
+                return new String[]{DIAGONALS[i][1], DIAGONALS[i][2]};
+            }
+        }
+        return null;
+    }
+
     private final Map<String, Integer> mappings = new LinkedHashMap<String, Integer>();
     private final Map<String, Integer> turbo = new LinkedHashMap<String, Integer>();
     private final List<Macro> macros = new ArrayList<Macro>();

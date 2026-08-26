@@ -117,6 +117,20 @@
     ComMobicoreCoreMidpSystemChrome_setDarkWithBoolean_(dark);
 }
 
+#pragma mark - Text entry
+
+- (BOOL)isTextInputActive {
+    return [_facade isTextInputActive];
+}
+
+- (NSString *)textInput {
+    return [_facade textInput];
+}
+
+- (NSString *)setTextInput:(NSString *)value {
+    return [_facade setTextInputWithNSString:value];
+}
+
 #pragma mark - Save states
 
 - (NSString *)saveState {

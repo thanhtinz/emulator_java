@@ -1,5 +1,7 @@
 package com.mobicore.tools;
 
+import com.mobicore.core.emu.EmulatorSession;
+import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.storage.LocalVfs;
@@ -50,6 +52,7 @@ public final class Preview {
         write(vfs, outDir, "12-alert.png", new MenuScreen(fixtures, "alert").render());
         write(vfs, outDir, "13-sound.png", new SoundScreen(fixtures).render());
         write(vfs, outDir, "16-search.png", new SearchScreen(fixtures).render());
+        write(vfs, outDir, "17-keyboard.png", keyboardScreen(fixtures));
 
         // The same screens in the other theme, so both can be reviewed.
         Theme.setMode(Theme.DARK);
@@ -58,6 +61,23 @@ public final class Preview {
         Theme.setMode(Theme.LIGHT);
 
         System.out.println("Screenshots written to " + outDir);
+    }
+
+    /**
+     * The emulator while a game is asking for text: the MIDlet's own TextBox
+     * on screen, and the keypad replaced by the note that the phone's
+     * keyboard has taken that space.
+     */
+    private static Framebuffer keyboardScreen(String fixtures) throws Exception {
+        EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.MenuDemo");
+        EmulatorSession session = screen.boot();
+        session.renderFrame();
+        // Into "Nhập tên", which is a TextBox.
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_FIRE);
+        session.renderFrame();
+        return screen.render();
     }
 
     static void write(Vfs vfs, String dir, String name, Framebuffer frame) throws IOException {

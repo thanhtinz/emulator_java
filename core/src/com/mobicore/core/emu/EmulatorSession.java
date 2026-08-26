@@ -17,6 +17,7 @@ import com.mobicore.core.midp.MidpNet;
 import com.mobicore.core.midp.MidpRms;
 import com.mobicore.core.midp.SystemChrome;
 import com.mobicore.core.model.GameProfile;
+import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.model.MidletSuiteInfo;
 import com.mobicore.core.net.NetworkPolicy;
@@ -241,6 +242,15 @@ public final class EmulatorSession {
         if ("softRight".equals(button)) {
             return pressSoftKey(false);
         }
+        String[] diagonal = InputProfile.diagonalOf(button);
+        if (diagonal != null) {
+            // MIDP has no diagonal key, and no game of the era expected one:
+            // a corner on a handset's pad was two directions held at once, so
+            // that is what a corner button sends.
+            pressButton2(diagonal[0]);
+            pressButton2(diagonal[1]);
+            return false;
+        }
         int keyCode = profile.input().keyCodeFor(button);
         if (keyCode != 0) {
             keyPressed(keyCode);
@@ -252,10 +262,34 @@ public final class EmulatorSession {
         if ("softLeft".equals(button) || "softRight".equals(button)) {
             return;
         }
+        String[] diagonal = InputProfile.diagonalOf(button);
+        if (diagonal != null) {
+            releaseButton(diagonal[0]);
+            releaseButton(diagonal[1]);
+            return;
+        }
         int keyCode = profile.input().keyCodeFor(button);
         if (keyCode != 0) {
             keyReleased(keyCode);
         }
+    }
+
+    // -------------------------------------------------------- text entry
+
+    /** True while the game is asking for text — a TextBox or a focused field. */
+    public boolean isTextInputActive() {
+        return ScreenInput.textInputTarget(context) != null;
+    }
+
+    /** What that field holds now, so the phone's keyboard opens on it. */
+    public String textInput() {
+        String value = ScreenInput.textInputValue(context);
+        return value == null ? "" : value;
+    }
+
+    /** Puts what the phone's keyboard produced into the field. */
+    public boolean setTextInput(String value) {
+        return ScreenInput.setTextInput(context, value);
     }
 
     /** Replays a macro bound to a button, or returns false when none is bound. */

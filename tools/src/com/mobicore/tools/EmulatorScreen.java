@@ -26,8 +26,16 @@ public final class EmulatorScreen {
     private final String fixtureDir;
     private EmulatorSession session;
 
+    private final String midletClass;
+
     public EmulatorScreen(String fixtureDir) {
+        this(fixtureDir, null);
+    }
+
+    /** @param midletClass which MIDlet to boot, or null for the default one */
+    public EmulatorScreen(String fixtureDir, String midletClass) {
         this.fixtureDir = fixtureDir;
+        this.midletClass = midletClass;
     }
 
     public EmulatorSession session() {
@@ -38,6 +46,10 @@ public final class EmulatorScreen {
     public EmulatorSession boot() throws Exception {
         SuiteLoader suite = SuiteLoader.load(SampleSuite.jar(fixtureDir), SampleSuite.jad());
         session = EmulatorSession.create(suite, GAME_WIDTH, GAME_HEIGHT, new FixedClock());
+        if (midletClass != null) {
+            session.start(midletClass);
+            return session;
+        }
         session.start();
         for (int i = 0; i < 42; i++) {
             session.vm().callVirtual(session.context().current(), "tick", "()V");
@@ -120,9 +132,36 @@ public final class EmulatorScreen {
         softKey(ui, Ui.PAD, y, softWidth, session.leftSoftKeyLabel());
         softKey(ui, rightX, y, softWidth, session.rightSoftKeyLabel());
 
+        if (session.isTextInputActive()) {
+            // The phone's own keyboard covers this half of the screen while a
+            // game is asking for text, so the pads are not drawn at all: what
+            // goes here is the band the keyboard leaves behind.
+            keyboardNotice(ui, Ui.PAD, y + softHeight + 14, frame.width() - Ui.PAD * 2);
+            return;
+        }
+
         int padTop = y + softHeight + 14;
         numericPad(ui, Ui.PAD + 4, padTop);
         directionalPad(ui, frame.width() - Ui.PAD - 208, padTop + 16);
+    }
+
+    /**
+     * What the keypad area says while the phone's keyboard is up.
+     *
+     * <p>No mock keyboard is drawn here: the real one belongs to the phone,
+     * and drawing a picture of one would be inventing an interface the app
+     * does not own.</p>
+     */
+    private void keyboardNotice(Ui ui, int x, int y, int width) {
+        Framebuffer frame = ui.frame();
+        int height = ui.medium().height() + 34;
+        ui.panel(x, y, width, height, Theme.ACCENT_DIM, Theme.ACCENT);
+        int glyph = ui.medium().height() + 6;
+        int textWidth = ui.medium().stringWidth("Bàn phím máy đang mở — gõ trực tiếp");
+        int left = x + (width - glyph - 10 - textWidth) / 2;
+        Icons.draw(frame, Icons.KEYBOARD, left, y + (height - glyph) / 2, glyph, Theme.ACCENT);
+        ui.text(ui.medium(), "Bàn phím máy đang mở — gõ trực tiếp", left + glyph + 10,
+                y + (height - ui.medium().height()) / 2, Theme.ACCENT);
     }
 
     /**
@@ -145,10 +184,17 @@ public final class EmulatorScreen {
                 bound ? Theme.TEXT : Theme.TEXT_DIM);
     }
 
-    /** The 3x4 grid, in the order a handset lays it out. */
+    /**
+     * The 3x4 grid, in the order a handset lays it out.
+     *
+     * <p>Digits only. The letters printed under them were there because
+     * multi-tap was the only way that keypad could enter a name; the phone
+     * running this has a keyboard, and it comes up on its own when a game
+     * asks for text — so the hints were three rows of instructions for
+     * something nobody has to do any more.</p>
+     */
     private void numericPad(Ui ui, int x, int y) {
         String[] labels = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
-        String[] hints = {"", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz", "", "+", ""};
         int keyWidth = 62;
         int keyHeight = 44;
         int gap = 6;
@@ -158,37 +204,46 @@ public final class EmulatorScreen {
             int keyX = x + column * (keyWidth + gap);
             int keyY = y + row * (keyHeight + gap);
             ui.panel(keyX, keyY, keyWidth, keyHeight, Theme.SURFACE_ALT, Theme.BORDER);
-            boolean hasHint = hints[i].length() > 0;
-            int labelY = hasHint ? keyY + 3 : keyY + (keyHeight - ui.large().height()) / 2;
-            ui.textCenter(ui.large(), labels[i], keyX + keyWidth / 2, labelY, Theme.TEXT);
-            if (hasHint) {
-                ui.textCenter(ui.small(), hints[i], keyX + keyWidth / 2,
-                        keyY + keyHeight - ui.small().height() - 3, Theme.TEXT_DIM);
-            }
+            ui.textCenter(ui.large(), labels[i], keyX + keyWidth / 2,
+                    keyY + (keyHeight - ui.large().height()) / 2, Theme.TEXT);
         }
     }
 
-    /** The directional pad, with fire in the middle as MIDP's select action. */
+    /**
+     * The directional pad: eight ways, with fire in the middle.
+     *
+     * <p>The corners are not keys of their own. MIDP has no diagonal key code
+     * and no handset had a diagonal key — a corner of the pad was two
+     * directions held at once, which is exactly what these send.</p>
+     */
     private void directionalPad(Ui ui, int x, int y) {
         int keyWidth = 66;
         int keyHeight = 54;
         int gap = 5;
         int centreX = x + keyWidth + gap;
+        int rightX = centreX + keyWidth + gap;
         int middleY = y + keyHeight + gap;
+        int bottomY = middleY + keyHeight + gap;
 
         arrowKey(ui, centreX, y, keyWidth, keyHeight, 0);
         arrowKey(ui, x, middleY, keyWidth, keyHeight, 2);
-        arrowKey(ui, centreX + keyWidth + gap, middleY, keyWidth, keyHeight, 3);
-        arrowKey(ui, centreX, middleY + keyHeight + gap, keyWidth, keyHeight, 1);
+        arrowKey(ui, rightX, middleY, keyWidth, keyHeight, 3);
+        arrowKey(ui, centreX, bottomY, keyWidth, keyHeight, 1);
+
+        arrowKey(ui, x, y, keyWidth, keyHeight, 4);
+        arrowKey(ui, rightX, y, keyWidth, keyHeight, 5);
+        arrowKey(ui, x, bottomY, keyWidth, keyHeight, 6);
+        arrowKey(ui, rightX, bottomY, keyWidth, keyHeight, 7);
 
         ui.panel(centreX, middleY, keyWidth, keyHeight, Theme.ACCENT_DIM, Theme.ACCENT);
         ui.textCenter(ui.mediumBold(), "OK", centreX + keyWidth / 2,
                 middleY + (keyHeight - ui.medium().height()) / 2, Theme.ACCENT);
     }
 
-    /** The Material arrow for each direction: 0 up, 1 down, 2 left, 3 right. */
+    /** Arrows in the order the pad draws them, corners last. */
     private static final String[] ARROWS = {
             Icons.UP, Icons.DOWN, Icons.LEFT, Icons.RIGHT,
+            Icons.UP_LEFT, Icons.UP_RIGHT, Icons.DOWN_LEFT, Icons.DOWN_RIGHT,
     };
 
     /**
@@ -197,7 +252,11 @@ public final class EmulatorScreen {
      */
     private void arrowKey(Ui ui, int x, int y, int w, int h, int direction) {
         ui.panel(x, y, w, h, Theme.KEY, Theme.ACCENT);
-        Icons.drawCentred(ui.frame(), ARROWS[direction], x + w / 2, y + h / 2, 40, Theme.ACCENT);
+        // The corners are quieter than the four main directions: they are
+        // there when a game needs them, not competing for the thumb.
+        boolean corner = direction >= 4;
+        Icons.drawCentred(ui.frame(), ARROWS[direction], x + w / 2, y + h / 2,
+                corner ? 30 : 40, Theme.ACCENT);
     }
 
     /** Deterministic clock so screenshots are reproducible. */

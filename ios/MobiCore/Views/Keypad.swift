@@ -54,11 +54,21 @@ struct Keypad: View {
         }
     }
 
-    /// The directional cluster, with fire in the middle.
+    /// The directional cluster: eight ways, with fire in the middle.
+    ///
+    /// The corners are not keys of their own. MIDP has no diagonal key code
+    /// and no handset had a diagonal key — a corner of the pad was two
+    /// directions held at once, which is what these send.
     private var directionalPad: some View {
         VStack(spacing: 5) {
-            ArrowKey(symbol: "chevron.up", button: "up", label: "Lên",
-                     onPress: onPress, onRelease: onRelease)
+            HStack(spacing: 5) {
+                ArrowKey(symbol: "arrow.up.left", button: "upLeft", label: "Lên trái",
+                         corner: true, onPress: onPress, onRelease: onRelease)
+                ArrowKey(symbol: "chevron.up", button: "up", label: "Lên",
+                         onPress: onPress, onRelease: onRelease)
+                ArrowKey(symbol: "arrow.up.right", button: "upRight", label: "Lên phải",
+                         corner: true, onPress: onPress, onRelease: onRelease)
+            }
             HStack(spacing: 5) {
                 ArrowKey(symbol: "chevron.left", button: "left", label: "Trái",
                          onPress: onPress, onRelease: onRelease)
@@ -66,30 +76,37 @@ struct Keypad: View {
                 ArrowKey(symbol: "chevron.right", button: "right", label: "Phải",
                          onPress: onPress, onRelease: onRelease)
             }
-            ArrowKey(symbol: "chevron.down", button: "down", label: "Xuống",
-                     onPress: onPress, onRelease: onRelease)
+            HStack(spacing: 5) {
+                ArrowKey(symbol: "arrow.down.left", button: "downLeft", label: "Xuống trái",
+                         corner: true, onPress: onPress, onRelease: onRelease)
+                ArrowKey(symbol: "chevron.down", button: "down", label: "Xuống",
+                         onPress: onPress, onRelease: onRelease)
+                ArrowKey(symbol: "arrow.down.right", button: "downRight", label: "Xuống phải",
+                         corner: true, onPress: onPress, onRelease: onRelease)
+            }
         }
     }
 
     struct Key {
         let label: String
         let button: String
-        let hint: String
     }
 
+    /// Digits only: the letters under them were for multi-tap, and this phone
+    /// has a keyboard that comes up by itself when a game asks for text.
     private static let rows: [[Key]] = [
-        [Key(label: "1", button: "num1", hint: ""),
-         Key(label: "2", button: "num2", hint: "abc"),
-         Key(label: "3", button: "num3", hint: "def")],
-        [Key(label: "4", button: "num4", hint: "ghi"),
-         Key(label: "5", button: "num5", hint: "jkl"),
-         Key(label: "6", button: "num6", hint: "mno")],
-        [Key(label: "7", button: "num7", hint: "pqrs"),
-         Key(label: "8", button: "num8", hint: "tuv"),
-         Key(label: "9", button: "num9", hint: "wxyz")],
-        [Key(label: "*", button: "star", hint: ""),
-         Key(label: "0", button: "num0", hint: "+"),
-         Key(label: "#", button: "hash", hint: "")],
+        [Key(label: "1", button: "num1"),
+         Key(label: "2", button: "num2"),
+         Key(label: "3", button: "num3")],
+        [Key(label: "4", button: "num4"),
+         Key(label: "5", button: "num5"),
+         Key(label: "6", button: "num6")],
+        [Key(label: "7", button: "num7"),
+         Key(label: "8", button: "num8"),
+         Key(label: "9", button: "num9")],
+        [Key(label: "*", button: "star"),
+         Key(label: "0", button: "num0"),
+         Key(label: "#", button: "hash")],
     ]
 }
 
@@ -101,12 +118,9 @@ private struct NumberKey: View {
     @State private var held = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(key.label).font(.title3).foregroundStyle(Palette.text)
-            if !key.hint.isEmpty {
-                Text(key.hint).font(.system(size: 10)).foregroundStyle(Palette.textDim)
-            }
-        }
+        Text(key.label)
+            .font(.title3)
+            .foregroundStyle(Palette.text)
         .frame(width: 62, height: 46)
         .background(held ? Palette.accentDim : Palette.surfaceAlt,
                     in: RoundedRectangle(cornerRadius: 12))
@@ -184,6 +198,9 @@ private struct ArrowKey: View {
     let symbol: String
     let button: String
     let label: String
+    /// Corners are drawn quieter: there when a game needs them, not
+    /// competing for the thumb.
+    var corner = false
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
 
@@ -191,7 +208,7 @@ private struct ArrowKey: View {
 
     var body: some View {
         Image(systemName: symbol)
-            .font(.title2.weight(.semibold))
+            .font(corner ? .body.weight(.semibold) : .title2.weight(.semibold))
             .foregroundStyle(Palette.accent)
             .frame(width: 68, height: 56)
             .background(Palette.accentDim.opacity(held ? 0.6 : 1),

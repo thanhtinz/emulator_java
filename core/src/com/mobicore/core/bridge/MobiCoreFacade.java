@@ -737,6 +737,35 @@ public final class MobiCoreFacade {
         }
     }
 
+    // ----------------------------------------------------------- text entry
+
+    /**
+     * True while the game is waiting for text.
+     *
+     * <p>The app watches this to raise the phone's own keyboard. Multi-tap on
+     * a numeric pad was the only way a handset could take letters; asking for
+     * that today, with a real keyboard in the user's hand, would be a museum
+     * exhibit rather than a feature.</p>
+     */
+    public boolean isTextInputActive() {
+        return session != null && session.isTextInputActive();
+    }
+
+    /** What the field holds now, so the keyboard opens on it. */
+    public String textInput() {
+        return session == null ? "" : session.textInput();
+    }
+
+    /** Puts what the keyboard produced into the field. */
+    public String setTextInput(String value) {
+        if (session == null) {
+            return error("Không có trò chơi nào đang chạy");
+        }
+        return session.setTextInput(value)
+                ? ok("text", session.textInput())
+                : error("Game không đang chờ nhập chữ");
+    }
+
     // --------------------------------------------------------- save states
 
     /**

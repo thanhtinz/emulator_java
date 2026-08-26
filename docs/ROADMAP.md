@@ -540,3 +540,28 @@ là quay lại như cũ.
 
 `LibraryScreen.kt` và `LibraryView.swift` bị xoá hẳn chứ không để lại làm màn
 hình chết.
+
+
+## Bàn phím: bốn nút xéo, chỉ còn số, và bàn phím máy
+
+**Bốn nút xéo.** Cụm mũi tên nay đủ tám hướng. Bốn góc *không phải phím riêng*:
+MIDP không có mã phím xéo và không máy J2ME nào có phím xéo — góc của cụm phím
+ngày xưa là **hai hướng bấm cùng lúc**, và đó đúng là thứ nút góc gửi đi. Game
+đọc `getKeyStates` hiểu ngay mà không cần biết gì thêm. Icon góc vẽ nhỏ hơn
+bốn hướng chính: có mặt khi game cần, không tranh chỗ ngón tay.
+
+**Bàn phím số chỉ còn số.** Mấy chữ "abc / def / ghi" in dưới phím là để gõ
+đa chạm — cách duy nhất một bàn phím số ngày xưa nhập được chữ. Máy chạy app
+này có bàn phím thật, nên ba hàng chú thích đó là hướng dẫn cho việc không ai
+phải làm nữa.
+
+**Bàn phím máy hiện khi game hỏi chữ.** `ScreenInput.textInputTarget` cho biết
+game đang chờ nhập (một `TextBox`, hoặc một `TextField` đang được chọn); lúc đó
+app dựng bàn phím hệ thống lên và **thay luôn bàn phím ảo** — vì trên máy thật,
+bàn phím hệ thống che đúng nửa dưới màn hình đó. Không vẽ bàn phím giả: bàn
+phím là của máy, vẽ lại là bịa ra một giao diện app không sở hữu.
+
+Chữ đi vào theo **cả chuỗi** chứ không theo từng phím: bàn phím hệ thống tự lo
+việc di con trỏ, sửa lỗi, dán — thứ game cần thấy là kết quả. Giới hạn của
+`TextField` vẫn được áp: game xin 12 ký tự thì nhận đúng 12, và ràng buộc
+`NUMERIC`/`PHONENUMBER`/`DECIMAL` vẫn lọc đúng ký tự cho phép.
