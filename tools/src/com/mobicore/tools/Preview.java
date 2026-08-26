@@ -53,6 +53,7 @@ public final class Preview {
         write(vfs, outDir, "13-sound.png", new SoundScreen(fixtures).render());
         write(vfs, outDir, "16-search.png", new SearchScreen(fixtures).render());
         write(vfs, outDir, "17-keyboard.png", keyboardScreen(fixtures));
+        write(vfs, outDir, "18-landscape.png", EmulatorScreen.landscape(fixtures).renderLandscape());
 
         // The same screens in the other theme, so both can be reviewed.
         Theme.setMode(Theme.DARK);

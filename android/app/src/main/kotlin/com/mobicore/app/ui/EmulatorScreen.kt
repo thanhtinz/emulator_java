@@ -1,6 +1,7 @@
 package com.mobicore.app.ui
 
 import android.app.Activity
+import android.content.pm.ActivityInfo
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,9 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -45,6 +48,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.mobicore.app.data.LibraryRepository
 import com.mobicore.app.emu.EmulatorEngine
+import com.mobicore.core.model.DeviceProfile
 
 /**
  * Màn hình chơi: khung hình của trò chơi và bàn phím ảo.
@@ -73,6 +77,23 @@ fun EmulatorScreen(
         // after the game has started, because starting is what loads its
         // classes and builds the machine the state goes into.
         library.readSaveState(suiteId)?.let { engine.restoreState(it) }
+    }
+
+    // Which way the phone is held is the game's decision, not the player's to
+    // make every time: auto-setup turns a game written for a wide screen, and
+    // the button in the bar is there for the ones that drew sideways on a
+    // portrait handset.
+    val landscape = profile?.orientation() == DeviceProfile.ORIENTATION_LANDSCAPE
+    DisposableEffect(landscape) {
+        val activity = context as? Activity
+        activity?.requestedOrientation = if (landscape) {
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
     }
 
     // Immersive while playing, restored on the way out.
@@ -120,6 +141,12 @@ fun EmulatorScreen(
                 fontSize = 12.sp,
             )
             Text(
+                text = if (landscape) "Dọc" else "Ngang",
+                color = MobiColors.Accent,
+                fontSize = 15.sp,
+                modifier = Modifier.clickable { library.toggleOrientation(suiteId) },
+            )
+            Text(
                 text = if (engine.paused) "Tiếp tục" else "Tạm ngưng",
                 color = MobiColors.Accent,
                 fontSize = 15.sp,
@@ -127,6 +154,47 @@ fun EmulatorScreen(
                     if (engine.paused) engine.resume() else engine.pause()
                 },
             )
+        }
+
+        // Reading the revision ties the softkey labels to the running screen: a
+        // command that swaps screens swaps the labels with it.
+        @Suppress("UNUSED_EXPRESSION")
+        engine.commandRevision
+        val wantsText = engine.isTextInputActive()
+
+        if (landscape && !wantsText) {
+            // Held sideways, the game keeps the middle and each hand gets a
+            // column. A keypad stacked under a wide screen would leave the
+            // game a strip along the top.
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                ControlColumn(
+                    directional = true,
+                    softKeyLabel = engine.leftSoftKeyLabel(),
+                    onPress = { engine.pressButton(it) },
+                    onRelease = { engine.releaseButton(it) },
+                    modifier = Modifier.width(232.dp).fillMaxHeight().padding(vertical = 8.dp),
+                )
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    GameSurface(engine, library, suiteId)
+                }
+                ControlColumn(
+                    directional = false,
+                    softKeyLabel = engine.rightSoftKeyLabel(),
+                    onPress = { engine.pressButton(it) },
+                    onRelease = { engine.releaseButton(it) },
+                    modifier = Modifier.width(232.dp).fillMaxHeight().padding(vertical = 8.dp),
+                )
+            }
+            val landscapeError = engine.lastError
+            if (landscapeError != null) {
+                Text(
+                    text = landscapeError,
+                    color = MobiColors.Bad,
+                    fontSize = 12.sp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+            return@Column
         }
 
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -143,15 +211,11 @@ fun EmulatorScreen(
             )
         }
 
-        // Reading the revision ties the labels to the running screen: a command
-        // that swaps screens swaps the softkeys with it.
-        @Suppress("UNUSED_EXPRESSION")
-        engine.commandRevision
         // While the game wants text, the phone's own keyboard takes this half
         // of the screen: multi-tap on a numeric pad was the only way a handset
         // could enter a name, and asking for that with a real keyboard in the
         // user's hand would be a museum exhibit.
-        if (engine.isTextInputActive()) {
+        if (wantsText) {
             GameTextField(engine, Modifier.fillMaxWidth().padding(horizontal = 14.dp))
         } else {
             Keypad(

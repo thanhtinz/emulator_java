@@ -114,6 +114,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)setInputPreset:(NSString *)preset forSuite:(NSString *)suiteId;
 - (NSString *)toggleFavouriteForSuite:(NSString *)suiteId;
 
+/** Portrait to landscape and back, remembered with the game. */
+- (NSString *)toggleOrientationForSuite:(NSString *)suiteId;
+
 #pragma mark - Saves
 
 - (NSString *)savesJSONForSuite:(NSString *)suiteId;

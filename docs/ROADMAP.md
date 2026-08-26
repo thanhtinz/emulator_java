@@ -15,6 +15,7 @@
 | 11 | Lưu trạng thái, chơi tiếp | Xong |
 | 12 | Giao diện sáng / tối | Xong |
 | 13 | Tìm game không dấu | Xong |
+| 14 | Phím L/R và màn hình ngang | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -587,3 +588,40 @@ chia sẻ từ nhiều năm trước. Trước đây chọn hai mươi tệp th�
   chín tệp còn lại, và người dùng phải biết tệp nào hỏng chứ không phải nhận
   câu "có lỗi xảy ra".
 - Cuối cùng là một dòng tóm tắt: "Đã nhập 12 trò chơi, 1 tệp lỗi, bỏ qua 2".
+
+## Phím L, phím R và màn hình ngang
+
+Hai thứ J2ME có mà bàn phím ảo còn thiếu.
+
+**L và R** là hai hành động MIDP gọi là `GAME_A` và `GAME_B`. Không máy nào
+thời đó có nút bấm vai thật — runtime đọc hai hành động này từ phím **7** và
+**9** trên bàn phím số — nên đó đúng là mã phím mà L và R gửi đi: game đọc
+`getGameAction` thấy `GAME_A`/`GAME_B`, game đọc thẳng mã phím thấy đúng chữ số
+mà nó được viết cho. Nhưng một phím ghi "7" thì không nói lên điều gì với người
+đang chơi game đua xe, còn L và R thì ai cũng biết nằm ở đâu.
+
+- `InputProfile` có thêm `gameLeft` / `gameRight`, đổi gán phím được như mọi
+  phím khác.
+- Bàn phím ảo: hai nút ở hai mép ngoài, tránh xa hai bàn phím con — ngón cái
+  không được vô tình chạm vào khi với sang phím số.
+- iOS bỏ luôn hàng "Gọi / Xóa / Kết thúc" cũ ở chỗ này: máy điện thoại có ba
+  phím đó vì nó là điện thoại, không game nào đọc chúng. Android và bản xem
+  trước đã bỏ từ trước.
+
+**Màn hình ngang** đi theo game chứ không theo người dùng:
+
+- `AutoSetup` thấy game vẽ trên màn hình rộng (320×240 chẳng hạn) thì đặt luôn
+  `orientation = ngang` và ghi lý do vào phần "đã tự cấu hình". Không ai phải đi
+  tìm cái nút.
+- Vẫn có nút **Ngang / Dọc** trên thanh trên cùng của màn chơi, cho những game
+  vẽ nằm ngang trên màn hình dọc và bắt người chơi tự xoay máy. Lựa chọn được
+  nhớ theo từng game (`toggleOrientation` ở facade).
+- Bố cục khi nằm ngang: game giữ phần giữa — đó là thứ người chơi nhìn — mỗi
+  bàn tay một cột: nút vai ở trên, bàn phím con ở giữa, phím mềm ở dưới, đúng
+  chỗ ngón cái đang đặt. Xếp bàn phím xuống dưới một màn hình rộng thì game chỉ
+  còn một dải mỏng trên đỉnh.
+- Android xin xoay bằng `requestedOrientation`, iOS bằng
+  `requestGeometryUpdate` — là **xin**, không phải ép: người chơi có thể đang
+  khoá xoay màn hình, và một game từ chối chạy vì lý do đó thì tệ hơn nhiều.
+
+Ảnh: `build/screenshots/18-landscape.png`.

@@ -339,6 +339,58 @@ public final class MobiCoreFacade {
         }
     }
 
+    /**
+     * Turns a game's screen, and remembers which way it was left.
+     *
+     * <p>Auto-setup already turns a game written for a wide screen, but a
+     * handset's own screen was not always the one a game drew on: some drew
+     * sideways on a portrait screen and expected the player to turn the
+     * phone. That is a decision only the player can make, so it is one
+     * button, not a settings page.</p>
+     *
+     * @param orientation {@link DeviceProfile#ORIENTATION_PORTRAIT} or
+     *     {@link DeviceProfile#ORIENTATION_LANDSCAPE}
+     */
+    public String setOrientation(String suiteId, int orientation) {
+        return applyOrientation(suiteId, orientation == DeviceProfile.ORIENTATION_LANDSCAPE
+                ? DeviceProfile.ORIENTATION_LANDSCAPE : DeviceProfile.ORIENTATION_PORTRAIT);
+    }
+
+    /** Portrait to landscape and back: what the rotate button calls. */
+    public String toggleOrientation(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            return applyOrientation(suiteId,
+                    profile.orientation() == DeviceProfile.ORIENTATION_LANDSCAPE
+                            ? DeviceProfile.ORIENTATION_PORTRAIT
+                            : DeviceProfile.ORIENTATION_LANDSCAPE);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    private String applyOrientation(String suiteId, int orientation) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.setOrientation(orientation);
+            library.saveProfile(profile);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("orientation", Integer.valueOf(orientation));
+            json.put("landscape", Boolean.valueOf(
+                    orientation == DeviceProfile.ORIENTATION_LANDSCAPE));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
     public String setInputPreset(String suiteId, String preset) {
         try {
             GameProfile profile = library.profile(suiteId);

@@ -131,7 +131,7 @@ public final class ProfileScreen {
         String[][] buttons = {
                 {"up", "Lên"}, {"down", "Xuống"}, {"left", "Trái"}, {"right", "Phải"},
                 {"fire", "Chọn"}, {"softLeft", "Phím mềm 1"}, {"softRight", "Phím mềm 2"},
-                {"num5", "Phím 5"},
+                {"gameLeft", "Phím L"}, {"gameRight", "Phím R"},
         };
         int mappingHeight = ui.sectionHeight(buttons.length);
         row = ui.section(margin, y, width, mappingHeight, "GÁN PHÍM", profile.input().presetName());

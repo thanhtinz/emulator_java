@@ -25,13 +25,15 @@ struct Keypad: View {
                 SoftKey(label: rightSoftKey, button: "softRight",
                         onPress: onPress, onRelease: onRelease)
             }
-            HStack(spacing: 6) {
-                PhoneKey(label: "Gọi", button: "send", tint: Palette.good,
-                         onPress: onPress, onRelease: onRelease)
-                PhoneKey(label: "Xóa", button: "clear", tint: Palette.text,
-                         onPress: onPress, onRelease: onRelease)
-                PhoneKey(label: "Kết thúc", button: "end", tint: Palette.bad,
-                         onPress: onPress, onRelease: onRelease)
+            // L and R at the outer edges, clear of both pads. The call and
+            // end keys that used to sit here are gone: a handset carried them
+            // because it was a phone, and no game reads them.
+            HStack {
+                ShoulderKey(label: "L", button: "gameLeft",
+                            onPress: onPress, onRelease: onRelease)
+                Spacer()
+                ShoulderKey(label: "R", button: "gameRight",
+                            onPress: onPress, onRelease: onRelease)
             }
             HStack(alignment: .center) {
                 numericPad
@@ -87,6 +89,12 @@ struct Keypad: View {
         }
     }
 
+    /// The directional half of the pad, for a game held sideways.
+    var directionalColumn: some View { directionalPad }
+
+    /// The numeric half, likewise.
+    var numericColumn: some View { numericPad }
+
     struct Key {
         let label: String
         let button: String
@@ -108,6 +116,64 @@ struct Keypad: View {
          Key(label: "0", button: "num0"),
          Key(label: "#", button: "hash")],
     ]
+}
+
+/// One hand's worth of keys, for when the phone is held sideways.
+///
+/// The game keeps the middle of a landscape screen, because that is what the
+/// player is looking at, and each hand gets a column: a shoulder key on top,
+/// its pad in the middle, and the softkey the game labels at the bottom, where
+/// the thumb already rests.
+struct ControlColumn: View {
+
+    /// True for the pad hand, false for the numbers.
+    let directional: Bool
+    let softKeyLabel: String?
+    let onPress: (String) -> Void
+    let onRelease: (String) -> Void
+
+    var body: some View {
+        let pad = Keypad(onPress: onPress, onRelease: onRelease)
+        return VStack(spacing: 14) {
+            ShoulderKey(label: directional ? "L" : "R",
+                        button: directional ? "gameLeft" : "gameRight",
+                        onPress: onPress, onRelease: onRelease)
+            Spacer(minLength: 0)
+            if directional {
+                pad.directionalColumn
+            } else {
+                pad.numericColumn
+            }
+            Spacer(minLength: 0)
+            SoftKey(label: softKeyLabel, button: directional ? "softLeft" : "softRight",
+                    onPress: onPress, onRelease: onRelease)
+        }
+    }
+}
+
+/// L or R: what MIDP calls GAME_A and GAME_B.
+///
+/// No handset had shoulder buttons — the runtime read those actions off keys
+/// 7 and 9 — but a key labelled "7" tells a player nothing about what it does
+/// in a racing game, and everyone knows where an L and an R are.
+private struct ShoulderKey: View {
+    let label: String
+    let button: String
+    let onPress: (String) -> Void
+    let onRelease: (String) -> Void
+
+    @State private var held = false
+
+    var body: some View {
+        Text(label)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Palette.accent)
+            .frame(width: 96, height: 40)
+            .background(Palette.accentDim.opacity(held ? 0.6 : 1),
+                        in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.accent, lineWidth: 1))
+            .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))
+    }
 }
 
 private struct NumberKey: View {
@@ -162,32 +228,6 @@ private struct SoftKey: View {
                         in: RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(held ? Palette.accent : Palette.border, lineWidth: 1)
-            )
-            .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))
-    }
-}
-
-/// The call, clear and end trio every J2ME handset carried.
-private struct PhoneKey: View {
-    let label: String
-    let button: String
-    let tint: Color
-    let onPress: (String) -> Void
-    let onRelease: (String) -> Void
-
-    @State private var held = false
-
-    var body: some View {
-        Text(label)
-            .font(.footnote)
-            .foregroundStyle(tint)
-            .frame(maxWidth: .infinity)
-            .frame(height: 38)
-            .background(held ? Palette.accentDim : Palette.surfaceAlt,
-                        in: RoundedRectangle(cornerRadius: 10))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
                     .stroke(held ? Palette.accent : Palette.border, lineWidth: 1)
             )
             .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))

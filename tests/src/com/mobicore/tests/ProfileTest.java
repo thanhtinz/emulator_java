@@ -69,6 +69,28 @@ public final class ProfileTest extends Test {
                 "a game that opens connections is allowed to ask");
         eq(30, racer.frameLimit(), "a game drawing its own frames gets the full rate");
 
+        eq(DeviceProfile.ORIENTATION_PORTRAIT, racer.orientation(),
+                "a game written for a tall screen is played upright");
+
+        // A game written for a wide screen is played sideways, without anyone
+        // being asked: the screen it draws on already says how it is held.
+        Map<String, byte[]> wide = new LinkedHashMap<String, byte[]>();
+        wide.put("META-INF/MANIFEST.MF", utf8("MIDlet-Name: Wide\n"
+                + "MIDlet-Version: 1.0\n"
+                + "MIDlet-Vendor: Quiet Games\n"
+                + "Nokia-MIDlet-Original-Display-Size: 320,240\n"
+                + "MIDlet-1: Wide,,demo.Wide\n"));
+        wide.put("demo/Wide.class", utf8("javax/microedition/lcdui/game/GameCanvas"));
+        AutoSetup.Result sideways = AutoSetup.configure(
+                SuiteLoader.load(SampleSuite.zip(wide), null));
+        eq(DeviceProfile.ORIENTATION_LANDSCAPE, sideways.profile().orientation(),
+                "a wide screen turns the phone");
+        boolean said = false;
+        for (int i = 0; i < sideways.notes().size(); i++) {
+            said = said || sideways.notes().get(i).indexOf("ngang") >= 0;
+        }
+        check(said, "and says so among its reasons");
+
         // Changing a detected value stops the emulator claiming it measured it.
         racer.setDevice(DeviceProfile.S40_128);
         check(!racer.isAuto(), "a hand-set profile is no longer an automatic one");
@@ -174,7 +196,9 @@ public final class ProfileTest extends Test {
         eq(MidpContext.KEY_SOFT_LEFT, nokia.keyCodeFor("softLeft"), "Nokia softkeys");
         eq(-6, InputProfile.sonyEricsson().keyCodeFor("softLeft"), "Sony Ericsson softkeys differ");
         eq(0, nokia.keyCodeFor("nonexistent"), "an unbound button reports zero");
-        eq(20, InputProfile.BUTTONS.length, "every virtual button is declared");
+        eq(22, InputProfile.BUTTONS.length, "every virtual button is declared");
+        eq('7', nokia.keyCodeFor("gameLeft"), "L is the key a handset reported GAME_A from");
+        eq('9', nokia.keyCodeFor("gameRight"), "and R is GAME_B's");
         eq(MidpContext.KEY_CLEAR, nokia.keyCodeFor("clear"), "the clear key is mapped");
         eq(0, nokia.keyCodeFor("send"), "the call key is not on the keypad");
 

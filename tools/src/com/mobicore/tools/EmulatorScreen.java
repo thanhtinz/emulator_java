@@ -23,10 +23,16 @@ public final class EmulatorScreen {
     private static final int GAME_HEIGHT = 320;
     private static final int SCALE = 2;
 
+    /** What the two pads measure, so a layout can place them without guessing. */
+    private static final int DPAD_WIDTH = 66 * 3 + 5 * 2;
+    private static final int NUMPAD_WIDTH = 62 * 3 + 6 * 2;
+
     private final String fixtureDir;
     private EmulatorSession session;
 
     private final String midletClass;
+    private final int gameWidth;
+    private final int gameHeight;
 
     public EmulatorScreen(String fixtureDir) {
         this(fixtureDir, null);
@@ -34,8 +40,22 @@ public final class EmulatorScreen {
 
     /** @param midletClass which MIDlet to boot, or null for the default one */
     public EmulatorScreen(String fixtureDir, String midletClass) {
+        this(fixtureDir, midletClass, GAME_WIDTH, GAME_HEIGHT);
+    }
+
+    private EmulatorScreen(String fixtureDir, String midletClass, int gameWidth, int gameHeight) {
         this.fixtureDir = fixtureDir;
         this.midletClass = midletClass;
+        this.gameWidth = gameWidth;
+        this.gameHeight = gameHeight;
+    }
+
+    /**
+     * The same emulator with a game written for a wide screen, which is the
+     * case the landscape layout exists for.
+     */
+    public static EmulatorScreen landscape(String fixtureDir) {
+        return new EmulatorScreen(fixtureDir, null, GAME_HEIGHT, GAME_WIDTH);
     }
 
     public EmulatorSession session() {
@@ -45,7 +65,7 @@ public final class EmulatorScreen {
     /** Boots the suite and advances it far enough to be worth looking at. */
     public EmulatorSession boot() throws Exception {
         SuiteLoader suite = SuiteLoader.load(SampleSuite.jar(fixtureDir), SampleSuite.jad());
-        session = EmulatorSession.create(suite, GAME_WIDTH, GAME_HEIGHT, new FixedClock());
+        session = EmulatorSession.create(suite, gameWidth, gameHeight, new FixedClock());
         if (midletClass != null) {
             session.start(midletClass);
             return session;
@@ -73,17 +93,85 @@ public final class EmulatorScreen {
         ui.background(Theme.BG);
 
         int barHeight = ui.medium().height() + 22;
-        int gameHeight = GAME_HEIGHT * SCALE;
-        Framebuffer scaled = session.profile().smoothing()
-                ? session.screen().scaleSmooth(GAME_WIDTH * SCALE, gameHeight)
-                : session.screen().scaleNearest(GAME_WIDTH * SCALE, gameHeight);
-        frame.setBlendMode(Framebuffer.BLEND_REPLACE);
-        frame.drawFramebuffer(scaled, 0, barHeight);
-        frame.setBlendMode(Framebuffer.BLEND_SRC_OVER);
+        int shownHeight = gameHeight * SCALE;
+        drawGame(frame, ui, 0, barHeight, gameWidth * SCALE, shownHeight);
 
-        topBar(ui, barHeight);
-        controls(ui, barHeight + gameHeight, frame.height() - barHeight - gameHeight);
+        topBar(ui, barHeight, frame.width());
+        controls(ui, barHeight + shownHeight, frame.height() - barHeight - shownHeight);
         return frame;
+    }
+
+    /**
+     * The same session with the phone turned.
+     *
+     * <p>The game keeps the middle, because that is what the player looks at,
+     * and the keypad splits either side of it: with the phone held sideways
+     * both thumbs are already at the edges, and a pad stacked under a wide
+     * screen would leave the game a strip along the top.</p>
+     */
+    public Framebuffer renderLandscape() throws Exception {
+        if (session == null) {
+            boot();
+        }
+        Framebuffer frame = new Framebuffer(Preview.SCREEN_HEIGHT, Preview.SCREEN_WIDTH);
+        frame.setAntialias(true);
+        Ui ui = new Ui(frame);
+        ui.background(Theme.BG);
+
+        int barHeight = ui.medium().height() + 18;
+        topBar(ui, barHeight, frame.width());
+
+        // Each hand gets a column wide enough for a pad, and the game takes
+        // everything left in the middle.
+        int side = 300;
+        int middle = frame.width() - side * 2;
+        frame.setColor(Theme.SURFACE);
+        frame.fillRect(0, barHeight, side, frame.height() - barHeight);
+        frame.fillRect(frame.width() - side, barHeight, side, frame.height() - barHeight);
+
+        int shownWidth = middle - 16;
+        int shownHeight = shownWidth * gameHeight / gameWidth;
+        int available = frame.height() - barHeight - 12;
+        if (shownHeight > available) {
+            shownHeight = available;
+            shownWidth = shownHeight * gameWidth / gameHeight;
+        }
+        drawGame(frame, ui, side + (middle - shownWidth) / 2,
+                barHeight + (frame.height() - barHeight - shownHeight) / 2,
+                shownWidth, shownHeight);
+
+        int shoulderY = barHeight + 22;
+        int shoulderWidth = 104;
+        int shoulderHeight = ui.medium().height() + 16;
+        int padY = shoulderY + shoulderHeight + 16;
+        int dpadX = (side - DPAD_WIDTH) / 2;
+        int numX = frame.width() - side + (side - NUMPAD_WIDTH) / 2;
+        shoulderKey(ui, dpadX + (DPAD_WIDTH - shoulderWidth) / 2, shoulderY, shoulderWidth,
+                "L", "gameLeft");
+        shoulderKey(ui, numX + (NUMPAD_WIDTH - shoulderWidth) / 2, shoulderY, shoulderWidth,
+                "R", "gameRight");
+        directionalPad(ui, dpadX, padY);
+        numericPad(ui, numX, padY);
+
+        // The softkeys stay at the bottom outside corners: they are the two
+        // keys the game labels, and both thumbs rest there when the phone is
+        // held sideways.
+        int softWidth = 214;
+        int softY = frame.height() - ui.medium().height() - 18 - 18;
+        softKey(ui, (side - softWidth) / 2, softY, softWidth, session.leftSoftKeyLabel());
+        softKey(ui, frame.width() - side + (side - softWidth) / 2, softY, softWidth,
+                session.rightSoftKeyLabel());
+        return frame;
+    }
+
+    /** Blits the emulated screen, filtered or not as the profile asks. */
+    private void drawGame(Framebuffer frame, Ui ui, int x, int y, int width, int height) {
+        Framebuffer scaled = session.profile().smoothing()
+                ? session.screen().scaleSmooth(width, height)
+                : session.screen().scaleNearest(width, height);
+        frame.setBlendMode(Framebuffer.BLEND_REPLACE);
+        frame.drawFramebuffer(scaled, x, y);
+        frame.setBlendMode(Framebuffer.BLEND_SRC_OVER);
     }
 
     /**
@@ -93,18 +181,17 @@ public final class EmulatorScreen {
      * and two sets of the same word is how a player ends up pressing the wrong
      * one.
      */
-    private void topBar(Ui ui, int barHeight) {
+    private void topBar(Ui ui, int barHeight, int width) {
         Framebuffer frame = ui.frame();
         frame.setColor(Theme.SURFACE);
-        frame.fillRect(0, 0, frame.width(), barHeight);
+        frame.fillRect(0, 0, width, barHeight);
         int textY = (barHeight - ui.medium().height()) / 2;
         int glyph = ui.medium().height() + 4;
         Icons.draw(frame, Icons.BACK, Ui.PAD, (barHeight - glyph) / 2, glyph, Theme.ACCENT);
         ui.text(ui.medium(), "Thư viện", Ui.PAD + glyph + 4, textY, Theme.ACCENT);
-        ui.textCenter(ui.small(), GAME_WIDTH + "×" + GAME_HEIGHT + "  ·  " + SCALE
-                        + "×  ·  30 hình/giây",
-                frame.width() / 2, (barHeight - ui.small().height()) / 2, Theme.TEXT_DIM);
-        ui.textRight(ui.medium(), "Menu", frame.width() - Ui.PAD, textY, Theme.ACCENT);
+        ui.textCenter(ui.small(), gameWidth + "×" + gameHeight + "  ·  30 hình/giây",
+                width / 2, (barHeight - ui.small().height()) / 2, Theme.TEXT_DIM);
+        ui.textRight(ui.medium(), "Menu", width - Ui.PAD, textY, Theme.ACCENT);
     }
 
     /**
@@ -140,7 +227,17 @@ public final class EmulatorScreen {
             return;
         }
 
-        int padTop = y + softHeight + 14;
+        // L and R sit at the outer edges, where the hands already are, and
+        // clear of the pads: they are the two keys a game reads as GAME_A and
+        // GAME_B, and on a handset they were 7 and 9 — reachable, but never
+        // where a thumb rests.
+        int shoulderY = y + softHeight + 12;
+        int shoulderWidth = 96;
+        shoulderKey(ui, Ui.PAD, shoulderY, shoulderWidth, "L", "gameLeft");
+        shoulderKey(ui, frame.width() - Ui.PAD - shoulderWidth, shoulderY, shoulderWidth,
+                "R", "gameRight");
+
+        int padTop = shoulderY + ui.medium().height() + 16 + 14;
         numericPad(ui, Ui.PAD + 4, padTop);
         directionalPad(ui, frame.width() - Ui.PAD - 208, padTop + 16);
     }
@@ -182,6 +279,22 @@ public final class EmulatorScreen {
         int textY = y + (height - ui.mediumBold().height()) / 2;
         ui.textCenter(ui.mediumBold(), text, x + width / 2, textY,
                 bound ? Theme.TEXT : Theme.TEXT_DIM);
+    }
+
+    /**
+     * L and R.
+     *
+     * <p>MIDP calls them GAME_A and GAME_B: the two extra actions a game could
+     * ask for beyond the pad and fire. No handset had shoulder buttons — the
+     * runtime reported them from keys 7 and 9 — but every player knows where
+     * an L and an R are, and a key labelled "7" tells someone playing a
+     * racing game nothing about what it does.</p>
+     */
+    private void shoulderKey(Ui ui, int x, int y, int width, String label, String button) {
+        int height = ui.medium().height() + 16;
+        ui.panel(x, y, width, height, Theme.KEY, Theme.ACCENT);
+        ui.textCenter(ui.mediumBold(), label, x + width / 2,
+                y + (height - ui.mediumBold().height()) / 2, Theme.ACCENT);
     }
 
     /**

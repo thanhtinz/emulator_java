@@ -60,6 +60,14 @@ public final class AutoSetup {
         GameProfile profile = new GameProfile(suite.info().suiteId(), device, input);
         profile.setScaleMode(GameProfile.SCALE_FIT);
 
+        // A game written for a wide screen is played with the phone turned.
+        // Nobody should have to find a setting for that: the screen the game
+        // asks for already says which way round it is meant to be held.
+        if (device.orientation() == DeviceProfile.ORIENTATION_LANDSCAPE) {
+            profile.setOrientation(DeviceProfile.ORIENTATION_LANDSCAPE);
+            notes.add("Màn hình ngang — tự xoay khi chơi");
+        }
+
         // A game that never opens a connection should never make the user
         // answer a question about connections.
         if (uses(archive, "javax/microedition/io/HttpConnection")

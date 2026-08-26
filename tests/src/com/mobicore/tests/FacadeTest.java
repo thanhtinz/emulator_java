@@ -110,6 +110,19 @@ public final class FacadeTest extends Test {
         eq("qvga-240x320", Json.string(Json.child(afterAuto, "device"), "id", ""),
                 "and the hand-set device was replaced by the detected one");
 
+        // Which way the phone is held --------------------------------------
+        eq(0, Json.integer(afterAuto, "orientation", -1),
+                "a game written for a tall screen is played upright");
+        Map<String, Object> turned = Json.readObject(facade.toggleOrientation(suiteId));
+        check(Json.bool(turned, "landscape", false), "and can be turned by hand");
+        eq(1, Json.integer(Json.readObject(facade.profileJson(suiteId)), "orientation", -1),
+                "which is remembered with the game");
+        facade.toggleOrientation(suiteId);
+        eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "orientation", -1),
+                "and turned back again");
+        check(!Json.bool(Json.readObject(facade.toggleOrientation("nope")), "ok", true),
+                "a game that is not there cannot be turned");
+
         // Searching across the bridge --------------------------------------
         facade.renameGame(suiteId, "Người Chạy Trên Mây");
         Map<String, Object> hit = Json.readObject(facade.searchJson("nguoi chay", 0));

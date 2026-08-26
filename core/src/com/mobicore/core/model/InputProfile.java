@@ -23,6 +23,7 @@ public final class InputProfile {
     public static final String[] BUTTONS = {
             "up", "down", "left", "right", "fire",
             "softLeft", "softRight",
+            "gameLeft", "gameRight",
             "num0", "num1", "num2", "num3", "num4",
             "num5", "num6", "num7", "num8", "num9",
             "star", "hash", "clear",
@@ -163,6 +164,13 @@ public final class InputProfile {
         profile.mappings.put("star", Integer.valueOf('*'));
         profile.mappings.put("hash", Integer.valueOf('#'));
         profile.mappings.put("clear", Integer.valueOf(MidpContext.KEY_CLEAR));
+        // L and R: the two game keys MIDP names GAME_A and GAME_B. A handset
+        // had no shoulder buttons — it had a keypad whose 7 and 9 the runtime
+        // reported as those actions — so that is what these send. A game
+        // reading getGameAction sees GAME_A and GAME_B; one reading the raw
+        // key code sees the digit it was written against.
+        profile.mappings.put("gameLeft", Integer.valueOf(MidpContext.keyCode(MidpContext.ACTION_GAME_A)));
+        profile.mappings.put("gameRight", Integer.valueOf(MidpContext.keyCode(MidpContext.ACTION_GAME_B)));
         // The call and end keys are deliberately absent: the handset had them
         // because it was a phone, not because games read them, and a button
         // nobody presses is a button in the way of the ones they do.

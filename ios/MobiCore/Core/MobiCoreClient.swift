@@ -209,6 +209,14 @@ final class MobiCoreClient: ObservableObject {
         refresh()
     }
 
+    /// Turns a game's screen and remembers it. Auto-setup already turns a
+    /// game written for a wide screen; this is for the ones that drew
+    /// sideways on a portrait handset and expected the player to turn it.
+    func toggleOrientation(_ suiteId: String) {
+        report(decode(bridge.toggleOrientation(forSuite: suiteId)))
+        refresh()
+    }
+
     func setInputPreset(_ preset: String, for suiteId: String) {
         report(decode(bridge.setInputPreset(preset, forSuite: suiteId)))
         refresh()

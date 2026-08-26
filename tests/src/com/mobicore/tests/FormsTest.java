@@ -59,6 +59,7 @@ public final class FormsTest extends Test {
         optionsMenu(session, context, vm);
         alerts(session, context, vm);
         diagonals(session);
+        shoulderKeys(session);
         systemKeyboard(session, context, vm);
     }
 
@@ -254,5 +255,37 @@ public final class FormsTest extends Test {
                 "and releasing it lets go of both");
         eq(null, com.mobicore.core.model.InputProfile.diagonalOf("up"),
                 "a plain direction is not a corner");
+    }
+
+    /**
+     * L and R are the two extra actions MIDP calls GAME_A and GAME_B.
+     *
+     * <p>A game reading {@code getGameAction} must see those actions, and a
+     * game reading the raw key code must see the digit the runtime reported
+     * them from — otherwise half the games that use them read nothing.</p>
+     */
+    private void shoulderKeys(EmulatorSession session) {
+        com.mobicore.core.model.InputProfile input =
+                com.mobicore.core.model.InputProfile.nokia();
+        eq(MidpContext.ACTION_GAME_A,
+                MidpContext.gameAction(input.keyCodeFor("gameLeft")),
+                "L is GAME_A");
+        eq(MidpContext.ACTION_GAME_B,
+                MidpContext.gameAction(input.keyCodeFor("gameRight")),
+                "R is GAME_B");
+
+        int gameA = 1 << MidpContext.ACTION_GAME_A;
+        session.pressButton("gameLeft");
+        check((session.context().keyStates() & gameA) != 0,
+                "holding L reads as GAME_A held");
+        session.releaseButton("gameLeft");
+        eq(0, session.context().keyStates() & gameA, "and letting go releases it");
+
+        boolean listed = false;
+        for (int i = 0; i < com.mobicore.core.model.InputProfile.BUTTONS.length; i++) {
+            listed = listed
+                    || "gameRight".equals(com.mobicore.core.model.InputProfile.BUTTONS[i]);
+        }
+        check(listed, "and both are keys the player can remap");
     }
 }

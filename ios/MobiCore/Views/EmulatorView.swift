@@ -15,6 +15,12 @@ struct EmulatorView: View {
 
     private var settings: GameSettings? { client.game(suiteId)?.settings }
 
+    /// Which way the phone is meant to be held for this game. Auto-setup
+    /// turns a game written for a wide screen; the button in the bar is for
+    /// the ones that drew sideways on a portrait handset and left it to the
+    /// player.
+    private var landscape: Bool { (settings?.orientation ?? 0) == 1 }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -32,6 +38,10 @@ struct EmulatorView: View {
                     .font(.caption)
                     .foregroundStyle(Palette.textDim)
                 Spacer()
+                Button(landscape ? "Dọc" : "Ngang") {
+                    client.toggleOrientation(suiteId)
+                }
+                Spacer()
                 Button(engine.isPaused ? "Tiếp tục" : "Tạm ngưng") {
                     engine.isPaused ? engine.resume() : engine.pause()
                 }
@@ -40,33 +50,59 @@ struct EmulatorView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
 
-            GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if landscape && !engine.wantsText {
+                // Held sideways, the game keeps the middle and each hand gets
+                // a column. A keypad stacked under a wide screen would leave
+                // the game a strip along the top.
+                HStack(spacing: 0) {
+                    ControlColumn(directional: true, softKeyLabel: engine.leftSoftKeyLabel,
+                                  onPress: { engine.press($0) },
+                                  onRelease: { engine.release($0) })
+                        .frame(width: 232)
+                        .padding(.vertical, 8)
+                    GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    ControlColumn(directional: false, softKeyLabel: engine.rightSoftKeyLabel,
+                                  onPress: { engine.press($0) },
+                                  onRelease: { engine.release($0) })
+                        .frame(width: 232)
+                        .padding(.vertical, 8)
+                }
+                if let error = engine.error {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(Palette.bad)
+                        .padding(.horizontal, 16)
+                }
+            } else {
+                GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            if let error = engine.error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(Palette.bad)
-                    .padding(.horizontal, 16)
-            }
+                if let error = engine.error {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(Palette.bad)
+                        .padding(.horizontal, 16)
+                }
 
-            // While the game wants text, the system keyboard takes this half
-            // of the screen. Multi-tap on a numeric pad was the only way a
-            // handset could enter a name; asking for that with a real
-            // keyboard in the user's hand would be a museum exhibit.
-            if engine.wantsText {
-                GameTextField(engine: engine)
+                // While the game wants text, the system keyboard takes this half
+                // of the screen. Multi-tap on a numeric pad was the only way a
+                // handset could enter a name; asking for that with a real
+                // keyboard in the user's hand would be a museum exhibit.
+                if engine.wantsText {
+                    GameTextField(engine: engine)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                } else {
+                    Keypad(
+                        onPress: { engine.press($0) },
+                        onRelease: { engine.release($0) },
+                        leftSoftKey: engine.leftSoftKeyLabel,
+                        rightSoftKey: engine.rightSoftKeyLabel
+                    )
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
-            } else {
-                Keypad(
-                    onPress: { engine.press($0) },
-                    onRelease: { engine.release($0) },
-                    leftSoftKey: engine.leftSoftKeyLabel,
-                    rightSoftKey: engine.rightSoftKeyLabel
-                )
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                }
             }
         }
         .background(Palette.background)
@@ -74,11 +110,28 @@ struct EmulatorView: View {
         .persistentSystemOverlays(.hidden)
         .onAppear {
             engine.start(suiteId: suiteId, settings: client.settings(suiteId))
+            turnDevice(to: landscape)
         }
+        .onChange(of: landscape) { turnDevice(to: $0) }
         .onDisappear {
             engine.stop()
+            // The rest of the app is a list of games, and a list reads
+            // upright.
+            turnDevice(to: false)
         }
     }
+}
+
+/// Asks the system to turn the phone with the game.
+///
+/// A request, not a command: the player can have rotation locked, and a game
+/// that refused to run because of that would be worse than one shown the way
+/// round the phone already is.
+private func turnDevice(to landscape: Bool) {
+    guard let scene = UIApplication.shared.connectedScenes
+        .compactMap({ $0 as? UIWindowScene }).first else { return }
+    scene.requestGeometryUpdate(
+        .iOS(interfaceOrientations: landscape ? .landscape : .portrait))
 }
 
 /// Draws the emulated framebuffer, unfiltered and centred.

@@ -6,6 +6,7 @@ import com.mobicore.core.library.GameLibrary
 import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
+import com.mobicore.core.model.DeviceProfile
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.rms.RecordStoreManager
 import com.mobicore.core.storage.Json
@@ -243,6 +244,26 @@ class LibraryRepository(filesDir: String) {
     fun resetArtwork(suiteId: String) {
         library.resetArtwork(suiteId)
         refresh()
+    }
+
+    /**
+     * Turns a game's screen and remembers it.
+     *
+     * Auto-setup already turns a game written for a wide screen; this is for
+     * the ones that drew sideways on a portrait handset and expected the
+     * player to turn the phone themselves.
+     */
+    fun toggleOrientation(suiteId: String): Int {
+        val profile = library.profile(suiteId) ?: return DeviceProfile.ORIENTATION_PORTRAIT
+        val turned = if (profile.orientation() == DeviceProfile.ORIENTATION_LANDSCAPE) {
+            DeviceProfile.ORIENTATION_PORTRAIT
+        } else {
+            DeviceProfile.ORIENTATION_LANDSCAPE
+        }
+        profile.setOrientation(turned)
+        library.saveProfile(profile)
+        refresh()
+        return turned
     }
 
     fun toggleFavourite(suiteId: String) {

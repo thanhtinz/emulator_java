@@ -191,6 +191,10 @@
     return [_facade setInputPresetWithNSString:suiteId withNSString:preset];
 }
 
+- (NSString *)toggleOrientationForSuite:(NSString *)suiteId {
+    return [_facade toggleOrientationWithNSString:suiteId];
+}
+
 - (NSString *)toggleFavouriteForSuite:(NSString *)suiteId {
     return [_facade toggleFavouriteWithNSString:suiteId];
 }
