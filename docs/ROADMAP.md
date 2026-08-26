@@ -525,3 +525,18 @@ hai gọi `searchJson(query, sort)`, cùng một câu tìm cho cùng một danh 
 
 Thứ tự sắp xếp cũng được nhớ giữa các lần mở app — ai sắp theo "vừa chơi" thì
 lần nào cũng muốn thế.
+
+
+## Gộp thư viện vào trang chủ
+
+Tab "Thư viện" thực ra chỉ là một ô tìm kiếm đặt trên đúng những game mà trang
+chủ đã liệt kê. Một tab lặp lại tab bên cạnh khiến người dùng phải nhìn hai chỗ
+cho một việc.
+
+Nay còn **ba tab**: Trang chủ, Công cụ, Cài đặt. Ô tìm kiếm nằm ngay dưới tiêu
+đề trang chủ; **gõ vào là toàn bộ phần duyệt được thay bằng kết quả** — người
+đang tìm thì đã thôi duyệt — kèm ba lựa chọn sắp xếp và số kết quả. Xoá chữ đi
+là quay lại như cũ.
+
+`LibraryScreen.kt` và `LibraryView.swift` bị xoá hẳn chứ không để lại làm màn
+hình chết.

@@ -27,14 +27,16 @@ struct MobiCoreApp: App {
 
 /// Tab shell. Detail, settings and the emulator are pushed on top of a tab
 /// rather than being tabs of their own.
+///
+/// Three tabs, not four: the library tab held a search box over the games the
+/// home screen already listed, so it moved there. A tab that duplicates its
+/// neighbour makes people look in two places for one thing.
 struct RootView: View {
 
     var body: some View {
         TabView {
             NavigationStack { HomeView() }
                 .tabItem { Label("Trang chủ", systemImage: "house") }
-            NavigationStack { LibraryView() }
-                .tabItem { Label("Thư viện", systemImage: "gamecontroller") }
             NavigationStack { ToolsView() }
                 .tabItem { Label("Công cụ", systemImage: "wrench.and.screwdriver") }
             NavigationStack { SettingsView() }

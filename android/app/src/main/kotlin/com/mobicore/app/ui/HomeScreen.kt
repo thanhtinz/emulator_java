@@ -21,15 +21,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.BrightnessHigh
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Brightness4
-import androidx.compose.material.icons.filled.BrightnessHigh
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,14 +42,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobicore.app.data.LibraryRepository
+import com.mobicore.core.library.GameLibrary
 import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.model.GameProfile
 
 /**
- * Home: recently played, favourites and a shortcut into the library.
+ * Home: the search box, recently played, favourites, and everything else.
+ *
+ * There is no separate library tab. It only ever held a search field over the
+ * same games this screen already lists, and a tab that duplicates the screen
+ * beside it is a tab that makes people look in two places for one thing.
  *
  * Recently played comes first because reopening the game you were mid-way
- * through is the single most common thing to do with an emulator.
+ * through is the single most common thing to do with an emulator. Typing in
+ * the search box replaces all of it with the matches: someone searching has
+ * stopped browsing.
  */
 @Composable
 fun HomeScreen(
@@ -57,6 +68,12 @@ fun HomeScreen(
 ) {
     val recent = remember(games, profiles) { library.recentlyPlayed() }
     val favourites = remember(games, profiles) { library.favourites() }
+    var query by remember { mutableStateOf("") }
+    val sortMode by library.librarySort.collectAsState()
+    val matches = remember(games, profiles, query, sortMode) {
+        library.sorted(library.search(query), sortMode)
+    }
+    val searching = query.isNotBlank()
 
     if (games.isEmpty()) {
         EmptyState(
@@ -98,6 +115,56 @@ fun HomeScreen(
                         )
                     }
                 }
+            }
+
+            item {
+                // Marks are ignored on both sides: "nguoi chay" finds
+                // "Người Chạy".
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    placeholder = { Text("Tìm theo tên hoặc nhà phát hành") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searching) {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(Icons.Filled.Close, contentDescription = "Xoá tìm kiếm")
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            if (searching) {
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        SortChip("Tên", GameLibrary.SORT_TITLE, sortMode) {
+                            library.setLibrarySort(it)
+                        }
+                        SortChip("Vừa chơi", GameLibrary.SORT_RECENT, sortMode) {
+                            library.setLibrarySort(it)
+                        }
+                        SortChip("Nhà phát hành", GameLibrary.SORT_VENDOR, sortMode) {
+                            library.setLibrarySort(it)
+                        }
+                    }
+                }
+                item {
+                    Text("${matches.size} kết quả", color = MobiColors.TextDim, fontSize = 12.sp)
+                }
+                items(matches, key = { "hit-" + it.suiteId() }) { entry ->
+                    GameRow(library, entry, profiles[entry.suiteId()], onOpen)
+                }
+                if (matches.isEmpty()) {
+                    item {
+                        Text("Không tìm thấy. Thử một từ khoá khác.",
+                            color = MobiColors.TextDim, fontSize = 14.sp)
+                    }
+                }
+                item { Spacer(Modifier.height(88.dp)) }
+                return@LazyColumn
             }
 
             if (recent.isNotEmpty()) {
@@ -206,4 +273,18 @@ fun GameRow(
             Chip(profile?.device()?.resolution() ?: entry.profile())
         }
     }
+}
+
+/** One sort order, shown as a word rather than a control. */
+@Composable
+private fun SortChip(label: String, mode: Int, selected: Int, onSelect: (Int) -> Unit) {
+    val active = mode == selected
+    Text(
+        text = label,
+        color = if (active) MobiColors.Accent else MobiColors.TextDim,
+        fontSize = 13.sp,
+        modifier = Modifier
+            .clickable { onSelect(mode) }
+            .padding(horizontal = 2.dp),
+    )
 }

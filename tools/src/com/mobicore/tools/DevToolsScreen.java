@@ -188,7 +188,7 @@ public final class DevToolsScreen {
             row += entryHeight;
         }
 
-        ui.tabBar(new String[]{"Trang chủ", "Thư viện", "Công cụ", "Cài đặt"}, 2);
+        ui.tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
         return frame;
     }
 }

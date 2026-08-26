@@ -6,6 +6,8 @@ struct HomeView: View {
 
     @EnvironmentObject private var client: MobiCoreClient
     @State private var importing = false
+    @State private var query = ""
+    private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         ScrollView {
@@ -14,6 +16,34 @@ struct HomeView: View {
                     .padding(.top, 60)
             } else {
                 VStack(alignment: .leading, spacing: 18) {
+                    // Typing replaces the whole screen with the matches:
+                    // someone searching has stopped browsing. There is no
+                    // separate library tab — it only ever held this box over
+                    // the same games.
+                    if searching {
+                        Picker("Sắp xếp", selection: Binding(
+                            get: { client.librarySort },
+                            set: { client.setLibrarySort($0) }
+                        )) {
+                            Text("Tên").tag(0)
+                            Text("Vừa chơi").tag(1)
+                            Text("Nhà phát hành").tag(2)
+                        }
+                        .pickerStyle(.segmented)
+
+                        let matches = client.search(query, sort: client.librarySort)
+                        Text("\(matches.count) kết quả")
+                            .font(.caption2)
+                            .foregroundStyle(Palette.textDim)
+                        ForEach(matches) { game in
+                            GameRowLink(game: game)
+                        }
+                        if matches.isEmpty {
+                            Text("Không tìm thấy. Thử một từ khoá khác.")
+                                .font(.footnote)
+                                .foregroundStyle(Palette.textDim)
+                        }
+                    } else {
                     if !client.recent.isEmpty {
                         Text("VỪA CHƠI")
                             .font(.caption2.weight(.semibold))
@@ -56,6 +86,7 @@ struct HomeView: View {
                     ForEach(client.games) { game in
                         GameRowLink(game: game)
                     }
+                    }
                 }
                 .padding(16)
             }
@@ -80,6 +111,7 @@ struct HomeView: View {
             .accessibilityLabel("Nhập trò chơi")
             .padding(16)
         }
+        .searchable(text: $query, prompt: "Tìm theo tên hoặc nhà phát hành")
         .navigationTitle("MobiCore")
         .toolbar {
             // One tap, always in the same corner: light and dark is the

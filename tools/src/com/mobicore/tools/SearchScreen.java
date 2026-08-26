@@ -15,12 +15,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The library tab: a search box, the sort order, and what matched.
+ * The home screen mid-search: the box, the sort order, and what matched.
  *
- * <p>Photographed mid-search with the marks left off — "nguoi chay" against a
- * library holding "Người Chạy Trên Mây" — because that is the case worth
- * proving. A search that demanded the marks would find nothing here and look
- * broken to the person typing it.</p>
+ * <p>Typing replaces the browsing sections with the matches: someone
+ * searching has stopped browsing.</p>
+ *
+ * <p>Photographed with the marks left off — "nguoi chay" against a library
+ * holding "Người Chạy Trên Mây" — because that is the case worth proving. A
+ * search that demanded the marks would find nothing here and look broken to
+ * the person typing it.</p>
  */
 public final class SearchScreen {
 
@@ -52,7 +55,7 @@ public final class SearchScreen {
 
         int margin = 16;
         int width = frame.width() - margin * 2;
-        ui.text(ui.title(), "Thư viện", margin, 14, Theme.TEXT);
+        ui.text(ui.title(), "MobiCore", margin, 14, Theme.TEXT);
 
         int y = 14 + ui.title().height() + 14;
         y += ui.searchField(margin, y, width, query, "Tìm theo tên hoặc nhà phát hành") + 12;
@@ -80,7 +83,7 @@ public final class SearchScreen {
                     Theme.TEXT_DIM);
         }
 
-        ui.tabBar(new String[]{"Trang chủ", "Thư viện", "Công cụ", "Cài đặt"}, 1);
+        ui.tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 0);
         return frame;
     }
 

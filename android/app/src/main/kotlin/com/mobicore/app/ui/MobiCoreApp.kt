@@ -36,7 +36,6 @@ import kotlinx.coroutines.withContext
 /** Top level destinations, mirroring the product's information architecture. */
 private enum class Tab(val labelRes: Int) {
     HOME(R.string.tab_home),
-    LIBRARY(R.string.tab_library),
     TOOLS(R.string.tab_tools),
     SETTINGS(R.string.tab_settings),
 }
@@ -158,14 +157,6 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
                     onImport = { importLauncher.launch(IMPORT_MIME_TYPES) },
                 )
 
-                Tab.LIBRARY -> LibraryScreen(
-                    library = library,
-                    games = games,
-                    profiles = profiles,
-                    onOpen = { route = Route.Detail(it) },
-                    onImport = { importLauncher.launch(IMPORT_MIME_TYPES) },
-                )
-
                 Tab.TOOLS -> ToolsScreen(library = library, games = games)
 
                 Tab.SETTINGS -> SettingsScreen(library = library, games = games)
@@ -177,7 +168,6 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
 @Composable
 private fun iconFor(tab: Tab) = when (tab) {
     Tab.HOME -> Icons.Filled.Home
-    Tab.LIBRARY -> Icons.Filled.VideogameAsset
     Tab.TOOLS -> Icons.Filled.Build
     Tab.SETTINGS -> Icons.Filled.Settings
 }

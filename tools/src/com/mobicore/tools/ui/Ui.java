@@ -225,7 +225,7 @@ public final class Ui {
 
     /** The Material icon for each destination, in the order the bar shows. */
     private static final String[] TAB_ICONS = {
-            Icons.HOME, Icons.LIBRARY, Icons.TOOLS, Icons.SETTINGS,
+            Icons.HOME, Icons.TOOLS, Icons.SETTINGS,
     };
 
     /** Key/value row used across the detail and inspector screens. */
