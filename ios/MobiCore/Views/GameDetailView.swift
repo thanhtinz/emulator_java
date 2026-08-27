@@ -155,6 +155,17 @@ struct GameDetailView: View {
                     .buttonStyle(.plain)
 
                     NavigationLink {
+                        SaveSlotsView(suiteId: suiteId)
+                    } label: {
+                        SectionCard(title: "Ô LƯU TRẠNG THÁI") {
+                            Text("Xem và xoá các ô đã lưu")
+                                .font(.footnote)
+                                .foregroundStyle(Palette.accent)
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
                         ScreenshotsView(suiteId: suiteId)
                     } label: {
                         SectionCard(title: "ẢNH CHỤP") {

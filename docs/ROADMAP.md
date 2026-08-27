@@ -21,6 +21,7 @@
 | 17 | Phím hướng to bằng phím số, trang chủ theo kiểu J2ME Loader | Xong |
 | 18 | Thư viện ảnh chụp | Xong |
 | 19 | Bộ cấu hình dùng lại | Xong |
+| 20 | Nhiều ô lưu trạng thái | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -769,3 +770,27 @@ khi thành tên tệp.
 `presetsJson`, `savePreset`, `applyPreset`, `deletePreset`, `setDefaultPreset`.
 
 Ảnh: `build/screenshots/04-game-settings.png`.
+
+## Bốn ô lưu của người chơi, một ô của máy
+
+Trước đây mỗi game chỉ có **một** ô lưu, mà ô đó lại chính là ô trình giả lập
+ghi đè mỗi lần thoát game. Nghĩa là lưu lại trước một đoạn khó rồi chơi tiếp,
+đến lúc thoát là mất chỗ vừa lưu.
+
+Nay mỗi game có **năm** ô:
+
+- **Ô 0 — tự động**: máy ghi khi rời game, đúng như cũ, và chỉ mình nó bị ghi
+  đè khi thoát.
+- **Ô 1–4 — của người chơi**: lưu từ menu trong game (`Lưu vào ô N`), nạp lại
+  bằng `Nạp ô N` ngay giữa ván mà không phải khởi động lại game.
+- Mỗi ô giữ **ảnh màn hình lúc lưu** và **thời điểm lưu**: quay lại với bốn ô
+  lưu thì nhìn ảnh biết ngay ô nào là ô nào, nhanh hơn đọc ngày nhiều.
+- Trang **Ô lưu trạng thái** trong chi tiết game để xem và xoá từng ô.
+
+Ở lõi: `StorageLayout.saveStatePath(suiteId, slot)` (ô 0 giữ nguyên tên tệp cũ
+`state.mcs` nên bản lưu cũ vẫn dùng được), `GameLibrary` nhận thêm tham số ô, và
+facade có `saveState(slot)`, `loadState(slot)`, `resumeGame(suiteId, slot)`,
+`saveStatesJson`, `deleteSaveState(suiteId, slot)`. `Vfs` thêm `modifiedAt` —
+bốn ô giống hệt nhau mà không có ngày giờ thì chỉ còn cách đoán.
+
+Ảnh: `build/screenshots/22-save-slots.png`.

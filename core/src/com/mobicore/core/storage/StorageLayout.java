@@ -106,12 +106,32 @@ public final class StorageLayout {
      * would restore a game that has forgotten half of where it was.</p>
      */
     public String saveStatePath(String suiteId) {
-        return join(saveDir(suiteId), "state.mcs");
+        return saveStatePath(suiteId, SLOT_AUTO);
+    }
+
+    /**
+     * The slot the emulator writes on its own when a game is left.
+     *
+     * <p>Kept apart from the numbered slots, and kept at the file name it has
+     * always had: a player who quits a game and comes back must land where
+     * they were, and must not find that a slot they saved deliberately was
+     * overwritten on the way out.</p>
+     */
+    public static final int SLOT_AUTO = 0;
+    /** How many slots a player can save into by hand. */
+    public static final int SLOTS = 4;
+
+    public String saveStatePath(String suiteId, int slot) {
+        return join(saveDir(suiteId), slot == SLOT_AUTO ? "state.mcs" : "state-" + slot + ".mcs");
     }
 
     /** The screen as it looked when the state was saved. */
     public String saveStateThumbnailPath(String suiteId) {
-        return join(saveDir(suiteId), "state.png");
+        return saveStateThumbnailPath(suiteId, SLOT_AUTO);
+    }
+
+    public String saveStateThumbnailPath(String suiteId, int slot) {
+        return join(saveDir(suiteId), slot == SLOT_AUTO ? "state.png" : "state-" + slot + ".png");
     }
 
     /** Where a picture of the game goes when the player asks for one. */

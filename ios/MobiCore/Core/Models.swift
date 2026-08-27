@@ -218,3 +218,18 @@ struct PresetsResponse: Codable {
     let presets: [String]
     let defaultPreset: String
 }
+
+/// One save slot: the emulator's own at zero, then the player's.
+struct SaveSlot: Codable, Identifiable, Hashable {
+    let slot: Int
+    let auto: Bool
+    let used: Bool
+    let savedAt: Int64
+    let thumbnail: Bool
+
+    var id: Int { slot }
+}
+
+struct SaveSlotsResponse: Codable {
+    let slots: [SaveSlot]
+}

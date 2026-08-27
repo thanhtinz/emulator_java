@@ -54,6 +54,7 @@ fun GameDetailScreen(
     onSettings: () -> Unit,
     onSaves: () -> Unit,
     onScreenshots: () -> Unit,
+    onSaveSlots: () -> Unit,
 ) {
     val profiles by library.profiles.collectAsState()
     val entry = library.games.collectAsState().value.firstOrNull { it.suiteId() == suiteId }
@@ -262,6 +263,21 @@ fun GameDetailScreen(
                         modifier = Modifier.clickable(onClick = onSaves),
                     )
                 }
+            }
+        }
+
+        item {
+            val slots = remember(suiteId) { library.saveSlots(suiteId) }
+            SectionCard(
+                title = "Ô LƯU TRẠNG THÁI",
+                trailing = "${slots.count { it.used }}/${slots.size}",
+            ) {
+                Text(
+                    text = "Xem và xoá các ô đã lưu",
+                    color = MobiColors.Accent,
+                    fontSize = 13.sp,
+                    modifier = Modifier.clickable(onClick = onSaveSlots),
+                )
             }
         }
 

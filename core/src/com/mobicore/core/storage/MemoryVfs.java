@@ -14,6 +14,10 @@ import java.util.TreeMap;
 public final class MemoryVfs implements Vfs {
 
     private final Map<String, byte[]> files = new TreeMap<String, byte[]>();
+    /** Written-at stamps, so a save slot can say when it was made. */
+    private final Map<String, Long> stamps = new TreeMap<String, Long>();
+    /** Counts up per write: tests need an order, not a wall clock. */
+    private long tick = 1_700_000_000_000L;
     private final Set<String> directories = new HashSet<String>();
 
     private static String norm(String path) {
@@ -42,6 +46,12 @@ public final class MemoryVfs implements Vfs {
     }
 
     @Override
+    public long modifiedAt(String path) {
+        Long stamp = stamps.get(norm(path));
+        return stamp == null ? 0L : stamp.longValue();
+    }
+
+    @Override
     public byte[] read(String path) throws IOException {
         byte[] data = files.get(norm(path));
         if (data == null) {
@@ -62,6 +72,7 @@ public final class MemoryVfs implements Vfs {
         byte[] copy = new byte[data.length];
         System.arraycopy(data, 0, copy, 0, data.length);
         files.put(key, copy);
+        stamps.put(key, Long.valueOf(tick += 1000));
     }
 
     @Override

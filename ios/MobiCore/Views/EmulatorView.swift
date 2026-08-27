@@ -150,10 +150,22 @@ private extension EmulatorView {
                 Label(landscape ? "Màn hình: Ngang" : "Màn hình: Dọc",
                       systemImage: "rotate.right")
             }
-            Button {
-                client.saveState()
+            // Four slots of the player's own, plus the automatic one the
+            // emulator writes when the game is left. Saving before something
+            // hard and coming back to it is what one slot per game cannot do.
+            Menu {
+                ForEach(1..<5) { slot in
+                    Button("Lưu vào ô \(slot)") { client.saveState(slot: slot) }
+                }
             } label: {
                 Label("Lưu trạng thái", systemImage: "square.and.arrow.down")
+            }
+            Menu {
+                ForEach(client.saveSlots(suiteId).filter { $0.used && !$0.auto }) { slot in
+                    Button("Nạp ô \(slot.slot)") { client.loadState(slot: slot.slot) }
+                }
+            } label: {
+                Label("Nạp trạng thái", systemImage: "square.and.arrow.up")
             }
             Button(role: .destructive) {
                 engine.stop()

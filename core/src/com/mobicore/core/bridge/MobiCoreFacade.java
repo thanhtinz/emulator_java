@@ -1129,13 +1129,25 @@ public final class MobiCoreFacade {
      * and on a phone leaving is not always the player's decision.</p>
      */
     public String saveState() {
+        return saveState(StorageLayout.SLOT_AUTO);
+    }
+
+    /**
+     * Saves into one slot.
+     *
+     * <p>Slot zero is the emulator's own, written on the way out. The
+     * numbered ones are the player's: somewhere to stand before a boss and
+     * come back to, which one slot per game cannot be — leaving the game
+     * would overwrite it.</p>
+     */
+    public String saveState(int slot) {
         if (session == null || activeSuiteId == null) {
             return error("Không có trò chơi nào đang chạy");
         }
         try {
             byte[] state = SaveState.capture(session);
             byte[] screenshot = PngWriter.encode(session.screen());
-            library.writeSaveState(activeSuiteId, state, screenshot);
+            library.writeSaveState(activeSuiteId, slot, state, screenshot);
             return ok("bytes", String.valueOf(state.length));
         } catch (SaveState.NotSavable e) {
             return error(e.getMessage());
@@ -1152,12 +1164,16 @@ public final class MobiCoreFacade {
      * with no saved state simply starts.</p>
      */
     public String resumeGame(String suiteId) {
+        return resumeGame(suiteId, StorageLayout.SLOT_AUTO);
+    }
+
+    public String resumeGame(String suiteId, int slot) {
         String started = startGame(suiteId);
         if (!Json.bool(Json.readObject(started), "ok", false)) {
             return started;
         }
         try {
-            byte[] state = library.readSaveState(suiteId);
+            byte[] state = library.readSaveState(suiteId, slot);
             if (state == null) {
                 // Said either way, so the caller never has to guess whether a
                 // missing answer means "from the beginning".
@@ -1185,10 +1201,69 @@ public final class MobiCoreFacade {
         return library != null && library.hasSaveState(suiteId);
     }
 
+    /**
+     * Loads a slot into the game already running.
+     *
+     * <p>Separate from {@link #resumeGame}: that starts a game, this one is
+     * what the in-game menu calls, and reloading a slot mid-play must not
+     * throw away the machine the game is running on.</p>
+     */
+    public String loadState(int slot) {
+        if (session == null || activeSuiteId == null) {
+            return error("Không có trò chơi nào đang chạy");
+        }
+        try {
+            byte[] state = library.readSaveState(activeSuiteId, slot);
+            if (state == null) {
+                return error("Ô này chưa có gì");
+            }
+            SaveState.restore(session, state);
+            return ok("slot", String.valueOf(slot));
+        } catch (SaveState.NotSavable e) {
+            return error(e.getMessage());
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Every slot of one game: which are full, when they were written, and
+     * whether they carry a picture.
+     */
+    public String saveStatesJson(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            List<Object> slots = new ArrayList<Object>();
+            for (int slot = 0; slot <= StorageLayout.SLOTS; slot++) {
+                Map<String, Object> entry = Json.object();
+                boolean used = library.hasSaveState(suiteId, slot);
+                entry.put("slot", Integer.valueOf(slot));
+                entry.put("auto", Boolean.valueOf(slot == StorageLayout.SLOT_AUTO));
+                entry.put("used", Boolean.valueOf(used));
+                entry.put("savedAt", Long.valueOf(library.saveStateTime(suiteId, slot)));
+                byte[] shot = library.saveStateThumbnail(suiteId, slot);
+                entry.put("thumbnail", Boolean.valueOf(shot != null && shot.length > 0));
+                slots.add(entry);
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("slots", slots);
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
     /** The screen as it looked when the game was saved, as PNG bytes. */
     public byte[] saveStateThumbnail(String suiteId) {
+        return saveStateThumbnail(suiteId, StorageLayout.SLOT_AUTO);
+    }
+
+    public byte[] saveStateThumbnail(String suiteId, int slot) {
         try {
-            byte[] data = library == null ? null : library.saveStateThumbnail(suiteId);
+            byte[] data = library == null ? null : library.saveStateThumbnail(suiteId, slot);
             return data == null ? new byte[0] : data;
         } catch (IOException e) {
             return new byte[0];
@@ -1196,11 +1271,15 @@ public final class MobiCoreFacade {
     }
 
     public String deleteSaveState(String suiteId) {
+        return deleteSaveState(suiteId, StorageLayout.SLOT_AUTO);
+    }
+
+    public String deleteSaveState(String suiteId, int slot) {
         if (library == null) {
             return error("The library is not open");
         }
         try {
-            return ok("removed", String.valueOf(library.deleteSaveState(suiteId)));
+            return ok("removed", String.valueOf(library.deleteSaveState(suiteId, slot)));
         } catch (IOException e) {
             return error(e.getMessage());
         }

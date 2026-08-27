@@ -203,6 +203,30 @@
     return [_facade takeScreenshot];
 }
 
+- (NSString *)saveStateInSlot:(int32_t)slot {
+    return [_facade saveStateWithInt:slot];
+}
+
+- (NSString *)loadStateFromSlot:(int32_t)slot {
+    return [_facade loadStateWithInt:slot];
+}
+
+- (NSString *)saveStatesJSONForSuite:(NSString *)suiteId {
+    return [_facade saveStatesJsonWithNSString:suiteId];
+}
+
+- (NSData *)saveStateThumbnailForSuite:(NSString *)suiteId slot:(int32_t)slot {
+    IOSByteArray *bytes = [_facade saveStateThumbnailWithNSString:suiteId withInt:slot];
+    if (bytes == nil || bytes->size_ == 0) {
+        return nil;
+    }
+    return [NSData dataWithBytes:bytes->buffer_ length:(NSUInteger)bytes->size_];
+}
+
+- (NSString *)deleteSaveStateForSuite:(NSString *)suiteId slot:(int32_t)slot {
+    return [_facade deleteSaveStateWithNSString:suiteId withInt:slot];
+}
+
 - (NSString *)presetsJSON {
     return [_facade presetsJson];
 }

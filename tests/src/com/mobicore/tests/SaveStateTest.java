@@ -167,6 +167,9 @@ public final class SaveStateTest extends Test {
         check(Json.bool(resumed, "ok", false), "opening it again starts the game");
         check(Json.bool(resumed, "resumed", false), "and puts it back where it was");
 
+        // Slots: the player's own, kept apart from the emulator's.
+        slots(facade, suiteId);
+
         check(Json.bool(Json.readObject(facade.deleteSaveState(suiteId)), "ok", false),
                 "a saved state can be thrown away");
         check(!facade.hasSaveState(suiteId), "and then it is gone");
@@ -174,6 +177,55 @@ public final class SaveStateTest extends Test {
         check(Json.bool(fresh, "ok", false), "a game with nothing saved still starts");
         check(!Json.bool(fresh, "resumed", true), "and says it started from the beginning");
         facade.stopGame();
+    }
+
+    /**
+     * Four slots a player saves into by hand, plus the one the emulator
+     * writes on the way out.
+     *
+     * <p>The point of keeping them apart: standing somewhere hard, saving
+     * into slot 2, then quitting must not overwrite slot 2 with the quit.</p>
+     */
+    private void slots(MobiCoreFacade facade, String suiteId) throws Exception {
+        for (int i = 0; i < 5; i++) {
+            facade.renderFrame();
+        }
+        check(Json.bool(Json.readObject(facade.saveState(2)), "ok", false),
+                "the player can save into a slot of their own");
+
+        Map<String, Object> listed = Json.readObject(facade.saveStatesJson(suiteId));
+        java.util.List<Object> slots = Json.array(listed, "slots");
+        eq(5, slots.size(), "every slot is reported, empty ones included");
+        Map<String, Object> two = (Map<String, Object>) slots.get(2);
+        check(Json.bool(two, "used", false), "slot 2 is full");
+        check(Json.longValue(two, "savedAt", 0L) > 0L, "and says when it was written");
+        check(Json.bool(two, "thumbnail", false), "with a picture of that moment");
+        check(!Json.bool((Map<String, Object>) slots.get(3), "used", true),
+                "a slot nobody saved into is empty");
+        check(Json.bool((Map<String, Object>) slots.get(0), "auto", false),
+                "and slot zero is the emulator's own");
+
+        // Leaving the game writes the automatic slot, not the player's.
+        long before = Json.longValue(two, "savedAt", 0L);
+        facade.stopGameSaving();
+        Map<String, Object> after = (Map<String, Object>) Json.array(
+                Json.readObject(facade.saveStatesJson(suiteId)), "slots").get(2);
+        check(before == Json.longValue(after, "savedAt", 0L),
+                "quitting the game leaves the player's slot alone");
+
+        check(Json.bool(Json.readObject(facade.resumeGame(suiteId, 2)), "resumed", false),
+                "a game can be opened straight into a slot");
+        check(Json.bool(Json.readObject(facade.loadState(2)), "ok", false),
+                "and a slot can be loaded into the game already running");
+        check(!Json.bool(Json.readObject(facade.loadState(3)), "ok", true),
+                "loading an empty slot says so rather than breaking the game");
+        check(facade.saveStateThumbnail(suiteId, 2).length > 0,
+                "the slot's picture reads back");
+        check(Json.bool(Json.readObject(facade.deleteSaveState(suiteId, 2)), "ok", false),
+                "a slot can be emptied");
+        check(!Json.bool((Map<String, Object>) Json.array(
+                        Json.readObject(facade.saveStatesJson(suiteId)), "slots").get(2),
+                "used", true), "after which it is empty");
     }
 
     private void expectRefusal(EmulatorSession session, byte[] blob, String message) {

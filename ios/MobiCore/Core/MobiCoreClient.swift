@@ -174,6 +174,34 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.saveState()))
     }
 
+    /// Four slots the player writes by hand, plus the automatic one written
+    /// when a game is left. Kept apart: quitting must not overwrite the place
+    /// someone saved deliberately.
+    func saveState(slot: Int) {
+        report(decode(bridge.saveState(inSlot: Int32(slot))))
+    }
+
+    func loadState(slot: Int) {
+        report(decode(bridge.loadState(fromSlot: Int32(slot))))
+    }
+
+    func saveSlots(_ suiteId: String) -> [SaveSlot] {
+        let payload: SaveSlotsResponse? = decode(bridge.saveStatesJSON(forSuite: suiteId))
+        return payload?.slots ?? []
+    }
+
+    func saveSlotThumbnail(_ suiteId: String, slot: Int) -> Image? {
+        guard let data = bridge.saveStateThumbnail(forSuite: suiteId, slot: Int32(slot)),
+              let image = UIImage(data: data) else {
+            return nil
+        }
+        return Image(uiImage: image)
+    }
+
+    func deleteSaveState(_ suiteId: String, slot: Int) {
+        report(decode(bridge.deleteSaveState(forSuite: suiteId, slot: Int32(slot))))
+    }
+
     func deleteSaveState(_ suiteId: String) {
         report(decode(bridge.deleteSaveState(forSuite: suiteId)))
         refresh()

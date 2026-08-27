@@ -18,6 +18,16 @@ public interface Vfs {
 
     long size(String path);
 
+    /**
+     * When a file was last written, in epoch milliseconds, or zero when it
+     * does not exist.
+     *
+     * <p>Needed because a save slot is worth nothing without "when": four
+     * identical-looking slots and no dates is a guess about which one to
+     * load.</p>
+     */
+    long modifiedAt(String path);
+
     byte[] read(String path) throws IOException;
 
     void write(String path, byte[] data) throws IOException;

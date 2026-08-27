@@ -123,6 +123,13 @@ NS_ASSUME_NONNULL_BEGIN
 /** Saves a picture of what the running game is showing. */
 - (NSString *)takeScreenshot;
 
+/** Save slots: the emulator's own at zero, then the player's. */
+- (NSString *)saveStateInSlot:(int32_t)slot;
+- (NSString *)loadStateFromSlot:(int32_t)slot;
+- (NSString *)saveStatesJSONForSuite:(NSString *)suiteId;
+- (nullable NSData *)saveStateThumbnailForSuite:(NSString *)suiteId slot:(int32_t)slot;
+- (NSString *)deleteSaveStateForSuite:(NSString *)suiteId slot:(int32_t)slot;
+
 /** Named settings, saved once and applied to any game. */
 - (NSString *)presetsJSON;
 - (NSString *)savePreset:(NSString *)name fromSuite:(NSString *)suiteId;

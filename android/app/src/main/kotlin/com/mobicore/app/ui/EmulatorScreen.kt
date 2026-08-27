@@ -303,17 +303,41 @@ private fun GameMenu(
                 leadingIcon = { Icon(Icons.Filled.ScreenRotation, contentDescription = null) },
                 onClick = { library.toggleOrientation(suiteId) },
             )
-            DropdownMenuItem(
-                text = { Text("Lưu trạng thái") },
-                leadingIcon = { Icon(Icons.Filled.Save, contentDescription = null) },
-                onClick = {
-                    engine.captureState()?.let { state ->
-                        library.writeSaveState(suiteId, state, engine.screenshot())
-                    }
-                    note = "Đã lưu trạng thái"
-                    open = false
-                },
-            )
+            // Four slots of the player's own, plus the automatic one the
+            // emulator writes when the game is left. Saving before something
+            // hard and coming back to it is what one slot per game cannot
+            // do — quitting would overwrite it.
+            (1..4).forEach { slot ->
+                val used = library.saveSlots(suiteId).firstOrNull { it.slot == slot }?.used == true
+                DropdownMenuItem(
+                    text = { Text(if (used) "Lưu vào ô $slot (ghi đè)" else "Lưu vào ô $slot") },
+                    leadingIcon = if (slot == 1) {
+                        { Icon(Icons.Filled.Save, contentDescription = null) }
+                    } else {
+                        null
+                    },
+                    onClick = {
+                        engine.captureState()?.let { state ->
+                            library.writeSaveState(suiteId, slot, state, engine.screenshot())
+                        }
+                        note = "Đã lưu vào ô $slot"
+                        open = false
+                    },
+                )
+            }
+            (1..4).forEach { slot ->
+                val used = library.saveSlots(suiteId).firstOrNull { it.slot == slot }?.used == true
+                if (used) {
+                    DropdownMenuItem(
+                        text = { Text("Nạp ô $slot") },
+                        onClick = {
+                            library.readSaveState(suiteId, slot)?.let { engine.restoreState(it) }
+                            note = "Đã nạp ô $slot"
+                            open = false
+                        },
+                    )
+                }
+            }
             DropdownMenuItem(
                 text = { Text("Thoát") },
                 leadingIcon = { Icon(Icons.Filled.ExitToApp, contentDescription = null) },

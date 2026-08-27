@@ -308,13 +308,26 @@ public final class GameLibrary {
      */
     public void writeSaveState(String suiteId, byte[] state, byte[] screenshot)
             throws IOException {
+        writeSaveState(suiteId, StorageLayout.SLOT_AUTO, state, screenshot);
+    }
+
+    /**
+     * Stores a state in one slot.
+     *
+     * <p>Slot {@link StorageLayout#SLOT_AUTO} is the emulator's own, written
+     * when a game is left; the numbered ones belong to the player. Keeping
+     * them apart is the point: quitting a game must not overwrite the place
+     * someone deliberately saved before a boss.</p>
+     */
+    public void writeSaveState(String suiteId, int slot, byte[] state, byte[] screenshot)
+            throws IOException {
         if (!entries.containsKey(suiteId)) {
             throw new IOException("No installed suite with id " + suiteId);
         }
         vfs.mkdirs(layout.saveDir(suiteId));
-        vfs.write(layout.saveStatePath(suiteId), state);
+        vfs.write(layout.saveStatePath(suiteId, slot), state);
         if (screenshot != null && screenshot.length > 0) {
-            vfs.write(layout.saveStateThumbnailPath(suiteId), screenshot);
+            vfs.write(layout.saveStateThumbnailPath(suiteId, slot), screenshot);
         }
     }
 
@@ -386,27 +399,49 @@ public final class GameLibrary {
     }
 
     public byte[] readSaveState(String suiteId) throws IOException {
-        String path = layout.saveStatePath(suiteId);
+        return readSaveState(suiteId, StorageLayout.SLOT_AUTO);
+    }
+
+    public byte[] readSaveState(String suiteId, int slot) throws IOException {
+        String path = layout.saveStatePath(suiteId, slot);
         return vfs.exists(path) ? vfs.read(path) : null;
     }
 
     public byte[] saveStateThumbnail(String suiteId) throws IOException {
-        String path = layout.saveStateThumbnailPath(suiteId);
+        return saveStateThumbnail(suiteId, StorageLayout.SLOT_AUTO);
+    }
+
+    public byte[] saveStateThumbnail(String suiteId, int slot) throws IOException {
+        String path = layout.saveStateThumbnailPath(suiteId, slot);
         return vfs.exists(path) ? vfs.read(path) : null;
     }
 
     public boolean hasSaveState(String suiteId) {
-        return vfs.exists(layout.saveStatePath(suiteId));
+        return hasSaveState(suiteId, StorageLayout.SLOT_AUTO);
+    }
+
+    public boolean hasSaveState(String suiteId, int slot) {
+        return vfs.exists(layout.saveStatePath(suiteId, slot));
+    }
+
+    /** When a slot was written, or zero when it holds nothing. */
+    public long saveStateTime(String suiteId, int slot) throws IOException {
+        String path = layout.saveStatePath(suiteId, slot);
+        return vfs.exists(path) ? vfs.modifiedAt(path) : 0L;
     }
 
     /** Throws the saved state away; the game starts from the beginning again. */
     public boolean deleteSaveState(String suiteId) throws IOException {
-        if (!hasSaveState(suiteId)) {
+        return deleteSaveState(suiteId, StorageLayout.SLOT_AUTO);
+    }
+
+    public boolean deleteSaveState(String suiteId, int slot) throws IOException {
+        if (!hasSaveState(suiteId, slot)) {
             return false;
         }
-        vfs.delete(layout.saveStatePath(suiteId));
-        if (vfs.exists(layout.saveStateThumbnailPath(suiteId))) {
-            vfs.delete(layout.saveStateThumbnailPath(suiteId));
+        vfs.delete(layout.saveStatePath(suiteId, slot));
+        if (vfs.exists(layout.saveStateThumbnailPath(suiteId, slot))) {
+            vfs.delete(layout.saveStateThumbnailPath(suiteId, slot));
         }
         return true;
     }

@@ -31,6 +31,11 @@ public final class LocalVfs implements Vfs {
     }
 
     @Override
+    public long modifiedAt(String path) {
+        return new File(path).lastModified();
+    }
+
+    @Override
     public byte[] read(String path) throws IOException {
         InputStream in = new FileInputStream(path);
         try {

@@ -58,6 +58,7 @@ public final class Preview {
                 .withKeypad(com.mobicore.core.model.GameProfile.KEYPAD_ARROWS).render());
         write(vfs, outDir, "20-game-menu.png", new EmulatorScreen(fixtures).withMenu().render());
         write(vfs, outDir, "21-screenshots.png", new ShotsScreen(fixtures).render());
+        write(vfs, outDir, "22-save-slots.png", new SlotsScreen(fixtures).render());
 
         // The same screens in the other theme, so both can be reviewed.
         Theme.setMode(Theme.DARK);

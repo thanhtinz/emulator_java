@@ -17,6 +17,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/** One save slot, as the slots screen lists it. */
+data class SaveSlot(val slot: Int, val savedAt: Long, val used: Boolean)
+
 /**
  * Android-facing wrapper around the portable [GameLibrary].
  *
@@ -209,6 +212,37 @@ class LibraryRepository(filesDir: String) {
     }
 
     fun readSaveState(suiteId: String): ByteArray? = library.readSaveState(suiteId)
+
+    /**
+     * The slots one game has: the emulator's own at zero, then the player's.
+     *
+     * Kept apart on purpose — quitting a game writes slot zero, and must not
+     * overwrite the place someone deliberately saved before a boss.
+     */
+    fun saveSlots(suiteId: String): List<SaveSlot> =
+        (0..StorageLayout.SLOTS).map { slot ->
+            SaveSlot(
+                slot = slot,
+                savedAt = library.saveStateTime(suiteId, slot),
+                used = library.hasSaveState(suiteId, slot),
+            )
+        }
+
+    fun writeSaveState(suiteId: String, slot: Int, state: ByteArray, screenshot: ByteArray?) {
+        library.writeSaveState(suiteId, slot, state, screenshot)
+        refresh()
+    }
+
+    fun readSaveState(suiteId: String, slot: Int): ByteArray? =
+        library.readSaveState(suiteId, slot)
+
+    fun saveStateThumbnail(suiteId: String, slot: Int): ByteArray? =
+        library.saveStateThumbnail(suiteId, slot)
+
+    fun deleteSaveState(suiteId: String, slot: Int) {
+        library.deleteSaveState(suiteId, slot)
+        refresh()
+    }
 
     fun saveStateThumbnail(suiteId: String): ByteArray? = library.saveStateThumbnail(suiteId)
 
