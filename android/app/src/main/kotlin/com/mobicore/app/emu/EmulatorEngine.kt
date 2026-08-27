@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class EmulatorEngine(
     private val filesDir: String,
+    /** The phone's motor, when the app has one to offer. */
+    private val vibration: com.mobicore.core.haptics.VibrationSink? = null,
 ) {
 
     /** Bumped after each painted frame so Compose knows to redraw. */
@@ -75,6 +77,8 @@ class EmulatorEngine(
         // defaults to; the profile's volume is already applied inside the
         // emulator, so the track only has to play what it is handed.
         created.setAudio(audio)
+        // A J2ME game's only physical feedback was the handset shaking.
+        vibration?.let { created.setVibration(it) }
         session = created
         val width = created.screen().width()
         val height = created.screen().height()

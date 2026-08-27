@@ -2,6 +2,8 @@ package com.mobicore.core.midp;
 
 import com.mobicore.core.audio.AudioLog;
 import com.mobicore.core.audio.AudioSink;
+import com.mobicore.core.haptics.VibrationLog;
+import com.mobicore.core.haptics.VibrationSink;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.vm.Vm;
 import com.mobicore.core.vm.VmObject;
@@ -223,6 +225,46 @@ public final class MidpContext {
 
     public void setAudio(AudioSink audio) {
         this.audio = audio == null ? this.audio : audio;
+    }
+
+    /**
+     * Where a request to vibrate goes. Recording by default, for the same
+     * reason sound records by default: a context nobody wired a motor to
+     * still runs a game that buzzes.
+     */
+    private VibrationSink vibration = new VibrationLog();
+    private boolean vibrationAllowed = true;
+
+    public VibrationSink vibration() {
+        return vibration;
+    }
+
+    public void setVibration(VibrationSink sink) {
+        this.vibration = sink == null ? this.vibration : sink;
+    }
+
+    /** The player's own switch: some people do not want the phone buzzing. */
+    public void setVibrationAllowed(boolean allowed) {
+        this.vibrationAllowed = allowed;
+    }
+
+    /**
+     * Passes a game's request to the device.
+     *
+     * <p>Answering honestly matters: MIDP's {@code vibrate} returns whether
+     * the device will really vibrate, and a game told no may draw something
+     * instead. Saying yes and doing nothing takes that choice away.</p>
+     */
+    public boolean vibrate(int durationMs) {
+        if (!vibrationAllowed) {
+            return false;
+        }
+        if (durationMs <= 0) {
+            vibration.cancel();
+            return true;
+        }
+        // A handset would not shake for a minute because a game asked it to.
+        return vibration.vibrate(Math.min(durationMs, 5000));
     }
 
     /**

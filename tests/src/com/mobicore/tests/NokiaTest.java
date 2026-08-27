@@ -4,7 +4,9 @@ import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.midp.MidpContext;
+import com.mobicore.core.haptics.VibrationLog;
 import com.mobicore.core.midp.NokiaUi;
+import com.mobicore.core.model.GameProfile;
 import com.mobicore.tools.SampleSuite;
 
 import java.io.File;
@@ -46,6 +48,8 @@ public final class NokiaTest extends Test {
     private void runsAsBytecode() throws Exception {
         SuiteLoader suite = SuiteLoader.load(SampleSuite.jar(fixtureDir), SampleSuite.jad());
         EmulatorSession session = EmulatorSession.create(suite, 240, 320, null);
+        VibrationLog buzzes = new VibrationLog();
+        session.setVibration(buzzes);
         session.start("demo.NokiaDemo");
         MidpContext context = session.context();
 
@@ -80,6 +84,31 @@ public final class NokiaTest extends Test {
             refused = true;
         }
         check(refused, "FullCanvas still refuses commands, as the real one did");
+        vibration(buzzes, suite);
+    }
+
+    /**
+     * The buzz: a J2ME game's only physical feedback, and until now every
+     * request for one was answered with "no".
+     */
+    private void vibration(VibrationLog buzzes, SuiteLoader suite) throws Exception {
+        eq(2, buzzes.buzzes().size(),
+                "both ways of asking reach the device: Nokia's and MIDP's own");
+        eq(320, buzzes.totalMs(), "for as long as the game asked");
+        check(buzzes.cancels() >= 1, "and stopVibra calls it off");
+
+        // The player's switch is the last word.
+        GameProfile quiet = GameProfile.defaultsFor(suite.info());
+        quiet.setVibration(false);
+        EmulatorSession silent = EmulatorSession.create(suite, quiet, null, null, null);
+        VibrationLog none = new VibrationLog();
+        silent.setVibration(none);
+        silent.start("demo.NokiaDemo");
+        eq(0, none.buzzes().size(), "a game told not to buzz does not buzz");
+
+        // And a game told no is told no, so it can draw something instead.
+        check(!silent.context().vibrate(100),
+                "the honest answer is what MIDP promises to report");
     }
 
     // ------------------------------------------------------ manipulations

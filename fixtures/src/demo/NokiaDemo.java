@@ -26,10 +26,12 @@ public final class NokiaDemo extends MIDlet {
 
     protected void startApp() {
         Display.getDisplay(this).setCurrent(scene);
-        // A game of this kind buzzes on start; the emulator accepts it and
-        // does nothing, which is the honest answer on a desktop.
+        // A game of this kind buzzes on start. Both ways of asking are here
+        // because games use both: Nokia's own and MIDP's.
         DeviceControl.startVibra(50, 200);
         DeviceControl.stopVibra();
+        // MIDP's own way of asking, which most games use.
+        Display.getDisplay(this).vibrate(120);
         scene.repaint();
     }
 

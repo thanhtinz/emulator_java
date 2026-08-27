@@ -312,11 +312,12 @@ public final class NokiaUi {
     /**
      * The handset's lights and vibration.
      *
-     * <p>Nothing here can be honestly emulated on a desktop preview and only
-     * vibration means anything on a phone, so the calls are recorded in the
-     * log and otherwise do nothing. What matters is that they exist: a game
-     * that flashes the lights on every explosion would otherwise fail on its
-     * first explosion.</p>
+     * <p>Vibration is real: it goes to the same place MIDP's own
+     * {@code Display.vibrate} goes, which on a phone is the motor. The lights
+     * are not — there is nothing honest to do with a request for a handset's
+     * keypad backlight — so those calls are accepted and ignored. What matters
+     * is that they exist: a game that flashes the lights on every explosion
+     * would otherwise fail on its first explosion.</p>
      */
     private static void deviceControl(final Vm vm, final MidpContext context) {
         vm.builtin(DEVICE_CONTROL, "java/lang/Object")
@@ -328,8 +329,21 @@ public final class NokiaUi {
                         return Rt.box(false);
                     }
                 })
-                .staticMethod("startVibra", "(IJ)V", ignored())
-                .staticMethod("stopVibra", "()V", ignored())
+                .staticMethod("startVibra", "(IJ)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        // Nokia states a strength and a duration; the strength
+                        // is a number no phone today takes, so the duration is
+                        // what carries over.
+                        context.vibrate((int) Rt.l(args, 1));
+                        return null;
+                    }
+                })
+                .staticMethod("stopVibra", "()V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        context.vibration().cancel();
+                        return null;
+                    }
+                })
                 .staticMethod("setBacklightBrightness", "(I)V",
                         ignored())
                 .define();

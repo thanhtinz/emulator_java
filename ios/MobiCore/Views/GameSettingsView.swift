@@ -146,6 +146,15 @@ struct GameSettingsView: View {
                                     if !editing { save(current) }
                                 }
                             )
+                            // The buzz was part of the game, so it is on; off
+                            // is a real choice, because a game that vibrates
+                            // on every hit cannot be played quietly next to
+                            // someone.
+                            Toggle("Rung", isOn: Binding(
+                                get: { current.vibration },
+                                set: { current.vibration = $0; save(current) }
+                            ))
+                            .font(.footnote)
                         }
                     }
 

@@ -63,6 +63,7 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
     var volume by remember { mutableIntStateOf(profile.volume()) }
     var showFps by remember { mutableStateOf(profile.showFps()) }
     var smoothing by remember { mutableStateOf(profile.smoothing()) }
+    var vibration by remember { mutableStateOf(profile.vibration()) }
     var networkMode by remember { mutableIntStateOf(profile.networkMode()) }
     var preset by remember { mutableStateOf(profile.input().presetName()) }
 
@@ -235,6 +236,21 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                         onValueChangeFinished = { persist { it.setVolume(volume) } },
                         valueRange = 0f..100f,
                     )
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // The buzz was part of the game, so it is on; off is a
+                        // real choice, because a game that vibrates on every
+                        // hit cannot be played quietly next to someone.
+                        Text("Rung", color = MobiColors.TextDim, fontSize = 14.sp)
+                        Switch(checked = vibration, onCheckedChange = {
+                            vibration = it
+                            persist { profile -> profile.setVibration(it) }
+                        })
+                    }
                 }
             }
         }

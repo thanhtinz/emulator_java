@@ -3,6 +3,7 @@
 #import "J2ObjC_header.h"
 #import "IOSPrimitiveArray.h"
 #import "MobiCoreAudioSink.h"
+#import "MobiCoreVibration.h"
 #import "com/mobicore/core/bridge/MobiCoreFacade.h"
 #import "com/mobicore/core/midp/SystemChrome.h"
 
@@ -13,6 +14,7 @@
     uint32_t *_pixelBuffer;
     NSUInteger _pixelCapacity;
     MobiCoreAudioSink *_audio;
+    MobiCoreVibration *_vibration;
 }
 
 + (MobiCoreBridge *)shared {
@@ -32,6 +34,8 @@
         // into a recorder nobody can hear.
         _audio = [[MobiCoreAudioSink alloc] init];
         [_facade setAudioSinkWithComMobicoreCoreAudioAudioSink:_audio];
+        _vibration = [[MobiCoreVibration alloc] init];
+        [_facade setVibrationSinkWithComMobicoreCoreHapticsVibrationSink:_vibration];
     }
     return self;
 }

@@ -155,6 +155,7 @@ public final class EmulatorSession {
             }
         }));
         context.setMasterVolume(profile.volume(), profile.isMuted());
+        context.setVibrationAllowed(profile.vibration());
 
         Vfs vfs = storage == null ? new MemoryVfs() : storage;
         StorageLayout paths = layout == null ? new StorageLayout("MobiCore") : layout;
@@ -201,6 +202,11 @@ public final class EmulatorSession {
      * and iOS an audio queue; left alone, everything the game plays is
      * recorded and nothing is heard.
      */
+    /** Where a request to vibrate goes; recording until a platform wires one. */
+    public void setVibration(com.mobicore.core.haptics.VibrationSink sink) {
+        context.setVibration(sink);
+    }
+
     public void setAudio(AudioSink sink) {
         context.setAudio(sink);
     }

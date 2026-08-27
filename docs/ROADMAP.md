@@ -31,6 +31,7 @@
 | 27 | Thống kê thời gian chơi | Xong |
 | 28 | Phát nhạc MIDI | Xong |
 | 29 | API riêng của Nokia | Xong |
+| 30 | Rung thật | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1035,3 +1036,28 @@ Fixture mới `demo/NokiaDemo` kế thừa `FullCanvas` và vẽ hoàn toàn b�
 `DirectGraphics`, chạy thật bằng bytecode trong bộ kiểm thử.
 
 Ảnh: `build/screenshots/23-nokia.png`.
+
+## Rung: phản hồi vật lý duy nhất mà game J2ME có
+
+`Display.vibrate` và `DeviceControl.startVibra` trước đây đều trả lời "không
+rung" và không làm gì. Mà cái rung khi đâm xe hay khi trúng đòn **là một phần
+của game** — máy thời đó không có gì khác để phản hồi bằng xúc giác.
+
+- `core/haptics/VibrationSink` là chỗ yêu cầu rung đi ra ngoài, giống hệt cách
+  `AudioSink` làm với âm thanh: lõi quyết định *khi nào* và *bao lâu*, không
+  bao giờ chạm vào mô-tơ. Mặc định là `VibrationLog` — ghi lại thay vì rung,
+  cho bản xem trước và bộ kiểm thử.
+- Android nối vào `Vibrator` / `VibratorManager`; iOS nối vào haptics.
+- **Trả lời trung thực**: `Display.vibrate` theo đặc tả phải cho biết máy có
+  rung thật hay không — game bị trả lời "không" có thể vẽ hiệu ứng khác thay
+  thế. Nói "có" rồi không làm gì là tước mất lựa chọn đó của game.
+- Giới hạn 5 giây một lần: máy thật không rung cả phút chỉ vì game bảo thế.
+- Công tắc của người chơi: **Rung** trong cài đặt từng game, mặc định bật. Tắt
+  là lựa chọn thật — game rung mỗi lần trúng đòn thì không chơi cạnh người khác
+  được.
+
+iOS không có khái niệm "rung 200 mili giây", chỉ có mẫu haptic và một tiếng
+rung hệ thống, nên yêu cầu dài hơn được đổi thành **mạnh hơn** chứ không phải
+lâu hơn — gần nhất mà nền tảng cho phép, và gần hơn là không có gì.
+
+Ảnh: `build/screenshots/04-game-settings.png` (dòng "Rung").

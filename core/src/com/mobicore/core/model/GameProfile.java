@@ -57,6 +57,14 @@ public final class GameProfile {
     private int volume = 70;
     private boolean muted;
     private boolean showFps;
+    /**
+     * Whether the phone may buzz for this game.
+     *
+     * <p>On by default: the buzz was part of the game. Off is a real choice
+     * — a game that vibrates on every hit is a game that cannot be played
+     * quietly next to someone.</p>
+     */
+    private boolean vibration = true;
     private boolean keepAspect = true;
     /**
      * Smooth the emulated screen when it is scaled up.
@@ -241,6 +249,14 @@ public final class GameProfile {
         this.muted = muted;
     }
 
+    public boolean vibration() {
+        return vibration;
+    }
+
+    public void setVibration(boolean vibration) {
+        this.vibration = vibration;
+    }
+
     public boolean showFps() {
         return showFps;
     }
@@ -400,6 +416,7 @@ public final class GameProfile {
         json.put("volume", Integer.valueOf(volume));
         json.put("muted", Boolean.valueOf(muted));
         json.put("showFps", Boolean.valueOf(showFps));
+        json.put("vibration", Boolean.valueOf(vibration));
         json.put("keepAspect", Boolean.valueOf(keepAspect));
         json.put("smoothing", Boolean.valueOf(smoothing));
         json.put("networkMode", Integer.valueOf(networkMode));
@@ -428,6 +445,7 @@ public final class GameProfile {
         profile.volume = Json.integer(json, "volume", 70);
         profile.muted = Json.bool(json, "muted", false);
         profile.showFps = Json.bool(json, "showFps", false);
+        profile.vibration = Json.bool(json, "vibration", true);
         profile.keepAspect = Json.bool(json, "keepAspect", true);
         profile.smoothing = Json.bool(json, "smoothing", true);
         profile.networkMode = Json.integer(json, "networkMode", NETWORK_ASK);

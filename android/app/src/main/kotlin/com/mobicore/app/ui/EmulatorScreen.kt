@@ -75,10 +75,12 @@ fun EmulatorScreen(
     suiteId: String,
     onExit: () -> Unit,
 ) {
-    val engine = remember(suiteId) { EmulatorEngine(filesDir) }
+    val context = LocalContext.current
+    val engine = remember(suiteId) {
+        EmulatorEngine(filesDir, com.mobicore.app.emu.PhoneVibration(context))
+    }
     val profiles by library.profiles.collectAsState()
     val profile = profiles[suiteId]
-    val context = LocalContext.current
     LaunchedEffect(suiteId) {
         val loaded = library.load(suiteId)
         val active = library.profile(suiteId) ?: return@LaunchedEffect

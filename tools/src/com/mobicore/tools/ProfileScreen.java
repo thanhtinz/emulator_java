@@ -121,7 +121,7 @@ public final class ProfileScreen {
         y += deviceHeight + 14;
 
         // Display and audio ----------------------------------------------
-        int displayHeight = ui.sectionHeight(5);
+        int displayHeight = ui.sectionHeight(6);
         row = ui.section(margin, y, width, displayHeight, "HIỂN THỊ & ÂM THANH", null);
         ui.field("Phóng ảnh", scaleName(profile), fieldX, row, fieldWidth);
         ui.field("Làm mượt", profile.smoothingName(), fieldX, row + Ui.ROW, fieldWidth);
@@ -130,6 +130,8 @@ public final class ProfileScreen {
         ui.field("Âm lượng", profile.volume() + "%", fieldX, row + Ui.ROW * 3, fieldWidth);
         ui.field("Giữ tỉ lệ khung", profile.keepAspect() ? "Bật" : "Tắt", fieldX,
                 row + Ui.ROW * 4, fieldWidth);
+        ui.field("Rung", profile.vibration() ? "Bật" : "Tắt", fieldX,
+                row + Ui.ROW * 5, fieldWidth);
         y += displayHeight + 14;
 
         // Presets --------------------------------------------------------

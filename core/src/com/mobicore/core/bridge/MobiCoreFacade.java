@@ -844,6 +844,9 @@ public final class MobiCoreFacade {
             if (audioSink != null) {
                 session.setAudio(audioSink);
             }
+            if (vibrationSink != null) {
+                session.setVibration(vibrationSink);
+            }
             String wanted = midletClass != null && midletClass.length() > 0
                     ? midletClass
                     : profile.midletClass();
@@ -1414,6 +1417,42 @@ public final class MobiCoreFacade {
 
     public boolean hasSaveState(String suiteId, int slot) {
         return library != null && library.hasSaveState(suiteId, slot);
+    }
+
+    // ------------------------------------------------------------ vibration
+
+    /** Where a request to vibrate goes; the platform sets this once. */
+    private com.mobicore.core.haptics.VibrationSink vibrationSink;
+
+    public void setVibrationSink(com.mobicore.core.haptics.VibrationSink sink) {
+        this.vibrationSink = sink;
+        if (session != null) {
+            session.setVibration(sink);
+        }
+    }
+
+    /**
+     * Turns buzzing on or off for one game.
+     *
+     * <p>On by default, because the buzz was part of the game. Off is a real
+     * choice: a game that vibrates on every hit cannot be played quietly next
+     * to someone.</p>
+     */
+    public String setVibration(String suiteId, boolean enabled) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.setVibration(enabled);
+            library.saveProfile(profile);
+            if (session != null && suiteId.equals(activeSuiteId)) {
+                session.context().setVibrationAllowed(enabled);
+            }
+            return ok("vibration", String.valueOf(enabled));
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
     }
 
     // ---------------------------------------------------------------- rewind

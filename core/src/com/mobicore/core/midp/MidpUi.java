@@ -488,7 +488,10 @@ public final class MidpUi {
                 })
                 .method("vibrate", "(I)Z", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Rt.box(false);
+                        // The buzz on a crash or a hit was a J2ME game's only
+                        // physical feedback, and until now every request for
+                        // one was answered with "no".
+                        return Rt.box(context.vibrate(Rt.i(args, 0)));
                     }
                 })
                 .define();
