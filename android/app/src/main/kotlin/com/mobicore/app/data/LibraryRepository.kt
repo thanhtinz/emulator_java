@@ -284,6 +284,16 @@ class LibraryRepository(filesDir: String) {
     fun writeScreenshot(suiteId: String, png: ByteArray): String =
         library.writeScreenshot(suiteId, png)
 
+    /** Every picture taken of one game, newest first. */
+    fun screenshots(suiteId: String): List<String> =
+        library.screenshotsFor(suiteId).reversed()
+
+    fun readScreenshot(suiteId: String, name: String): ByteArray? =
+        library.readScreenshot(suiteId, name)
+
+    fun deleteScreenshot(suiteId: String, name: String): Boolean =
+        library.deleteScreenshot(suiteId, name)
+
     fun toggleFavourite(suiteId: String) {
         val profile = library.profile(suiteId) ?: return
         profile.isFavourite = !profile.isFavourite

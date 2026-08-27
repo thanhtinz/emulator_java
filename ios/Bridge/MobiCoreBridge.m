@@ -203,6 +203,22 @@
     return [_facade takeScreenshot];
 }
 
+- (NSString *)screenshotsJSONForSuite:(NSString *)suiteId {
+    return [_facade screenshotsJsonWithNSString:suiteId];
+}
+
+- (NSData *)screenshotForSuite:(NSString *)suiteId named:(NSString *)name {
+    IOSByteArray *bytes = [_facade screenshotWithNSString:suiteId withNSString:name];
+    if (bytes == nil || bytes->size_ == 0) {
+        return nil;
+    }
+    return [NSData dataWithBytes:bytes->buffer_ length:(NSUInteger)bytes->size_];
+}
+
+- (NSString *)deleteScreenshotForSuite:(NSString *)suiteId named:(NSString *)name {
+    return [_facade deleteScreenshotWithNSString:suiteId withNSString:name];
+}
+
 - (NSString *)toggleFavouriteForSuite:(NSString *)suiteId {
     return [_facade toggleFavouriteWithNSString:suiteId];
 }

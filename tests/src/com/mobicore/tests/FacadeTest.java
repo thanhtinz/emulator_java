@@ -231,6 +231,23 @@ public final class FacadeTest extends Test {
         check(Json.string(shot, "path", "").indexOf("screenshots") >= 0,
                 "under the game's own folder: " + Json.string(shot, "path", ""));
 
+        // A picture nothing can show again is a dead end, so it comes back.
+        Map<String, Object> gallery = Json.readObject(facade.screenshotsJson(suiteId));
+        List<Object> shots = Json.array(gallery, "screenshots");
+        eq(1, shots.size(), "the gallery lists what was taken");
+        Map<String, Object> first = (Map<String, Object>) shots.get(0);
+        String name = Json.string(first, "name", "");
+        check(Json.integer(first, "bytes", 0) > 100, "with its size");
+        check(Json.string(first, "name", "").endsWith(".png"), "and its name: " + name);
+        eq(facade.screenshotPng().length, facade.screenshot(suiteId, name).length,
+                "and the picture itself reads back");
+        eq(0, facade.screenshot(suiteId, "../library.json").length,
+                "a name that tries to leave the folder reads nothing");
+        check(Json.bool(Json.readObject(facade.deleteScreenshot(suiteId, name)), "ok", false),
+                "and one can be thrown away");
+        eq(0, Json.array(Json.readObject(facade.screenshotsJson(suiteId)), "screenshots").size(),
+                "after which the gallery is empty");
+
         facade.pauseGame();
         facade.resumeGame();
         check(facade.logText().length() > 0, "the log crosses the bridge as text");

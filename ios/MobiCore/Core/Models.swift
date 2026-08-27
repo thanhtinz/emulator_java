@@ -199,3 +199,16 @@ struct BatchImportResponse: Codable {
     let summary: String
     let files: [FileOutcome]
 }
+
+/// One picture taken of a game, as the gallery lists it.
+struct Screenshot: Codable, Identifiable, Hashable {
+    let name: String
+    let takenAt: Int64
+    let bytes: Int
+
+    var id: String { name }
+}
+
+struct ScreenshotsResponse: Codable {
+    let screenshots: [Screenshot]
+}

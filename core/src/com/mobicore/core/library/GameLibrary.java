@@ -353,6 +353,38 @@ public final class GameLibrary {
         return names;
     }
 
+    /** One picture back, by the name {@link #screenshotsFor} gave. */
+    public byte[] readScreenshot(String suiteId, String name) throws IOException {
+        String path = StorageLayout.join(layout.screenshotDir(suiteId), safeName(name));
+        return vfs.exists(path) ? vfs.read(path) : null;
+    }
+
+    public boolean deleteScreenshot(String suiteId, String name) throws IOException {
+        String path = StorageLayout.join(layout.screenshotDir(suiteId), safeName(name));
+        if (!vfs.exists(path)) {
+            return false;
+        }
+        vfs.delete(path);
+        return true;
+    }
+
+    /**
+     * A file name and nothing else.
+     *
+     * <p>The name comes back through the bridge as a string, and a string
+     * from outside must never be able to name a path of its own — "../.." is
+     * how a picture viewer turns into a way to read the rest of the
+     * storage.</p>
+     */
+    private static String safeName(String name) {
+        String out = name == null ? "" : name;
+        int slash = Math.max(out.lastIndexOf('/'), out.lastIndexOf('\\'));
+        if (slash >= 0) {
+            out = out.substring(slash + 1);
+        }
+        return out;
+    }
+
     public byte[] readSaveState(String suiteId) throws IOException {
         String path = layout.saveStatePath(suiteId);
         return vfs.exists(path) ? vfs.read(path) : null;

@@ -519,6 +519,71 @@ public final class MobiCoreFacade {
         }
     }
 
+    /**
+     * Every picture taken of one game, newest first.
+     *
+     * <p>Saving a screenshot that nothing can show again is a dead end, so
+     * the list carries what a gallery needs: the file's name, when it was
+     * taken, and how big it is.</p>
+     */
+    public String screenshotsJson(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            List<String> names = library.screenshotsFor(suiteId);
+            List<Object> shots = new ArrayList<Object>();
+            for (int i = names.size() - 1; i >= 0; i--) {
+                String name = names.get(i);
+                Map<String, Object> shot = Json.object();
+                shot.put("name", name);
+                shot.put("takenAt", Long.valueOf(takenAt(name)));
+                byte[] png = library.readScreenshot(suiteId, name);
+                shot.put("bytes", Integer.valueOf(png == null ? 0 : png.length));
+                shots.add(shot);
+            }
+            Map<String, Object> root = Json.object();
+            root.put("ok", Boolean.TRUE);
+            root.put("screenshots", shots);
+            return Json.write(root);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** The moment in the file's own name, or zero when it is not one. */
+    private static long takenAt(String name) {
+        int dot = name.indexOf('.');
+        String digits = dot > 0 ? name.substring(0, dot) : name;
+        try {
+            return Long.parseLong(digits);
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
+    }
+
+    public byte[] screenshot(String suiteId, String name) {
+        try {
+            byte[] png = library == null ? null : library.readScreenshot(suiteId, name);
+            return png == null ? new byte[0] : png;
+        } catch (IOException e) {
+            return new byte[0];
+        }
+    }
+
+    public String deleteScreenshot(String suiteId, String name) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return library.deleteScreenshot(suiteId, name)
+                    ? ok("deleted", name)
+                    : error("No such screenshot");
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
     public String backup(String suiteId) {
         try {
             library.setClock(now());

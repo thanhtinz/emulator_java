@@ -52,6 +52,7 @@ sealed interface Route {
     data class GameSettings(val suiteId: String) : Route
     data class Emulator(val suiteId: String) : Route
     data class Saves(val suiteId: String) : Route
+    data class Screenshots(val suiteId: String) : Route
 }
 
 @Composable
@@ -115,6 +116,7 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
                 onPlay = { route = Route.Emulator(current.suiteId) },
                 onSettings = { route = Route.GameSettings(current.suiteId) },
                 onSaves = { route = Route.Saves(current.suiteId) },
+                onScreenshots = { route = Route.Screenshots(current.suiteId) },
             )
             return
         }
@@ -130,6 +132,15 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
 
         is Route.Saves -> {
             SavesScreen(
+                library = library,
+                suiteId = current.suiteId,
+                onBack = { route = Route.Detail(current.suiteId) },
+            )
+            return
+        }
+
+        is Route.Screenshots -> {
+            ScreenshotsScreen(
                 library = library,
                 suiteId = current.suiteId,
                 onBack = { route = Route.Detail(current.suiteId) },

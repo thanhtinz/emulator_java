@@ -53,6 +53,7 @@ fun GameDetailScreen(
     onPlay: () -> Unit,
     onSettings: () -> Unit,
     onSaves: () -> Unit,
+    onScreenshots: () -> Unit,
 ) {
     val profiles by library.profiles.collectAsState()
     val entry = library.games.collectAsState().value.firstOrNull { it.suiteId() == suiteId }
@@ -261,6 +262,22 @@ fun GameDetailScreen(
                         modifier = Modifier.clickable(onClick = onSaves),
                     )
                 }
+            }
+        }
+
+        item {
+            val shots = remember(suiteId) { library.screenshots(suiteId) }
+            SectionCard(title = "ẢNH CHỤP", trailing = "${shots.size} ảnh") {
+                Text(
+                    text = if (shots.isEmpty()) {
+                        "Trong lúc chơi, mở Menu rồi chọn \"Chụp màn hình\"."
+                    } else {
+                        "Xem lại ảnh đã chụp"
+                    },
+                    color = if (shots.isEmpty()) MobiColors.TextDim else MobiColors.Accent,
+                    fontSize = 13.sp,
+                    modifier = Modifier.clickable(onClick = onScreenshots),
+                )
             }
         }
 

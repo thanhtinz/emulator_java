@@ -19,6 +19,7 @@
 | 15 | Menu trong game và bàn phím đổi kiểu | Xong |
 | 16 | Chạm thẳng vào thanh lệnh của game | Xong |
 | 17 | Phím hướng to bằng phím số, trang chủ theo kiểu J2ME Loader | Xong |
+| 18 | Thư viện ảnh chụp | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -721,3 +722,23 @@ bốn hàng phím số. Cỡ phím số **không đổi**.
 
 Ảnh: `build/screenshots/05-library.png`, `build/screenshots/16-search.png`,
 `build/screenshots/03-emulator.png`.
+
+## Xem lại ảnh đã chụp
+
+Chụp được ảnh mà không có chỗ nào xem lại thì nút chụp là ngõ cụt. Nay mỗi game
+có trang **Ảnh chụp** riêng, vào từ trang chi tiết game:
+
+- Lưới hai cột, ảnh **vừa khung chứ không cắt** — ảnh chụp bị cắt cho vừa ô
+  vuông thì không còn là thứ đã hiện trên màn hình nữa.
+- Chạm vào một ảnh thì hiện nút **xoá** ngay trên ảnh, không giấu sau thao tác
+  nhấn giữ chẳng ai đoán ra.
+- Ảnh vẫn nằm trong `screenshots/<game>/<thời-điểm>.png` thuộc thư mục riêng
+  của app.
+
+Ở lõi: `GameLibrary.readScreenshot` / `deleteScreenshot`, và facade có
+`screenshotsJson`, `screenshot`, `deleteScreenshot`. Tên tệp đi qua cầu nối là
+chuỗi từ bên ngoài nên bị cắt bỏ mọi phần đường dẫn trước khi dùng — `"../.."`
+là cách một trình xem ảnh biến thành cách đọc trộm phần còn lại của bộ nhớ; có
+test cho đúng trường hợp đó.
+
+Ảnh: `build/screenshots/21-screenshots.png`.

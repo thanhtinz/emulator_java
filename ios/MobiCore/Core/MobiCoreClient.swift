@@ -242,6 +242,25 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.takeScreenshot()))
     }
 
+    /// Every picture taken of one game, newest first. A screenshot nothing
+    /// can show again is a dead end.
+    func screenshots(_ suiteId: String) -> [Screenshot] {
+        let payload: ScreenshotsResponse? = decode(bridge.screenshotsJSON(forSuite: suiteId))
+        return payload?.screenshots ?? []
+    }
+
+    func screenshotImage(_ suiteId: String, named name: String) -> Image? {
+        guard let data = bridge.screenshot(forSuite: suiteId, named: name),
+              let image = UIImage(data: data) else {
+            return nil
+        }
+        return Image(uiImage: image)
+    }
+
+    func deleteScreenshot(_ suiteId: String, named name: String) {
+        report(decode(bridge.deleteScreenshot(forSuite: suiteId, named: name)))
+    }
+
     func setInputPreset(_ preset: String, for suiteId: String) {
         report(decode(bridge.setInputPreset(preset, forSuite: suiteId)))
         refresh()

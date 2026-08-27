@@ -57,6 +57,7 @@ public final class Preview {
         write(vfs, outDir, "19-keypad-arrows.png", new EmulatorScreen(fixtures)
                 .withKeypad(com.mobicore.core.model.GameProfile.KEYPAD_ARROWS).render());
         write(vfs, outDir, "20-game-menu.png", new EmulatorScreen(fixtures).withMenu().render());
+        write(vfs, outDir, "21-screenshots.png", new ShotsScreen(fixtures).render());
 
         // The same screens in the other theme, so both can be reviewed.
         Theme.setMode(Theme.DARK);

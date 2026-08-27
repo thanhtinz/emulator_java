@@ -123,6 +123,14 @@ NS_ASSUME_NONNULL_BEGIN
 /** Saves a picture of what the running game is showing. */
 - (NSString *)takeScreenshot;
 
+/** Every picture taken of one game, newest first. */
+- (NSString *)screenshotsJSONForSuite:(NSString *)suiteId;
+
+/** One of those pictures, as PNG bytes. */
+- (nullable NSData *)screenshotForSuite:(NSString *)suiteId named:(NSString *)name;
+
+- (NSString *)deleteScreenshotForSuite:(NSString *)suiteId named:(NSString *)name;
+
 #pragma mark - Saves
 
 - (NSString *)savesJSONForSuite:(NSString *)suiteId;

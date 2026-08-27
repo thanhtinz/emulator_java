@@ -154,6 +154,17 @@ struct GameDetailView: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink {
+                        ScreenshotsView(suiteId: suiteId)
+                    } label: {
+                        SectionCard(title: "ẢNH CHỤP") {
+                            Text("Xem lại ảnh đã chụp trong lúc chơi")
+                                .font(.footnote)
+                                .foregroundStyle(Palette.accent)
+                        }
+                    }
+                    .buttonStyle(.plain)
+
                     SectionCard(title: "VÙNG NGUY HIỂM") {
                         VStack(alignment: .leading, spacing: 6) {
                             Button(confirmUninstall ? "Chạm lần nữa để gỡ" : "Gỡ trò chơi") {
