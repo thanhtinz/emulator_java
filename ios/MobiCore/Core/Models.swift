@@ -59,8 +59,7 @@ struct GameSettings: Codable, Hashable {
     /// Virtual buttons in keypad order, with the names the interface shows.
     static let buttonLabels: [(button: String, label: String)] = [
         ("up", "Lên"), ("down", "Xuống"), ("left", "Trái"), ("right", "Phải"),
-        ("fire", "Chọn"), ("softLeft", "Phím mềm 1"), ("softRight", "Phím mềm 2"),
-        ("gameLeft", "Phím L (GAME_A)"), ("gameRight", "Phím R (GAME_B)"),
+        ("fire", "Chọn"), ("softLeft", "Phím mềm L"), ("softRight", "Phím mềm R"),
     ]
 }
 

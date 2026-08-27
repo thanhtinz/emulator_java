@@ -66,13 +66,6 @@ fun Keypad(
             SoftKey(leftSoftKey, "softLeft", onPress, onRelease, Modifier.weight(1f))
             SoftKey(rightSoftKey, "softRight", onPress, onRelease, Modifier.weight(1f))
         }
-        // L and R at the outer edges, clear of both pads: they are the two
-        // extra actions MIDP calls GAME_A and GAME_B, and a thumb should never
-        // land on one by accident on its way to the numbers.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            ShoulderKey("L", "gameLeft", onPress, onRelease)
-            ShoulderKey("R", "gameRight", onPress, onRelease)
-        }
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -105,12 +98,6 @@ fun ControlColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly,
     ) {
-        ShoulderKey(
-            label = if (directional) "L" else "R",
-            button = if (directional) "gameLeft" else "gameRight",
-            onPress = onPress,
-            onRelease = onRelease,
-        )
         if (directional) {
             DirectionalPad(onPress, onRelease)
         } else {
@@ -123,34 +110,6 @@ fun ControlColumn(
             onRelease = onRelease,
             modifier = Modifier.fillMaxWidth(0.86f),
         )
-    }
-}
-
-/**
- * L or R: what MIDP calls GAME_A and GAME_B.
- *
- * No handset had shoulder buttons — the runtime read those actions off keys 7
- * and 9 — but a key labelled "7" tells a player nothing about what it does in
- * a racing game, and every player knows where an L and an R are.
- */
-@Composable
-private fun ShoulderKey(
-    label: String,
-    button: String,
-    onPress: (String) -> Unit,
-    onRelease: (String) -> Unit,
-) {
-    var held by remember { mutableStateOf(false) }
-    Box(
-        Modifier
-            .size(96.dp, 40.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
-            .border(1.dp, MobiColors.Accent, RoundedCornerShape(12.dp))
-            .holdable(button, onPress, onRelease) { held = it },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, color = MobiColors.Accent, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -174,6 +133,7 @@ private fun SoftKey(
 ) {
     var held by remember { mutableStateOf(false) }
     val bound = !label.isNullOrEmpty()
+    val mark = if (button == "softLeft") "L" else "R"
     Box(
         modifier
             .height(44.dp)
@@ -188,15 +148,24 @@ private fun SoftKey(
             .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border,
                 RoundedCornerShape(12.dp))
             .holdable(button, onPress, onRelease) { held = it }
-            .padding(horizontal = 14.dp),
-        contentAlignment = Alignment.Center,
+            .padding(horizontal = 12.dp),
     ) {
+        // L and R name the key itself, the way every J2ME emulator labels
+        // these two; the text in the middle is the game's command and changes
+        // with the screen, so both are needed.
+        Text(
+            text = mark,
+            color = MobiColors.Accent,
+            fontSize = 12.sp,
+            modifier = Modifier.align(Alignment.CenterStart),
+        )
         Text(
             text = if (bound) label!! else "—",
             color = if (bound) MobiColors.Text else MobiColors.TextDim,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
+            modifier = Modifier.align(Alignment.Center),
         )
     }
 }

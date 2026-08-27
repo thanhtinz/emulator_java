@@ -196,9 +196,7 @@ public final class ProfileTest extends Test {
         eq(MidpContext.KEY_SOFT_LEFT, nokia.keyCodeFor("softLeft"), "Nokia softkeys");
         eq(-6, InputProfile.sonyEricsson().keyCodeFor("softLeft"), "Sony Ericsson softkeys differ");
         eq(0, nokia.keyCodeFor("nonexistent"), "an unbound button reports zero");
-        eq(22, InputProfile.BUTTONS.length, "every virtual button is declared");
-        eq('7', nokia.keyCodeFor("gameLeft"), "L is the key a handset reported GAME_A from");
-        eq('9', nokia.keyCodeFor("gameRight"), "and R is GAME_B's");
+        eq(20, InputProfile.BUTTONS.length, "every virtual button is declared");
         eq(MidpContext.KEY_CLEAR, nokia.keyCodeFor("clear"), "the clear key is mapped");
         eq(0, nokia.keyCodeFor("send"), "the call key is not on the keypad");
 

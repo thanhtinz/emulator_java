@@ -25,16 +25,6 @@ struct Keypad: View {
                 SoftKey(label: rightSoftKey, button: "softRight",
                         onPress: onPress, onRelease: onRelease)
             }
-            // L and R at the outer edges, clear of both pads. The call and
-            // end keys that used to sit here are gone: a handset carried them
-            // because it was a phone, and no game reads them.
-            HStack {
-                ShoulderKey(label: "L", button: "gameLeft",
-                            onPress: onPress, onRelease: onRelease)
-                Spacer()
-                ShoulderKey(label: "R", button: "gameRight",
-                            onPress: onPress, onRelease: onRelease)
-            }
             HStack(alignment: .center) {
                 numericPad
                 Spacer(minLength: 12)
@@ -135,9 +125,6 @@ struct ControlColumn: View {
     var body: some View {
         let pad = Keypad(onPress: onPress, onRelease: onRelease)
         return VStack(spacing: 14) {
-            ShoulderKey(label: directional ? "L" : "R",
-                        button: directional ? "gameLeft" : "gameRight",
-                        onPress: onPress, onRelease: onRelease)
             Spacer(minLength: 0)
             if directional {
                 pad.directionalColumn
@@ -148,31 +135,6 @@ struct ControlColumn: View {
             SoftKey(label: softKeyLabel, button: directional ? "softLeft" : "softRight",
                     onPress: onPress, onRelease: onRelease)
         }
-    }
-}
-
-/// L or R: what MIDP calls GAME_A and GAME_B.
-///
-/// No handset had shoulder buttons — the runtime read those actions off keys
-/// 7 and 9 — but a key labelled "7" tells a player nothing about what it does
-/// in a racing game, and everyone knows where an L and an R are.
-private struct ShoulderKey: View {
-    let label: String
-    let button: String
-    let onPress: (String) -> Void
-    let onRelease: (String) -> Void
-
-    @State private var held = false
-
-    var body: some View {
-        Text(label)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(Palette.accent)
-            .frame(width: 96, height: 40)
-            .background(Palette.accentDim.opacity(held ? 0.6 : 1),
-                        in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.accent, lineWidth: 1))
-            .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))
     }
 }
 
@@ -216,13 +178,23 @@ private struct SoftKey: View {
 
     private var bound: Bool { !(label ?? "").isEmpty }
 
+    /// L and R name the key itself, the way every J2ME emulator labels these
+    /// two; the text in the middle is the game's command and changes with the
+    /// screen, so both are needed.
+    private var mark: String { button == "softLeft" ? "L" : "R" }
+
     var body: some View {
         Text(bound ? label! : "—")
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(bound ? Palette.text : Palette.textDim)
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, 14)
+            .overlay(alignment: .leading) {
+                Text(mark)
+                    .font(.caption2)
+                    .foregroundStyle(Palette.accent)
+            }
+            .padding(.horizontal, 12)
             .frame(height: 44)
             .background(held ? Palette.accentDim : (bound ? Palette.surfaceAlt : Palette.background),
                         in: RoundedRectangle(cornerRadius: 12))

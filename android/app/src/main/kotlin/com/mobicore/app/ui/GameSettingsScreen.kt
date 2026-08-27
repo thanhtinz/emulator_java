@@ -280,10 +280,8 @@ private val BUTTON_LABELS = listOf(
     "left" to "Trái",
     "right" to "Phải",
     "fire" to "Chọn",
-    "softLeft" to "Phím mềm 1",
-    "softRight" to "Phím mềm 2",
-    "gameLeft" to "Phím L (GAME_A)",
-    "gameRight" to "Phím R (GAME_B)",
+    "softLeft" to "Phím mềm L",
+    "softRight" to "Phím mềm R",
 )
 
 @Composable

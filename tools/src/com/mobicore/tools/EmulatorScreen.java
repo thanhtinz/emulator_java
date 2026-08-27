@@ -140,16 +140,9 @@ public final class EmulatorScreen {
                 barHeight + (frame.height() - barHeight - shownHeight) / 2,
                 shownWidth, shownHeight);
 
-        int shoulderY = barHeight + 22;
-        int shoulderWidth = 104;
-        int shoulderHeight = ui.medium().height() + 16;
-        int padY = shoulderY + shoulderHeight + 16;
+        int padY = barHeight + 46;
         int dpadX = (side - DPAD_WIDTH) / 2;
         int numX = frame.width() - side + (side - NUMPAD_WIDTH) / 2;
-        shoulderKey(ui, dpadX + (DPAD_WIDTH - shoulderWidth) / 2, shoulderY, shoulderWidth,
-                "L", "gameLeft");
-        shoulderKey(ui, numX + (NUMPAD_WIDTH - shoulderWidth) / 2, shoulderY, shoulderWidth,
-                "R", "gameRight");
         directionalPad(ui, dpadX, padY);
         numericPad(ui, numX, padY);
 
@@ -158,9 +151,9 @@ public final class EmulatorScreen {
         // held sideways.
         int softWidth = 214;
         int softY = frame.height() - ui.medium().height() - 18 - 18;
-        softKey(ui, (side - softWidth) / 2, softY, softWidth, session.leftSoftKeyLabel());
+        softKey(ui, (side - softWidth) / 2, softY, softWidth, session.leftSoftKeyLabel(), "L");
         softKey(ui, frame.width() - side + (side - softWidth) / 2, softY, softWidth,
-                session.rightSoftKeyLabel());
+                session.rightSoftKeyLabel(), "R");
         return frame;
     }
 
@@ -216,8 +209,8 @@ public final class EmulatorScreen {
         int softWidth = (frame.width() - Ui.PAD * 2 - gap) / 2;
         int softHeight = ui.medium().height() + 18;
         int rightX = frame.width() - Ui.PAD - softWidth;
-        softKey(ui, Ui.PAD, y, softWidth, session.leftSoftKeyLabel());
-        softKey(ui, rightX, y, softWidth, session.rightSoftKeyLabel());
+        softKey(ui, Ui.PAD, y, softWidth, session.leftSoftKeyLabel(), "L");
+        softKey(ui, rightX, y, softWidth, session.rightSoftKeyLabel(), "R");
 
         if (session.isTextInputActive()) {
             // The phone's own keyboard covers this half of the screen while a
@@ -227,17 +220,7 @@ public final class EmulatorScreen {
             return;
         }
 
-        // L and R sit at the outer edges, where the hands already are, and
-        // clear of the pads: they are the two keys a game reads as GAME_A and
-        // GAME_B, and on a handset they were 7 and 9 — reachable, but never
-        // where a thumb rests.
-        int shoulderY = y + softHeight + 12;
-        int shoulderWidth = 96;
-        shoulderKey(ui, Ui.PAD, shoulderY, shoulderWidth, "L", "gameLeft");
-        shoulderKey(ui, frame.width() - Ui.PAD - shoulderWidth, shoulderY, shoulderWidth,
-                "R", "gameRight");
-
-        int padTop = shoulderY + ui.medium().height() + 16 + 14;
+        int padTop = y + softHeight + 14;
         numericPad(ui, Ui.PAD + 4, padTop);
         directionalPad(ui, frame.width() - Ui.PAD - 208, padTop + 16);
     }
@@ -270,8 +253,14 @@ public final class EmulatorScreen {
      * says which command it runs — the label bar the system draws inside the
      * screen sits directly above it — so pushing the text out to the edges
      * only made "Tạm dừng" and "Thoát" lean away from each other.</p>
+     *
+     * <p>The corner carries an L or an R. These two are the keys J2ME calls
+     * the left and right softkey, and every emulator of the era named them
+     * that way; the text in the middle belongs to the game and changes with
+     * the screen, so a player told to "press R" still needs to see which key
+     * that is while it says "Thoát".</p>
      */
-    private void softKey(Ui ui, int x, int y, int width, String label) {
+    private void softKey(Ui ui, int x, int y, int width, String label, String mark) {
         int height = ui.medium().height() + 18;
         boolean bound = label != null && label.length() > 0;
         ui.panel(x, y, width, height, bound ? Theme.SURFACE_ALT : Theme.BG, Theme.BORDER);
@@ -279,22 +268,7 @@ public final class EmulatorScreen {
         int textY = y + (height - ui.mediumBold().height()) / 2;
         ui.textCenter(ui.mediumBold(), text, x + width / 2, textY,
                 bound ? Theme.TEXT : Theme.TEXT_DIM);
-    }
-
-    /**
-     * L and R.
-     *
-     * <p>MIDP calls them GAME_A and GAME_B: the two extra actions a game could
-     * ask for beyond the pad and fire. No handset had shoulder buttons — the
-     * runtime reported them from keys 7 and 9 — but every player knows where
-     * an L and an R are, and a key labelled "7" tells someone playing a
-     * racing game nothing about what it does.</p>
-     */
-    private void shoulderKey(Ui ui, int x, int y, int width, String label, String button) {
-        int height = ui.medium().height() + 16;
-        ui.panel(x, y, width, height, Theme.KEY, Theme.ACCENT);
-        ui.textCenter(ui.mediumBold(), label, x + width / 2,
-                y + (height - ui.mediumBold().height()) / 2, Theme.ACCENT);
+        ui.text(ui.small(), mark, x + 10, y + (height - ui.small().height()) / 2, Theme.ACCENT);
     }
 
     /**
