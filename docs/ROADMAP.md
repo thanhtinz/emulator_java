@@ -22,6 +22,7 @@
 | 18 | Thư viện ảnh chụp | Xong |
 | 19 | Bộ cấu hình dùng lại | Xong |
 | 20 | Nhiều ô lưu trạng thái | Xong |
+| 21 | Chỉnh tốc độ chạy game | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -794,3 +795,29 @@ facade có `saveState(slot)`, `loadState(slot)`, `resumeGame(suiteId, slot)`,
 bốn ô giống hệt nhau mà không có ngày giờ thì chỉ còn cách đoán.
 
 Ảnh: `build/screenshots/22-save-slots.png`.
+
+## Tua nhanh, chạy chậm
+
+Game J2ME **tự đo nhịp**: nó đọc `System.currentTimeMillis` rồi `sleep` giữa
+các khung hình. Cho nên muốn game chạy nhanh hơn thì không phải gọi nó nhiều
+lần hơn — mà là **đổi cái đồng hồ nó nhìn vào**. Đưa cho nó đồng hồ chạy gấp
+đôi thì mỗi giây thật nó đi xa gấp đôi, vẫn bằng chính logic và hoạt ảnh của
+nó.
+
+- `core/emu/SpeedClock.java` bọc `VmHost`: giờ trả về được nhân theo tốc độ, và
+  `sleep` chia lại tương ứng — không chia thì riêng cái `sleep` đã giữ game ở
+  nhịp cũ rồi.
+- Đổi tốc độ giữa chừng thì **tính lại từ mốc hiện tại**, không nhân lại cả quá
+  khứ: game chạy một tiếng rồi mà bấm "nhanh" không được nhảy vọt một tiếng.
+  Đồng hồ cũng không bao giờ lùi — game thấy thời gian lùi sẽ tính ra khoảng
+  cách khung hình âm, và đó là cách một nhân vật rơi vào chỗ không thể tới.
+- Menu trong game có mục **Tốc độ**, bấm để đi vòng: 0,5× → 1× → 2× → 3×.
+- Vòng lặp khung hình của Android và iOS cũng nhân theo tốc độ, nếu không thì
+  vẽ ở nhịp cũ sẽ chỉ thấy một nửa những gì game làm.
+
+Vì sao cần: mấy game này viết cho một chuyến xe buýt. Một màn đi bộ bốn phút
+qua bản đồ trống thì bốn phút trên máy thật cũng là bốn phút bây giờ, mà người
+chơi đã xem rồi. Chiều ngược lại cũng đáng: game canh nhịp cho máy chậm hơn
+máy đang giả lập thì cho chậm lại là chơi được.
+
+Ảnh: `build/screenshots/20-game-menu.png`.

@@ -70,6 +70,8 @@ public final class EmulatorSession {
     private int state = STATE_NEW;
     private String midletClass;
 
+    private SpeedClock clock;
+
     private EmulatorSession(Vm vm, MidpContext context, MidletSuiteInfo info,
                             JarClassSource source, EmulatorLog log,
                             RecordStoreManager rms, GameProfile profile, NetworkStack network) {
@@ -84,6 +86,31 @@ public final class EmulatorSession {
     }
 
     /**
+     * How fast the game runs, as a percentage of a handset's pace.
+     *
+     * <p>Lives on the clock rather than on the frame loop: a J2ME game paces
+     * itself, so what changes its speed is what it is told the time is.</p>
+     */
+    public int speed() {
+        return clock == null ? SpeedClock.NORMAL : clock.speed();
+    }
+
+    public void setSpeed(int percent) {
+        if (clock != null) {
+            clock.setSpeed(percent);
+        }
+    }
+
+    /** The next speed in the cycle, for a one-tap control. */
+    public int cycleSpeed() {
+        if (clock == null) {
+            return SpeedClock.NORMAL;
+        }
+        clock.setSpeed(clock.nextSpeed());
+        return clock.speed();
+    }
+
+    /**
      * Builds a session for an installed suite.
      *
      * @param storage where record stores live; an in-memory filesystem is used
@@ -93,7 +120,10 @@ public final class EmulatorSession {
                                          Vfs storage, StorageLayout layout, VmHost host) {
         EmulatorLog log = new EmulatorLog();
         Vm vm = new Vm();
-        vm.setHost(host == null ? log.hostBridge(VmHost.DEFAULT) : log.hostBridge(host));
+        // A game paces itself off the clock it is given, so the clock is the
+        // one place a speed control can live without the game noticing.
+        SpeedClock speedClock = new SpeedClock(host == null ? VmHost.DEFAULT : host);
+        vm.setHost(log.hostBridge(speedClock));
 
         int width = profile.device().width();
         int height = profile.device().height();
@@ -138,6 +168,7 @@ public final class EmulatorSession {
         EmulatorSession created = new EmulatorSession(vm, context, suite.info(), source, log,
                 rms, profile, network);
         created.timers = timers;
+        created.clock = speedClock;
         return created;
     }
 

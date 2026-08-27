@@ -25,6 +25,8 @@ final class EmulatorEngine: ObservableObject {
     /// True while the emulated screen draws the command bar itself, which on
     /// a touchscreen is the softkeys: tapping a label runs its command.
     @Published private(set) var showsSoftKeyBar = false
+    /// How fast the game is playing, as a percentage of a handset's pace.
+    @Published private(set) var speed = 100
 
     private let bridge = MobiCoreBridge.shared
     private let queue = DispatchQueue(label: "com.mobicore.midlet", qos: .userInitiated)
@@ -62,12 +64,16 @@ final class EmulatorEngine: ObservableObject {
     }
 
     private nonisolated func runLoop() {
-        let interval: TimeInterval = {
-            let limit = DispatchQueue.main.sync { self.frameLimit }
-            return limit > 0 ? 1.0 / Double(limit) : 0
-        }()
         while DispatchQueue.main.sync(execute: { self.running }) {
             let started = CACurrentMediaTime()
+            // The frame budget follows the speed control: at double speed the
+            // game's own clock runs twice as fast, and drawing at the old rate
+            // would show half of what it does.
+            let interval: TimeInterval = DispatchQueue.main.sync {
+                self.frameLimit > 0
+                    ? 1.0 / (Double(self.frameLimit) * Double(max(10, self.speed)) / 100.0)
+                    : 0
+            }
             let paused = DispatchQueue.main.sync { self.isPaused }
             if !paused {
                 _ = bridge.renderFrame()
@@ -175,6 +181,24 @@ final class EmulatorEngine: ObservableObject {
         leftSoftKeyLabel = labels.left
         rightSoftKeyLabel = labels.right
         showsSoftKeyBar = labels.bar ?? false
+    }
+
+    /// A J2ME game paces itself off the clock, so this changes what it is
+    /// told the time is; the game does the rest with its own logic intact.
+    func cycleSpeed() {
+        guard let data = bridge.cycleSpeed().data(using: .utf8),
+              let payload = try? JSONDecoder().decode(SpeedResponse.self, from: data) else {
+            return
+        }
+        speed = payload.speed
+        // Drawing at the old rate would show half of what the game does.
+        displayLink?.preferredFramesPerSecond = frameLimit == 0
+            ? 0
+            : min(60, max(1, frameLimit * speed / 100))
+    }
+
+    private struct SpeedResponse: Decodable {
+        let speed: Int
     }
 
     func release(_ button: String) {

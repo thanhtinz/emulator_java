@@ -4,6 +4,7 @@ import com.mobicore.core.emu.EmulatorLog;
 import com.mobicore.core.audio.AudioSink;
 import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.emu.SaveState;
+import com.mobicore.core.emu.SpeedClock;
 import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
@@ -1199,6 +1200,49 @@ public final class MobiCoreFacade {
 
     public boolean hasSaveState(String suiteId) {
         return library != null && library.hasSaveState(suiteId);
+    }
+
+    // ----------------------------------------------------------------- speed
+
+    /**
+     * How fast the running game is playing, as a percentage of a handset's
+     * pace.
+     *
+     * <p>Not a frame rate: a J2ME game paces itself off the clock, so this
+     * changes what it is told the time is, and the game does the rest with
+     * its own logic and animations intact.</p>
+     */
+    public String speedJson() {
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        int speed = session == null ? SpeedClock.NORMAL : session.speed();
+        json.put("speed", Integer.valueOf(speed));
+        json.put("label", speedLabel(speed));
+        return Json.write(json);
+    }
+
+    public String setSpeed(int percent) {
+        if (session == null) {
+            return error("Không có trò chơi nào đang chạy");
+        }
+        session.setSpeed(percent);
+        return speedJson();
+    }
+
+    /** Steps through the speeds a control offers: half, normal, double, triple. */
+    public String cycleSpeed() {
+        if (session == null) {
+            return error("Không có trò chơi nào đang chạy");
+        }
+        session.cycleSpeed();
+        return speedJson();
+    }
+
+    private static String speedLabel(int speed) {
+        if (speed % 100 == 0) {
+            return (speed / 100) + "×";
+        }
+        return (speed / 100) + "," + ((speed % 100) / 10) + "×";
     }
 
     /**

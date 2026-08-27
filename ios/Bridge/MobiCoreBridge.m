@@ -203,6 +203,14 @@
     return [_facade takeScreenshot];
 }
 
+- (NSString *)cycleSpeed {
+    return [_facade cycleSpeed];
+}
+
+- (NSString *)speedJSON {
+    return [_facade speedJson];
+}
+
 - (NSString *)saveStateInSlot:(int32_t)slot {
     return [_facade saveStateWithInt:slot];
 }

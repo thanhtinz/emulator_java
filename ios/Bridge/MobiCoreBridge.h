@@ -123,6 +123,10 @@ NS_ASSUME_NONNULL_BEGIN
 /** Saves a picture of what the running game is showing. */
 - (NSString *)takeScreenshot;
 
+/** How fast the running game plays; steps through half, normal, 2x, 3x. */
+- (NSString *)cycleSpeed;
+- (NSString *)speedJSON;
+
 /** Save slots: the emulator's own at zero, then the player's. */
 - (NSString *)saveStateInSlot:(int32_t)slot;
 - (NSString *)loadStateFromSlot:(int32_t)slot;

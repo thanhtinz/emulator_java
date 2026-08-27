@@ -145,6 +145,11 @@ private extension EmulatorView {
                       systemImage: "slider.horizontal.3")
             }
             Button {
+                engine.cycleSpeed()
+            } label: {
+                Label("Tốc độ: \(speedLabel(engine.speed))", systemImage: "speedometer")
+            }
+            Button {
                 client.toggleOrientation(suiteId)
             } label: {
                 Label(landscape ? "Màn hình: Ngang" : "Màn hình: Dọc",
@@ -179,6 +184,11 @@ private extension EmulatorView {
         }
         .tint(Palette.accent)
     }
+}
+
+/// "2×", "0,5×": what the speed control shows.
+private func speedLabel(_ speed: Int) -> String {
+    speed % 100 == 0 ? "\(speed / 100)×" : "\(speed / 100),\((speed % 100) / 10)×"
 }
 
 /// Asks the system to turn the phone with the game.

@@ -95,7 +95,6 @@ class EmulatorEngine(
         try {
             active.start()
             val limit = profile.frameLimit()
-            val frameNanos = if (limit > 0) 1_000_000_000L / limit else 0L
             var framesThisSecond = 0
             var secondMark = System.nanoTime()
 
@@ -110,6 +109,14 @@ class EmulatorEngine(
                     measuredFps = framesThisSecond
                     framesThisSecond = 0
                     secondMark = now
+                }
+                // The frame budget follows the speed control: at double speed
+                // the game's own clock runs twice as fast, and drawing at the
+                // old rate would show half of what it does.
+                val frameNanos = if (limit > 0) {
+                    1_000_000_000L * 100L / (limit.toLong() * active.speed().coerceAtLeast(10))
+                } else {
+                    0L
                 }
                 if (frameNanos > 0) {
                     val elapsed = System.nanoTime() - frameStart
@@ -258,6 +265,19 @@ class EmulatorEngine(
      * the same two words underneath.
      */
     fun showsSoftKeyBar(): Boolean = session?.showsSoftKeyBar() ?: false
+
+    /**
+     * How fast the game is playing, as a percentage of a handset's pace.
+     *
+     * A J2ME game paces itself off the clock, so this changes what it is told
+     * the time is; the game does the rest with its own logic intact.
+     */
+    var speed by mutableIntStateOf(100)
+        private set
+
+    fun cycleSpeed() {
+        speed = session?.cycleSpeed() ?: 100
+    }
 
     fun leftSoftKeyLabel(): String? = session?.leftSoftKeyLabel()
 

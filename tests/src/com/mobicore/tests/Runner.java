@@ -21,6 +21,7 @@ public final class Runner {
         tests.add(new AudioTest(fixtures));
         tests.add(new CompatibilityTest(fixtures));
         tests.add(new SaveStateTest(fixtures));
+        tests.add(new SpeedTest(fixtures));
         tests.add(new BatchImportTest(fixtures));
         tests.add(new ProfileTest());
         tests.add(new LibraryTest(fixtures));

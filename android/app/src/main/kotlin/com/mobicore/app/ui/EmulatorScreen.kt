@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
@@ -292,6 +293,18 @@ private fun GameMenu(
                 onClick = { library.cycleKeypadLayout(suiteId) },
             )
             DropdownMenuItem(
+                text = { Text("Tốc độ") },
+                trailingIcon = {
+                    Text(
+                        speedLabel(engine.speed),
+                        color = MobiColors.TextDim,
+                        fontSize = 13.sp,
+                    )
+                },
+                leadingIcon = { Icon(Icons.Filled.Speed, contentDescription = null) },
+                onClick = { engine.cycleSpeed() },
+            )
+            DropdownMenuItem(
                 text = { Text("Màn hình") },
                 trailingIcon = {
                     Text(
@@ -358,6 +371,10 @@ private fun GameMenu(
         Text(message, color = MobiColors.TextDim, fontSize = 12.sp)
     }
 }
+
+/** "2×", "0,5×": what the speed control shows. */
+private fun speedLabel(speed: Int): String =
+    if (speed % 100 == 0) "${speed / 100}×" else "${speed / 100},${(speed % 100) / 10}×"
 
 /**
  * The field the game is asking for, backed by the system keyboard.

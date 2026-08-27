@@ -179,8 +179,8 @@ public final class EmulatorScreen {
                 {Icons.CAMERA, "Chụp màn hình", ""},
                 {Icons.TUNE, "Bàn phím", "Đầy đủ"},
                 {Icons.ROTATE, "Màn hình", "Dọc"},
-                {Icons.SPEED, "Khung hình", "30/giây"},
-                {Icons.SAVE, "Lưu trạng thái", ""},
+                {Icons.SPEED, "Tốc độ", "1×"},
+                {Icons.SAVE, "Lưu vào ô…", "2 ô đã dùng"},
                 {Icons.EXIT, "Thoát", ""},
         };
         int width = 320;
