@@ -1729,3 +1729,41 @@ lối ra, và lối thứ hai chạy **từ một luồng khác** — vì đó �
 ra ngoài đời.
 
 Cầu nối: `requestStop`.
+
+## Giai đoạn 46 — đọc được ảnh JPEG
+
+MIDP chỉ bắt buộc máy đọc được **PNG**, nên máy ảo này lâu nay cũng chỉ đọc
+PNG. Nhưng máy thật thì đọc thêm **JPEG**, và game biết thế: ảnh mở đầu, ảnh
+nền, ảnh chân dung nhân vật — những thứ to và nhiều màu — hay được đóng gói
+bằng JPEG vì nó nhẹ hơn hẳn. Game gọi `Image.createImage` với một tệp như vậy
+thì trước đây nhận về `Unsupported image format` rồi chết ngay ở màn mở đầu.
+
+`JpegReader` đọc **baseline** (SOF0/SOF1): Huffman, 8 bit, ảnh xám một thành
+phần hoặc ảnh màu ba thành phần, mọi kiểu lấy mẫu màu thường gặp (4:4:4, 4:2:2,
+4:2:0), kèm mốc khởi động lại. Ảnh **progressive** (SOF2) thì **nói thẳng là
+chưa đọc được** — giải nó bằng cách của ảnh thường vẫn ra một tấm ảnh, nhưng là
+một tấm nhiễu, và game sẽ vẽ tấm nhiễu ấy lên màn hình mà không ai hiểu vì sao.
+
+Vài chỗ đáng nói:
+
+- **Phần màu lưu thưa hơn phần sáng.** Mắt người nhạy với sáng tối hơn nhiều so
+  với màu, nên JPEG lưu màu thưa gấp đôi theo cả hai chiều là chuyện thường.
+  Quên giãn nó ra thì ảnh chỉ đúng một góc phần tư và ba phần còn lại xám
+  ngoét — nên bài kiểm tra soi đúng cái góc xa nhất.
+- **Bảng cosin dựng sẵn một lần**, và phép biến đổi ngược bỏ qua hệ số bằng
+  không: phần lớn hệ số của một khối 8×8 là số không, đó chính là lý do JPEG
+  nhỏ.
+- **Byte `FF` trong phần ảnh được viết thành `FF 00`** để không lẫn với mốc
+  đánh dấu; đọc tới đó thì bỏ byte `00` đi.
+- **Tệp cụt vài byte cuối vẫn đọc được**: phần thiếu đọc bằng số 0 thay vì vứt
+  cả tấm ảnh đi. Game đời ấy nhiều tệp đóng gói ẩu.
+
+Ảnh dùng để kiểm tra là **ảnh JPEG thật** (`JpegSamples`, nhúng dưới dạng chữ vì
+kho mã này không giữ tệp nhị phân), và cái được kiểm là **màu đọc ra có đúng
+không** — một bộ đọc sai vẫn chạy trơn tru và trả về một tấm nhiễu, nên "chạy
+mà không nổ" không chứng minh được gì. Bốn góc của dải màu, chiều tăng dần của
+dải, ba kênh bằng nhau ở ảnh xám, và góc xa nhất của ảnh lấy mẫu thưa.
+
+Bộ cài mẫu nay mang theo `res/photo.jpg`, và `demo.PhotoDemo` vẽ nó ra: ảnh
+trong ảnh chụp màn hình là ảnh thật, do bộ đọc này giải mã, vẽ bởi một MIDlet
+thật.

@@ -2,6 +2,7 @@ package com.mobicore.core.midp;
 
 import com.mobicore.core.gfx.BitmapFont;
 import com.mobicore.core.gfx.Framebuffer;
+import com.mobicore.core.gfx.JpegReader;
 import com.mobicore.core.gfx.PngReader;
 import com.mobicore.core.gfx.Transforms;
 import com.mobicore.core.rt.Rt;
@@ -549,6 +550,14 @@ public final class MidpGfx {
             System.arraycopy(data, offset, slice, 0, length);
         }
         try {
+            // MIDP chỉ bắt buộc PNG, nhưng máy thật đọc thêm JPEG và game biết
+            // thế: ảnh mở đầu, ảnh nền, ảnh nhân vật — những thứ to và nhiều
+            // màu — hay được đóng gói bằng JPEG cho nhẹ.
+            if (JpegReader.looksLikeJpeg(slice)) {
+                JpegReader.Image photo = JpegReader.decode(slice);
+                return newImage(vm, Framebuffer.wrap(photo.pixels, photo.width, photo.height),
+                        false);
+            }
             PngReader.Image decoded = PngReader.decode(slice);
             return newImage(vm, Framebuffer.wrap(decoded.pixels, decoded.width, decoded.height), false);
         } catch (IOException e) {

@@ -32,6 +32,7 @@ public final class SampleSuite {
             + "MIDlet-8: Crash Demo,,demo.CrashDemo\n"
             + "MIDlet-9: Device Demo,,demo.DeviceDemo\n"
             + "MIDlet-10: Hang Demo,,demo.HangDemo\n"
+            + "MIDlet-11: Photo Demo,,demo.PhotoDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 
@@ -51,8 +52,61 @@ public final class SampleSuite {
             + "MIDlet-8: Crash Demo,,demo.CrashDemo\n"
             + "MIDlet-9: Device Demo,,demo.DeviceDemo\n"
             + "MIDlet-10: Hang Demo,,demo.HangDemo\n"
+            + "MIDlet-11: Photo Demo,,demo.PhotoDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
+
+    /**
+     * Ảnh mở đầu của bộ cài mẫu, ở dạng JPEG.
+     *
+     * <p>Là JPEG có chủ ý: MIDP chỉ bắt buộc máy đọc được PNG, còn game đời
+     * ấy vẫn đóng gói ảnh to nhiều màu bằng JPEG vì máy thật đọc được. Bộ cài
+     * mẫu mang cả hai để đường đọc ảnh nào cũng có thứ để chạy thật.</p>
+     */
+    private static final String PHOTO =
+            "/9j/4AAQSkZJRgABAgAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRof"
+            + "Hh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwh"
+            + "MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAAR"
+            + "CAB4AHgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAA"
+            + "AgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkK"
+            + "FhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWG"
+            + "h4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl"
+            + "5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREA"
+            + "AgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYk"
+            + "NOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOE"
+            + "hYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk"
+            + "5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDg9lGyrGyjZXocx5XKV9lGyrGyjZRzBylf"
+            + "ZRsqxso2UcwcpX2UbKsbKNlHMHKV9lGyrGyjZRzBylfZRsqxso2UcwcpX2UbKsbKNlHMHKV9"
+            + "lFWNlFHMHKWNlGyp9lGyubmNuUg2UbKn2UbKOYOUg2UbKn2UbKOYOUg2UbKn2UbKOYOUg2Vr"
+            + "6F4W1PxFPssocRDO64lyI1IA4LYPPI4GTz6c1n7K988MafBpvhuxhgijQtCkkpjYMHcqCzbg"
+            + "TnnvnGMY4xWVWs4LQ1pUlJ6nmUnwq15IndZ7CRlUkIsrZY+gyoGfqRXG3FnPaTtBcwyQzLjd"
+            + "HIpVhkZGQfavpavL/ipY28d5p93HCqzzrIsrjq4Xbtz7jJ5+noKzpYiUpWkaVaEUro812UbK"
+            + "n2UbK6eY5uUg2UVPsoo5g5Sxso2VY2UbK5+Y35Svso2VY2UbKOYOUr7KNlWNlGyjmDlK+yjZ"
+            + "VjZRso5g5Svsr1zwP4mttQ0y20yZ44r2BPLSMZ/eIoGGGeM46jOeCenTyvZRsqJpTVmXBuLu"
+            + "j6BkkSKN5JHVI0BZmY4CgdST6V5B448Qw6/qMMdrta0tgfLlwQXLAFjg4wBgDp2J78c7so2V"
+            + "MIKLuVObkrFfZRsqxso2VrzGXKV9lFWNlFHMHKT7KNlWNlGyufmN+Ur7KNlWNlGyjmDlK+yj"
+            + "ZVjZRso5g5Svso2VY2UbKOYOUr7KNlWNlGyjmDlK+yjZVjZRso5g5Svso2VY2UbKOYOUr7KK"
+            + "c1xCtwLcNvmPVF5Kjjk+g57/AIZoo5g5S9so2VY2UbK5uY35Svso2VY2UbKOYOUr7KNlZHiL"
+            + "WEsoWtLdz9qcclT/AKsf4kf4+mcPS/EVzY+XDN++tlwMEfMo9j/j6Y4rRRk1czcop2Oz2UbK"
+            + "ZYX9rqUJktpN23G5SMFSfUf5FW9lQ5W3NEr7FfZRsqxso2UuYOUr7KNlVtQ1ex03KzS7pR/y"
+            + "yTlu35dc84rlb/xLe3eVhP2aP0Q/Men8X+GOtaRjKREpRidJfarZaflZpd0n/PNOW7fl171i"
+            + "x3+pa7c+Ra/6NCMF3U5Kj3PrxwBiqGjaLLqs+TlLZD88n9B7/wAv59za2MFlCIbeMRpnOBzk"
+            + "+5705OMNOpMVKevQrWen29jCI4EC8YLfxN9T3orQ2UVnzmvKWNlGyp9ntRs9q5uY35SDZWVr"
+            + "mrJo9qrbd88mREp6cdSfYZH+eRo6lew6ZYSXUxGFHyqTje3ZR9f/AK9eYX9/caldtc3L7nbg"
+            + "AdFHoB6VvRhzu72Ma0+RWW5DLK88zyyHc7sWY4xknk0yiiu44h8UskEgkikaNx0ZDgj8a6vS"
+            + "/FysVi1JQvH+vQH07qPXnkflWJpugahquGgh2xH/AJayfKvfp68jHGa7LTfCNhZYecfa5fWR"
+            + "flHXov4989O1c9adNaS3N6UKm62HXmv6XZxhjcpMT0SAhyfy4HXua5TUPFF9eZSE/ZYvSM/M"
+            + "enVvw7Y6967rUNGstTTFzAC+MLIvDL16H8eh4rhdX8LXulqZU/0m37uinK4GSWHYdeeenas6"
+            + "Mqb33NKyqLbYw63dB8OSarmecvFaDIDL95z7Z7D1/D6WtA8KPfJHeXpaO3JBWLHzSL657Dp9"
+            + "fbg13aRJGioiBUUYVVGAB6Cqq10vdiRSoN6yKkFrFawJDDGEjQYVR2qXZU+z2o2e1cnOdfKQ"
+            + "bKKn2e1FHMHKWNlQ3M0NnbSXFxIscUYyzHtV7ZXl/irxJ/bMwtrYYsom3KSOZG6bvYcnA/P0"
+            + "E0YOrKy2KrTVONyhrusPrGotN86wLxDGx+6PX6nr+meKy61tK8N6nrGGt4NsJ/5bS/Knfoep"
+            + "5GOAcd67rSvBOm2GHuB9sm9ZV+Qdei9Oh756cYrvnXp0lynDCjUqvmOD0vw9qWrYa3h2wn/l"
+            + "tJ8qd+nryMcZrttM8G6fY4ecfa5vWRfkHXov0PfPTtXU7KNlcNTFyntojshhox31ZX2UbKsb"
+            + "KNlYcxvylfZRsqxso2UcwcpX2UbKsbKNlHMHKV9lGyrGyjZRzBylfZRVjZRRzBynPeIF1bWZ"
+            + "W0vSFVLXGLm6Ziqk8goDjnpg7c8nBxzl+k+BtM07ElyPts3rKvyDr0Tp0PfPTIxRRRKrKK5I"
+            + "6IUaUZPnlqzpdlGyiisLm9g2UbKKKLhYNlGyiii4WDZRsooouFg2UbKKKLhYNlGyiii4WDZR"
+            + "RRRcLH//2Q==";
 
     private SampleSuite() {
     }
@@ -79,6 +133,7 @@ public final class SampleSuite {
         entries.put("res/level1.dat", new byte[1024]);
         entries.put("res/level2.dat", new byte[2048]);
         entries.put("res/theme.mid", new byte[5120]);
+        entries.put("res/photo.jpg", java.util.Base64.getDecoder().decode(PHOTO));
         return zip(entries);
     }
 

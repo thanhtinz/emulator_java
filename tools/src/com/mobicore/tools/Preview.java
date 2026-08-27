@@ -61,6 +61,7 @@ public final class Preview {
         write(vfs, outDir, "21-screenshots.png", new ShotsScreen(fixtures).render());
         write(vfs, outDir, "22-save-slots.png", new SlotsScreen(fixtures).render());
         write(vfs, outDir, "23-nokia.png", nokiaScreen(fixtures));
+        write(vfs, outDir, "30-photo.png", photoScreen(fixtures));
         write(vfs, outDir, "27-install-link.png", new LinkScreen(fixtures).render());
         write(vfs, outDir, "28-crash.png", new CrashScreen(fixtures).render());
         write(vfs, outDir, "29-hang.png", new CrashScreen(fixtures, "demo.HangDemo").render());
@@ -94,6 +95,20 @@ public final class Preview {
         session.keyPressed(MidpContext.KEY_DOWN);
         session.keyPressed(MidpContext.KEY_FIRE);
         session.renderFrame();
+        return screen.render();
+    }
+
+    /**
+     * Một game vẽ tấm ảnh JPEG nó mang theo.
+     *
+     * <p>Ảnh thật, do bộ đọc của máy ảo giải mã, vẽ bởi một MIDlet thật: cái
+     * đáng chụp là chỗ đó chứ không phải một bảng cài đặt nói rằng đã đọc
+     * được JPEG.</p>
+     */
+    private static Framebuffer photoScreen(String fixtures) throws Exception {
+        EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.PhotoDemo");
+        screen.boot();
+        screen.session().renderFrame();
         return screen.render();
     }
 
