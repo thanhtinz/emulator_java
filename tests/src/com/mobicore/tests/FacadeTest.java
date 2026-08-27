@@ -140,6 +140,9 @@ public final class FacadeTest extends Test {
         // How the keypad looks --------------------------------------------
         keypadLook(facade, suiteId);
 
+        // And where its keys are ------------------------------------------
+        keypadArrangement(facade, suiteId);
+
         // How long a game has held someone ----------------------------------
         playTime(facade, suiteId);
 
@@ -393,6 +396,48 @@ public final class FacadeTest extends Test {
         eq(-1, Json.integer(Json.child(back, "mappings"), "up", 0),
                 "picking a preset puts every key back");
         eq("Nokia", Json.string(back, "preset", ""), "and names it again");
+    }
+
+    /**
+     * Dragging the keys to where the hand holding the phone wants them.
+     *
+     * <p>Offsets cross the bridge in thousandths of a key rather than pixels:
+     * a key is a different number of pixels upright, sideways and on every
+     * different phone, and one arrangement has to hold for all of them.</p>
+     */
+    private void keypadArrangement(MobiCoreFacade facade, String suiteId) throws Exception {
+        Map<String, Object> standard = Json.readObject(facade.keypadArrangementJson(suiteId));
+        check(!Json.bool(standard, "custom", true), "the keypad starts as the standard one");
+        eq(100, Json.integer(standard, "scale", 0), "at the standard size");
+        eq(0, Json.array(standard, "keys").size(), "with nothing moved");
+
+        Map<String, Object> moved = Json.readObject(facade.moveKey(suiteId, "fire", 250, -1500));
+        check(Json.bool(moved, "custom", false), "dragging a key makes it their own keypad");
+        eq(1, Json.array(moved, "keys").size(), "and it is the one key that moved");
+        Map<String, Object> fire = (Map<String, Object>) Json.array(moved, "keys").get(0);
+        eq("fire", Json.string(fire, "button", ""), "named as the button it is");
+        eq(-1500, Json.integer(fire, "y", 0), "with the offset it was given");
+
+        eq(6000, Json.integer((Map<String, Object>) Json.array(
+                        Json.readObject(facade.moveKey(suiteId, "num1", 90000, 0)),
+                        "keys").get(1), "x", 0),
+                "a drag off the screen stops at the edge");
+
+        eq(130, Json.integer(Json.readObject(facade.setKeyScale(suiteId, 130)), "scale", 0),
+                "the keys can be made bigger");
+        eq(160, Json.integer(Json.readObject(facade.setKeyScale(suiteId, 900)), "scale", 0),
+                "but not any size at all");
+
+        // It survives a restart, because this is a setting someone spends
+        // time on and would not spend twice.
+        Map<String, Object> profile = Json.readObject(facade.profileJson(suiteId));
+        eq(160, Json.integer(Json.child(profile, "keypadArrangement"), "scale", 0),
+                "the arrangement is part of the profile");
+
+        Map<String, Object> reset = Json.readObject(facade.resetKeypad(suiteId));
+        check(!Json.bool(reset, "custom", true), "and it can all be put back");
+        eq(0, Json.array(reset, "keys").size(), "with every key where the layout has it");
+        eq(100, Json.integer(reset, "scale", 0), "and the standard size");
     }
 
     /**

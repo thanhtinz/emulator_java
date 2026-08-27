@@ -447,6 +447,26 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)keypadArrangementJSONForSuite:(NSString *)suiteId {
+    return [_facade keypadArrangementJsonWithNSString:suiteId];
+}
+
+- (NSString *)moveKey:(NSString *)button toX:(NSInteger)xMilli y:(NSInteger)yMilli
+             forSuite:(NSString *)suiteId {
+    return [_facade moveKeyWithNSString:suiteId
+                           withNSString:button
+                                withInt:(jint) xMilli
+                                withInt:(jint) yMilli];
+}
+
+- (NSString *)setKeyScale:(NSInteger)percent forSuite:(NSString *)suiteId {
+    return [_facade setKeyScaleWithNSString:suiteId withInt:(jint) percent];
+}
+
+- (NSString *)resetKeypadForSuite:(NSString *)suiteId {
+    return [_facade resetKeypadWithNSString:suiteId];
+}
+
 - (NSString *)keypadJSONForSuite:(NSString *)suiteId {
     return [_facade keypadJsonWithNSString:suiteId];
 }

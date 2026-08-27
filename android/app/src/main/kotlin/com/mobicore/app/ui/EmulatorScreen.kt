@@ -177,6 +177,10 @@ fun EmulatorScreen(
         engine.frameCounter
         val keyShape = profile?.keypadShape() ?: GameProfile.KEY_SHAPE_ROUNDED
         val keyOpacity = engine.keypadOpacity()
+        // Where the player dragged the keys. Read from the profile the
+        // arranging screen edits, so the keypad played with is the keypad
+        // that was arranged.
+        val placement = remember(profile) { KeyPlacement(profile?.keypadArrangement()) }
 
         if (landscape && !wantsText) {
             // Held sideways, the game keeps the middle and each hand gets a
@@ -192,6 +196,7 @@ fun EmulatorScreen(
                     modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
                     shape = keyShape,
                     opacity = keyOpacity,
+                    placement = placement,
                 )
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
                     GameSurface(engine, library, suiteId)
@@ -205,6 +210,7 @@ fun EmulatorScreen(
                     modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
                     shape = keyShape,
                     opacity = keyOpacity,
+                    placement = placement,
                 )
             }
             val landscapeError = engine.lastError
@@ -250,6 +256,7 @@ fun EmulatorScreen(
                 showSoftKeys = !engine.showsSoftKeyBar(),
                 shape = keyShape,
                 opacity = keyOpacity,
+                placement = placement,
             )
         }
         Spacer(Modifier.height(6.dp))

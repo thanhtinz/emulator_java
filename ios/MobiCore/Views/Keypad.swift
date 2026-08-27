@@ -14,9 +14,21 @@ enum KeyMetrics {
     /// A hair of daylight between keys; J2ME Loader snaps its keys together.
     static let gap: CGFloat = 4
 
+    /// The standard key size, before the player's own size is applied.
     static var upright: CGFloat {
         let bounds = UIScreen.main.bounds.size
         return min(bounds.width, bounds.height) / 6.5
+    }
+
+    /// How big one key is drawn once the player's own size is applied.
+    ///
+    /// The screen has the last word. A key size that would push the two pads
+    /// off the sides is not honoured as asked — the keypad would be unusable
+    /// and nothing would show that it was the size setting that did it — so
+    /// it is held to what fits.
+    static func upright(_ placement: KeyPlacement) -> CGFloat {
+        let fits = (UIScreen.main.bounds.size.width - 36) / 6
+        return min(placement.sized(upright), fits)
     }
 
     static var turned: CGFloat {
@@ -32,6 +44,61 @@ enum KeyMetrics {
 ///
 /// Buttons report press and release separately: a J2ME game reads held keys
 /// through `GameCanvas.getKeyStates`, and a press-only button reads as stuck.
+/// Where the keys are, and — while arranging — how to move them.
+///
+/// `offsets` places each key relative to where the standard layout puts it, in
+/// units of one key, so the same arrangement holds upright, sideways and on
+/// any size of screen. `onMove` is set only on the arranging screen: while it
+/// is set the keys are dragged rather than pressed, because a key cannot be
+/// both the thing being moved and the thing being played with.
+struct KeyPlacement {
+    var offsets: [String: CGPoint] = [:]
+    var scale: Int = 100
+    var onMove: ((String, CGFloat, CGFloat) -> Void)?
+
+    func offset(_ button: String) -> CGPoint {
+        offsets[button] ?? .zero
+    }
+
+    /// A key's size, given what the standard layout would have made it.
+    func sized(_ standard: CGFloat) -> CGFloat {
+        max(8, standard * CGFloat(scale) / 100)
+    }
+}
+
+private struct KeyPlacementKey: EnvironmentKey {
+    static let defaultValue = KeyPlacement()
+}
+
+extension EnvironmentValues {
+    var keyPlacement: KeyPlacement {
+        get { self[KeyPlacementKey.self] }
+        set { self[KeyPlacementKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Puts one key where the player left it, and says what a touch does.
+    ///
+    /// Dragged in keys rather than points: a key is a different number of
+    /// points upright, sideways and on every different phone, and one
+    /// arrangement has to hold for all of them.
+    func placed(_ button: String, size: CGFloat, placement: KeyPlacement,
+                hold: some Gesture) -> some View {
+        let spot = placement.offset(button)
+        return offset(x: spot.x * size, y: spot.y * size)
+            .gesture(placement.onMove == nil
+                     ? AnyGesture(hold.map { _ in () })
+                     : AnyGesture(DragGesture()
+                        .onChanged { value in
+                            placement.onMove?(button,
+                                              value.translation.width / size,
+                                              value.translation.height / size)
+                        }
+                        .map { _ in () }))
+    }
+}
+
 /// The shape every key on a keypad is cut to, carried down the view tree.
 ///
 /// Eleven views would otherwise each grow a parameter none of them decides
@@ -67,8 +134,9 @@ struct Keypad: View {
     var leftSoftKey: String?
     var rightSoftKey: String?
 
-    /// Square, and sized off the screen the way J2ME Loader does it.
-    var key: CGFloat = KeyMetrics.upright
+    /// Square, and sized off the screen the way J2ME Loader does it. Left
+    /// unset it follows the size the player chose, held to what fits across.
+    var key: CGFloat = 0
     /// Which keys to show; see `GameProfile.KEYPAD_*` in the core.
     var layout: Int = 0
     /// False while the emulated screen carries the command bar: that bar is
@@ -81,9 +149,17 @@ struct Keypad: View {
     /// whole rather than colour by colour, so keys, outlines and lettering
     /// all step back together.
     var opacity: Int = 100
+    /// Where the keys have been dragged to, and how big they are drawn.
+    var placement = KeyPlacement()
 
     private var arrows: Bool { layout == 0 || layout == 1 }
     private var numbers: Bool { layout == 0 || layout == 2 }
+
+    /// The size the keys are actually drawn at.
+    ///
+    /// Set explicitly by the landscape column, which has its own room to fit
+    /// into; otherwise the standard size with the player's own size applied.
+    private var keySize: CGFloat { key > 0 ? key : KeyMetrics.upright(placement) }
 
     var body: some View {
         VStack(spacing: KeyMetrics.gap * 3) {
@@ -91,10 +167,10 @@ struct Keypad: View {
             // system draws along its bottom edge, as they do on a handset.
             if showSoftKeys {
                 HStack {
-                    SoftKey(label: leftSoftKey, button: "softLeft", key: key,
+                    SoftKey(label: leftSoftKey, button: "softLeft", key: keySize,
                             onPress: onPress, onRelease: onRelease)
                     Spacer(minLength: 12)
-                    SoftKey(label: rightSoftKey, button: "softRight", key: key,
+                    SoftKey(label: rightSoftKey, button: "softRight", key: keySize,
                             onPress: onPress, onRelease: onRelease)
                 }
             }
@@ -113,6 +189,7 @@ struct Keypad: View {
             }
         }
         .environment(\.keyShape, shape)
+        .environment(\.keyPlacement, placement)
         .opacity(Double(opacity) / 100.0)
     }
 
@@ -122,7 +199,7 @@ struct Keypad: View {
             ForEach(Self.rows, id: \.first!.button) { row in
                 HStack(spacing: KeyMetrics.gap) {
                     ForEach(row, id: \.button) { entry in
-                        NumberKey(entry: entry, size: key,
+                        NumberKey(entry: entry, size: keySize,
                                   onPress: onPress, onRelease: onRelease)
                     }
                 }
@@ -138,26 +215,26 @@ struct Keypad: View {
     private var directionalPad: some View {
         VStack(spacing: KeyMetrics.gap) {
             HStack(spacing: KeyMetrics.gap) {
-                ArrowKey(symbol: "arrow.up.left", button: "upLeft", label: "Lên trái", size: key,
+                ArrowKey(symbol: "arrow.up.left", button: "upLeft", label: "Lên trái", size: keySize,
                          corner: true, onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "chevron.up", button: "up", label: "Lên", size: key,
+                ArrowKey(symbol: "chevron.up", button: "up", label: "Lên", size: keySize,
                          onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "arrow.up.right", button: "upRight", label: "Lên phải", size: key,
+                ArrowKey(symbol: "arrow.up.right", button: "upRight", label: "Lên phải", size: keySize,
                          corner: true, onPress: onPress, onRelease: onRelease)
             }
             HStack(spacing: KeyMetrics.gap) {
-                ArrowKey(symbol: "chevron.left", button: "left", label: "Trái", size: key,
+                ArrowKey(symbol: "chevron.left", button: "left", label: "Trái", size: keySize,
                          onPress: onPress, onRelease: onRelease)
-                FireKey(size: key, onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "chevron.right", button: "right", label: "Phải", size: key,
+                FireKey(size: keySize, onPress: onPress, onRelease: onRelease)
+                ArrowKey(symbol: "chevron.right", button: "right", label: "Phải", size: keySize,
                          onPress: onPress, onRelease: onRelease)
             }
             HStack(spacing: KeyMetrics.gap) {
-                ArrowKey(symbol: "arrow.down.left", button: "downLeft", label: "Xuống trái", size: key,
+                ArrowKey(symbol: "arrow.down.left", button: "downLeft", label: "Xuống trái", size: keySize,
                          corner: true, onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "chevron.down", button: "down", label: "Xuống", size: key,
+                ArrowKey(symbol: "chevron.down", button: "down", label: "Xuống", size: keySize,
                          onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "arrow.down.right", button: "downRight", label: "Xuống phải", size: key,
+                ArrowKey(symbol: "arrow.down.right", button: "downRight", label: "Xuống phải", size: keySize,
                          corner: true, onPress: onPress, onRelease: onRelease)
             }
         }
@@ -210,6 +287,8 @@ struct ControlColumn: View {
     var shape: Int = 0
     /// How solid to draw the column, in percent.
     var opacity: Int = 100
+    /// Where the keys have been dragged to, and how big they are drawn.
+    var placement = KeyPlacement()
 
     var body: some View {
         // Turned, J2ME Loader sizes its keys off the long edge. Its keypad
@@ -218,8 +297,9 @@ struct ControlColumn: View {
         GeometryReader { geometry in
             let room = (geometry.size.height - KeyMetrics.gap * 4)
                 / (4 + KeyMetrics.softScaleY)
-            let key = min(KeyMetrics.turned, room)
-            let pad = Keypad(onPress: onPress, onRelease: onRelease, key: key)
+            let key = min(placement.sized(KeyMetrics.turned), room)
+            let pad = Keypad(onPress: onPress, onRelease: onRelease, key: key,
+                             placement: placement)
             VStack(spacing: KeyMetrics.gap * 3) {
                 if directional {
                     pad.directionalColumn
@@ -236,6 +316,7 @@ struct ControlColumn: View {
         }
         .frame(width: KeyMetrics.turned * 3 + KeyMetrics.gap * 2 + 24)
         .environment(\.keyShape, shape)
+        .environment(\.keyPlacement, placement)
         .opacity(Double(opacity) / 100.0)
     }
 }
@@ -248,6 +329,7 @@ private struct NumberKey: View {
 
     @State private var held = false
     @Environment(\.keyShape) private var shape
+    @Environment(\.keyPlacement) private var placement
 
     var body: some View {
         let radius = keyRadius(shape, size: size, rounded: 12)
@@ -261,7 +343,9 @@ private struct NumberKey: View {
             RoundedRectangle(cornerRadius: radius)
                 .stroke(held ? Palette.accent : Palette.border, lineWidth: 1)
         )
-        .gesture(holdGesture(button: entry.button, held: $held, onPress: onPress, onRelease: onRelease))
+        .placed(entry.button, size: size, placement: placement,
+                hold: holdGesture(button: entry.button, held: $held,
+                                  onPress: onPress, onRelease: onRelease))
     }
 }
 
@@ -282,6 +366,7 @@ private struct SoftKey: View {
 
     @State private var held = false
     @Environment(\.keyShape) private var shape
+    @Environment(\.keyPlacement) private var placement
 
     private var bound: Bool { !(label ?? "").isEmpty }
 
@@ -317,7 +402,9 @@ private struct SoftKey: View {
                 RoundedRectangle(cornerRadius: radius)
                     .stroke(held ? Palette.accent : Palette.border, lineWidth: 1)
             )
-            .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))
+            .placed(button, size: key, placement: placement,
+                    hold: holdGesture(button: button, held: $held,
+                                      onPress: onPress, onRelease: onRelease))
     }
 }
 
@@ -334,6 +421,7 @@ private struct ArrowKey: View {
 
     @State private var held = false
     @Environment(\.keyShape) private var shape
+    @Environment(\.keyPlacement) private var placement
 
     var body: some View {
         let radius = keyRadius(shape, size: size, rounded: 14)
@@ -345,7 +433,9 @@ private struct ArrowKey: View {
                         in: RoundedRectangle(cornerRadius: radius))
             .overlay(RoundedRectangle(cornerRadius: radius).stroke(Palette.accent, lineWidth: 1))
             .accessibilityLabel(label)
-            .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))
+            .placed(button, size: size, placement: placement,
+                    hold: holdGesture(button: button, held: $held,
+                                      onPress: onPress, onRelease: onRelease))
     }
 }
 
@@ -356,6 +446,7 @@ private struct FireKey: View {
 
     @State private var held = false
     @Environment(\.keyShape) private var shape
+    @Environment(\.keyPlacement) private var placement
 
     var body: some View {
         let radius = keyRadius(shape, size: size, rounded: 14)
@@ -368,7 +459,9 @@ private struct FireKey: View {
             .background(Palette.accentDim.opacity(held ? 0.6 : 1),
                         in: RoundedRectangle(cornerRadius: radius))
             .overlay(RoundedRectangle(cornerRadius: radius).stroke(Palette.accent, lineWidth: 1))
-            .gesture(holdGesture(button: "fire", held: $held, onPress: onPress, onRelease: onRelease))
+            .placed("fire", size: size, placement: placement,
+                    hold: holdGesture(button: "fire", held: $held,
+                                      onPress: onPress, onRelease: onRelease))
     }
 }
 

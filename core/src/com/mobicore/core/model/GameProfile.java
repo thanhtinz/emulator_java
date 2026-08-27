@@ -77,6 +77,8 @@ public final class GameProfile {
      * touched.</p>
      */
     private int keypadFadeDelay;
+    /** Where the player has dragged the keys, and how big they are drawn. */
+    private KeypadArrangement keypadArrangement = new KeypadArrangement();
     /**
      * Which MIDlet inside the suite to open, or empty for the first.
      *
@@ -309,6 +311,17 @@ public final class GameProfile {
         return faded < 20 ? 20 : faded;
     }
 
+    /**
+     * Where the keys have been dragged to, and how big.
+     *
+     * <p>Handed out rather than copied: moving a key is a small, frequent
+     * edit, and a setter taking a whole arrangement would mean rebuilding one
+     * on every drag.</p>
+     */
+    public KeypadArrangement keypadArrangement() {
+        return keypadArrangement;
+    }
+
     public String midletClass() {
         return midletClass;
     }
@@ -506,6 +519,7 @@ public final class GameProfile {
         json.put("keypadOpacity", Integer.valueOf(keypadOpacity));
         json.put("keypadShape", Integer.valueOf(keypadShape));
         json.put("keypadFadeDelay", Integer.valueOf(keypadFadeDelay));
+        json.put("keypadArrangement", keypadArrangement.toJson());
         json.put("midletClass", midletClass);
         json.put("frameLimit", Integer.valueOf(frameLimit));
         json.put("volume", Integer.valueOf(volume));
@@ -538,6 +552,8 @@ public final class GameProfile {
         profile.setKeypadOpacity(Json.integer(json, "keypadOpacity", 100));
         profile.setKeypadShape(Json.integer(json, "keypadShape", KEY_SHAPE_ROUNDED));
         profile.setKeypadFadeDelay(Json.integer(json, "keypadFadeDelay", 0));
+        profile.keypadArrangement = KeypadArrangement.fromJson(
+                Json.child(json, "keypadArrangement"));
         profile.midletClass = Json.string(json, "midletClass", "");
         profile.frameLimit = Json.integer(json, "frameLimit", 30);
         profile.volume = Json.integer(json, "volume", 70);

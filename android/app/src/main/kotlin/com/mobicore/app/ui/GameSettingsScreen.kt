@@ -47,7 +47,12 @@ import com.mobicore.core.model.InputProfile
 /** Per-game configuration: device, display, audio, input and network. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -> Unit) {
+fun GameSettingsScreen(
+    library: LibraryRepository,
+    suiteId: String,
+    onBack: () -> Unit,
+    onArrangeKeys: () -> Unit = {},
+) {
     val profile = remember(suiteId) { library.profile(suiteId) }
     if (profile == null) {
         EmptyState(Icons.AutoMirrored.Filled.ArrowBack, "Không có hồ sơ",
@@ -183,6 +188,11 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                         keyShape = it
                         persist { profile -> profile.setKeypadShape(it) }
                     }
+                    SecondaryButton(
+                        label = "Sắp xếp bàn phím",
+                        modifier = Modifier.padding(top = 6.dp),
+                        onClick = onArrangeKeys,
+                    )
                     // It fades rather than disappears: a keypad that vanishes
                     // leaves the thumb hunting a blank screen.
                     OptionRow(

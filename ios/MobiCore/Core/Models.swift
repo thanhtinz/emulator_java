@@ -241,6 +241,22 @@ struct Screenshot: Codable, Identifiable, Hashable {
     var isClip: Bool { clip ?? false }
 }
 
+/// One key the player has dragged, in thousandths of a key.
+struct KeyOffset: Codable, Hashable, Identifiable {
+    let button: String
+    let x: Int
+    let y: Int
+
+    var id: String { button }
+}
+
+/// Where the keys of one game's keypad are, and how big they are drawn.
+struct KeypadArrangement: Codable {
+    let scale: Int
+    let custom: Bool
+    let keys: [KeyOffset]
+}
+
 /// Whether a clip is being recorded, and how long it has got.
 struct Recording: Codable {
     let recording: Bool

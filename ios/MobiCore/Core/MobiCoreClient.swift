@@ -391,6 +391,28 @@ final class MobiCoreClient: ObservableObject {
         refresh()
     }
 
+    // ------------------------------------------------------ where the keys are
+
+    /// Where the keys have been dragged to, and how big they are drawn.
+    func keypadArrangement(_ suiteId: String) -> KeypadArrangement? {
+        decode(bridge.keypadArrangementJSON(forSuite: suiteId))
+    }
+
+    /// Drags one key, in thousandths of a key from where the layout puts it.
+    func moveKey(_ button: String, x: Int, y: Int, for suiteId: String) {
+        report(decode(bridge.moveKey(button, toX: x, y: y, forSuite: suiteId)))
+    }
+
+    /// How big the keys are drawn, 60-160 percent of the standard size.
+    func setKeyScale(_ percent: Int, for suiteId: String) {
+        report(decode(bridge.setKeyScale(percent, forSuite: suiteId)))
+    }
+
+    /// Puts every key back where the standard layout has it.
+    func resetKeypad(_ suiteId: String) {
+        report(decode(bridge.resetKeypad(forSuite: suiteId)))
+    }
+
     // ---------------------------------------------------- how the keypad looks
 
     /// How solid the keypad is drawn, 20-100 percent.

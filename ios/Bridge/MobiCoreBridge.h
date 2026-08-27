@@ -213,6 +213,15 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.
 - (NSString *)noteKeypadUse;
+/// Where the keys have been dragged to, and how big they are drawn.
+- (NSString *)keypadArrangementJSONForSuite:(NSString *)suiteId;
+/// Offsets are in thousandths of a key, not points: one arrangement has to
+/// hold upright, sideways and on every size of screen.
+- (NSString *)moveKey:(NSString *)button toX:(NSInteger)xMilli y:(NSInteger)yMilli
+             forSuite:(NSString *)suiteId;
+- (NSString *)setKeyScale:(NSInteger)percent forSuite:(NSString *)suiteId;
+- (NSString *)resetKeypadForSuite:(NSString *)suiteId;
+
 /// How the keypad looks for one game: solidity, key shape, fade delay.
 - (NSString *)keypadJSONForSuite:(NSString *)suiteId;
 - (NSString *)setKeypadOpacity:(NSInteger)percent forSuite:(NSString *)suiteId;

@@ -2,6 +2,7 @@ package com.mobicore.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,10 +46,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobicore.core.model.GameProfile
+import com.mobicore.core.model.KeypadArrangement
 
 /**
  * Key metrics taken from J2ME Loader's on-screen keypad, which is the one
@@ -75,6 +79,53 @@ private val GAP = 4.dp
  */
 private val LocalKeyShape = compositionLocalOf { GameProfile.KEY_SHAPE_ROUNDED }
 
+/**
+ * Where the keys are, and — while arranging — how to move them.
+ *
+ * `arrangement` offsets each key from where the standard layout puts it, in
+ * units of one key. `onMove` is set only on the arranging screen: while it is
+ * set the keys are dragged rather than pressed, because a key cannot be both
+ * the thing being moved and the thing being played with.
+ */
+class KeyPlacement(
+    val arrangement: KeypadArrangement? = null,
+    val onMove: ((String, Float, Float) -> Unit)? = null,
+)
+
+private val LocalKeyPlacement = compositionLocalOf { KeyPlacement() }
+
+/** Where one key sits, and what a touch on it does. */
+@Composable
+private fun Modifier.placed(
+    button: String,
+    key: Dp,
+    onPress: (String) -> Unit,
+    onRelease: (String) -> Unit,
+    onHeldChange: (Boolean) -> Unit,
+): Modifier {
+    val placement = LocalKeyPlacement.current
+    val arrangement = placement.arrangement
+    val moved = this.offset(
+        x = key * (arrangement?.offsetX(button) ?: 0f),
+        y = key * (arrangement?.offsetY(button) ?: 0f),
+    )
+    val onMove = placement.onMove ?: return moved.holdable(button, onPress, onRelease, onHeldChange)
+    // Dragged in keys rather than pixels: a key is a different number of
+    // pixels upright, sideways and on every different phone, and one
+    // arrangement has to hold for all of them.
+    val keyPx = with(LocalDensity.current) { key.toPx() }
+    return moved.pointerInput(button, keyPx) {
+        detectDragGestures { change, drag ->
+            change.consume()
+            onMove(button, drag.x / keyPx, drag.y / keyPx)
+        }
+    }
+}
+
+/** True while the keys are being arranged rather than played with. */
+@Composable
+private fun arranging(): Boolean = LocalKeyPlacement.current.onMove != null
+
 /** A key's outline, at the given corner radius when it is a rounded one. */
 @Composable
 private fun keyShape(radius: Dp): Shape = when (LocalKeyShape.current) {
@@ -85,11 +136,22 @@ private fun keyShape(radius: Dp): Shape = when (LocalKeyShape.current) {
     else -> RoundedCornerShape(radius)
 }
 
+/**
+ * How big one key is drawn, once the player's own size is applied.
+ *
+ * The screen has the last word. A key size that would push the two pads off
+ * the sides is not honoured as asked — the keypad would be unusable and
+ * nothing would show that it was the size setting that did it — so it is held
+ * to what fits.
+ */
 @Composable
-private fun uprightKeySize(): Dp {
+private fun uprightKeySize(arrangement: KeypadArrangement?): Dp {
     val configuration = LocalConfiguration.current
-    return (minOf(configuration.screenWidthDp, configuration.screenHeightDp)
-        / KEY_DIVISOR_UPRIGHT).dp
+    val standard = (minOf(configuration.screenWidthDp, configuration.screenHeightDp)
+        / KEY_DIVISOR_UPRIGHT).toInt()
+    val asked = arrangement?.sizeOf(standard) ?: standard
+    val fits = (configuration.screenWidthDp - 36) / 6
+    return minOf(asked, fits).dp
 }
 
 /**
@@ -129,11 +191,16 @@ fun Keypad(
      * keys, their outlines and their lettering all step back together.
      */
     opacity: Int = 100,
+    /** Where the keys have been dragged to, and how big they are drawn. */
+    placement: KeyPlacement = KeyPlacement(),
 ) {
     val arrows = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_ARROWS
     val numbers = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_NUMBERS
-    val key = uprightKeySize()
-    CompositionLocalProvider(LocalKeyShape provides shape) {
+    val key = uprightKeySize(placement.arrangement)
+    CompositionLocalProvider(
+        LocalKeyShape provides shape,
+        LocalKeyPlacement provides placement,
+    ) {
     Column(modifier.alpha(opacity / 100f), verticalArrangement = Arrangement.spacedBy(GAP * 3)) {
         // Directly under the screen, so they line up with the labels the
         // system draws along its bottom edge, as they do on a handset.
@@ -185,14 +252,20 @@ fun ControlColumn(
     shape: Int = GameProfile.KEY_SHAPE_ROUNDED,
     /** How solid to draw the column, in percent. */
     opacity: Int = 100,
+    /** Where the keys have been dragged to, and how big they are drawn. */
+    placement: KeyPlacement = KeyPlacement(),
 ) {
     // Turned, J2ME Loader sizes its keys off the long edge. Its keypad floats
     // over the game, though, and this one has a column to itself, so the size
     // is also held to what the column can hold.
     val configuration = LocalConfiguration.current
-    val turned = (maxOf(configuration.screenWidthDp, configuration.screenHeightDp)
-        / KEY_DIVISOR_TURNED).dp
-    CompositionLocalProvider(LocalKeyShape provides shape) {
+    val standardTurned = (maxOf(configuration.screenWidthDp, configuration.screenHeightDp)
+        / KEY_DIVISOR_TURNED).toInt()
+    val turned = (placement.arrangement?.sizeOf(standardTurned) ?: standardTurned).dp
+    CompositionLocalProvider(
+        LocalKeyShape provides shape,
+        LocalKeyPlacement provides placement,
+    ) {
     BoxWithConstraints(modifier.width(turned * 3 + GAP * 2 + 24.dp).alpha(opacity / 100f)) {
         val room = (maxHeight - GAP * 4) / (4 + SOFT_SCALE_Y)
         val key = minOf(turned, room)
@@ -255,7 +328,7 @@ private fun SoftKey(
                 }
             )
             .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, keyShape(12.dp))
-            .holdable(button, onPress, onRelease) { held = it }
+            .placed(button, key, onPress, onRelease) { held = it }
             .padding(horizontal = 12.dp),
     ) {
         // L and R name the key itself, the way every J2ME emulator labels
@@ -358,7 +431,7 @@ private fun NumberKey(
             .clip(keyShape(12.dp))
             .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
             .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, keyShape(12.dp))
-            .holdable(button, onPress, onRelease) { held = it },
+            .placed(button, key, onPress, onRelease) { held = it },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -383,7 +456,7 @@ private fun ArrowKey(
             .clip(keyShape(14.dp))
             .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
             .border(1.dp, MobiColors.Accent, keyShape(14.dp))
-            .holdable(button, onPress, onRelease) { held = it },
+            .placed(button, key, onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {
         // The corners are quieter than the four main directions: there when a
@@ -402,7 +475,7 @@ private fun FireKey(onPress: (String) -> Unit, onRelease: (String) -> Unit, key:
             .clip(keyShape(14.dp))
             .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
             .border(1.dp, MobiColors.Accent, keyShape(14.dp))
-            .holdable("fire", onPress, onRelease) { held = it },
+            .placed("fire", key, onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {
         // "F" is what J2ME Loader writes here, and fire is what MIDP calls

@@ -62,6 +62,7 @@ public final class Preview {
         write(vfs, outDir, "23-nokia.png", nokiaScreen(fixtures));
         // The keypad in the other shape and faded back, which is what the
         // two new settings do to it.
+        write(vfs, outDir, "26-arrange-keys.png", arrangeScreen(fixtures));
         write(vfs, outDir, "24-keypad-look.png", new EmulatorScreen(fixtures)
                 .withKeyLook(com.mobicore.core.model.GameProfile.KEY_SHAPE_ROUND, 45)
                 .render());
@@ -104,6 +105,26 @@ public final class Preview {
         EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.NokiaDemo");
         EmulatorSession session = screen.boot();
         session.renderFrame();
+        return screen.render();
+    }
+
+    /**
+     * The arranging screen, with a few keys actually moved.
+     *
+     * <p>Moved through the model the app itself edits, so the screenshot
+     * cannot show an arrangement the emulator would not draw.</p>
+     */
+    private static Framebuffer arrangeScreen(String fixtures) throws Exception {
+        EmulatorScreen screen = new EmulatorScreen(fixtures).arranging();
+        EmulatorSession session = screen.boot();
+        com.mobicore.core.model.KeypadArrangement keys =
+                session.profile().keypadArrangement();
+        // A left-handed player's pad: fire pulled in under the thumb, the two
+        // corners nobody uses pushed out of the way.
+        keys.setScale(112);
+        keys.move("fire", 0f, 0.55f);
+        keys.move("upLeft", -0.15f, -0.4f);
+        keys.move("upRight", 0.15f, -0.4f);
         return screen.render();
     }
 

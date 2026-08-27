@@ -115,6 +115,14 @@ struct GameSettingsView: View {
                             }
                             .pickerStyle(.segmented)
 
+                            NavigationLink {
+                                ArrangeKeysView(suiteId: suiteId)
+                            } label: {
+                                Text("Sắp xếp bàn phím")
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.accent)
+                            }
+
                             // It fades rather than disappears: a keypad that
                             // vanishes leaves the thumb hunting a blank
                             // screen.

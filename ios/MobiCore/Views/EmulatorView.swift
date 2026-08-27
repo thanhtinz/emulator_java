@@ -14,6 +14,8 @@ struct EmulatorView: View {
     @StateObject private var engine = EmulatorEngine()
     /// True while a clip is being recorded, so the menu can offer the stop.
     @State private var recording = false
+    /// Where the player dragged the keys, read once when the game opens.
+    @State private var placement = KeyPlacement()
 
     private var settings: GameSettings? { client.game(suiteId)?.settings }
 
@@ -60,7 +62,8 @@ struct EmulatorView: View {
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) },
                                   shape: settings?.keyShape ?? 0,
-                                  opacity: engine.keypadOpacity)
+                                  opacity: engine.keypadOpacity,
+                                  placement: placement)
                         .padding(.vertical, 8)
                     GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -69,7 +72,8 @@ struct EmulatorView: View {
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) },
                                   shape: settings?.keyShape ?? 0,
-                                  opacity: engine.keypadOpacity)
+                                  opacity: engine.keypadOpacity,
+                                  placement: placement)
                         .padding(.vertical, 8)
                 }
                 if let error = engine.error {
@@ -106,7 +110,8 @@ struct EmulatorView: View {
                         layout: settings?.keypadLayout ?? 0,
                         showSoftKeys: !engine.showsSoftKeyBar,
                         shape: settings?.keyShape ?? 0,
-                        opacity: engine.keypadOpacity
+                        opacity: engine.keypadOpacity,
+                        placement: placement
                     )
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
@@ -118,6 +123,9 @@ struct EmulatorView: View {
         .persistentSystemOverlays(.hidden)
         .onAppear {
             engine.start(suiteId: suiteId, settings: client.settings(suiteId))
+            // Where the player dragged the keys. Read once: an arrangement
+            // only changes on the screen that edits it, which this is not.
+            placement = keyPlacement()
             turnDevice(to: landscape)
         }
         .onChange(of: landscape) { turnDevice(to: $0) }
@@ -131,6 +139,19 @@ struct EmulatorView: View {
 }
 
 private extension EmulatorView {
+
+    /// The player's own key positions, in the shape the keypad wants them.
+    func keyPlacement() -> KeyPlacement {
+        guard let arrangement = client.keypadArrangement(suiteId) else {
+            return KeyPlacement()
+        }
+        var offsets: [String: CGPoint] = [:]
+        for key in arrangement.keys {
+            offsets[key.button] = CGPoint(x: CGFloat(key.x) / 1000,
+                                          y: CGFloat(key.y) / 1000)
+        }
+        return KeyPlacement(offsets: offsets, scale: arrangement.scale)
+    }
 
     /// The menu behind the toolbar, and the reason it exists.
     ///

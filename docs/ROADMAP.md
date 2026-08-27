@@ -36,6 +36,7 @@
 | 32 | Một loại màn hình duy nhất | Xong |
 | 33 | Chỉnh bàn phím ảo: độ rõ, hình phím, tự mờ | Xong |
 | 34 | Quay màn chơi thành ảnh động GIF | Xong |
+| 35 | Tự sắp xếp bàn phím ảo | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1207,3 +1208,45 @@ xem nào mở được.
 tấm ảnh biết chạy, và tách làm hai thư viện nghĩa là phải chọn mở cái nào trước
 khi kịp nhớ mình đã lưu kiểu gì. Trong thư viện, đoạn quay có nhãn riêng và
 phần đầu ghi rõ "3 ảnh, 1 đoạn quay".
+
+
+## Giai đoạn 35 — tự sắp xếp bàn phím ảo
+
+Bàn phím được xếp đúng như máy J2ME ngày xưa, vì đó là thứ ngón tay của người
+từng chơi mấy game này đã quen. Nhưng **không bàn tay nào giống bàn tay nào**,
+và điện thoại bây giờ to hơn máy hồi đó nhiều: phím bắn nằm ngay dưới ngón cái
+người này là một cú với của người kia. J2ME Loader cho kéo phím đúng vì lý do
+đó, và đây là cái đó.
+
+`core/model/KeypadArrangement.java` giữ vị trí dưới dạng **độ lệch so với chỗ
+bố cục chuẩn đặt phím**, tính bằng **đơn vị một phím**, chứ không phải toạ độ
+tuyệt đối. Ba thứ theo sau và cả ba đều quan trọng:
+
+- Bố cục chuẩn vẫn là bố cục chuẩn — không phải đo lại gì khi nó đổi.
+- Cùng một cách sắp xếp dùng được cả **dọc lẫn ngang**, nơi bàn phím có hình
+  dạng và kích thước khác hẳn, và trên mọi cỡ màn hình.
+- "Đặt lại" là các độ lệch trở về 0, chứ không phải dựng lại bố cục từ một
+  phỏng đoán.
+
+Kéo ra khỏi màn hình thì **chặn lại chứ không từ chối**: một cú kéo quá tay nên
+để phím nằm ở mép, chứ không phải để nguyên chỗ cũ rồi trông như hỏng. Tối đa 6
+phím mỗi chiều.
+
+Kèm theo là **cỡ phím** 60–160%. Nhưng **màn hình có tiếng nói cuối cùng**: cỡ
+phím làm hai bàn phím tràn ra ngoài hai mép thì không được chiều theo đúng như
+xin — bàn phím sẽ không bấm được và chẳng có gì chỉ ra là do cài đặt cỡ phím —
+nên nó bị ghìm lại vừa đủ lọt.
+
+Màn sắp xếp lấy **chính bàn phím thật, cỡ thật, cách sắp thật**: sắp phím trên
+một tấm hình bàn phím là sắp ở chỗ khác với chỗ nó được dùng. Trong lúc sắp,
+chạm vào phím là **kéo chứ không phải bấm** — một phím không thể vừa là thứ đang
+được di chuyển vừa là thứ đang được chơi. Phím nào đã dời có viền sáng quanh, để
+trả lời câu hỏi duy nhất màn này đặt ra: mình đã dời cái nào rồi?
+
+Không có ô nào để gõ toạ độ, vì **không ai biết một phím nên nằm đâu cho tới khi
+ngón tay đặt lên nó**.
+
+Cầu nối: `keypadArrangementJson`, `moveKey` (độ lệch tính bằng **phần nghìn của
+một phím**, không phải điểm ảnh — một phím là số điểm ảnh khác nhau khi dọc, khi
+ngang và trên từng máy), `setKeyScale`, `resetKeypad`. Sửa xong là game đang
+chạy nhận ngay, vì phím được kéo trong lúc đang nhìn chính game đó.

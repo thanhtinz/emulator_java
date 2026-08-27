@@ -5,6 +5,7 @@ import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.InputProfile;
+import com.mobicore.core.model.KeypadArrangement;
 import com.mobicore.core.jar.AttributeSet;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.model.MidletSuiteInfo;
@@ -100,6 +101,57 @@ public final class ProfileTest extends Test {
         check(restored.isAuto(), "the automatic flag survives JSON");
         eq(profile.setupNotes().size(), restored.setupNotes().size(),
                 "and so do the reasons");
+    }
+
+    /**
+     * Where the player has dragged the keys, and how big.
+     *
+     * <p>Kept as an offset from where the standard layout puts each key, in
+     * units of one key: the same arrangement then holds upright, sideways and
+     * on a screen of any size, and putting a key back is an offset going to
+     * zero rather than a position being guessed again.</p>
+     */
+    private void arrangement(GameProfile profile) {
+        KeypadArrangement keys = profile.keypadArrangement();
+        check(!keys.isCustom(), "a new keypad is the standard one");
+        eq(0f, keys.offsetX("fire"), "and every key is where the layout puts it");
+        eq(64, keys.sizeOf(64), "at the size the layout makes it");
+
+        keys.move("fire", 0.5f, -1.25f);
+        check(keys.isCustom(), "moving a key makes it a keypad of their own");
+        check(keys.isMoved("fire"), "and that key in particular");
+        check(!keys.isMoved("num5"), "but only that one");
+        eq(-1.25f, keys.offsetY("fire"), "the offset is kept as given");
+
+        // Clamped rather than refused: a drag that runs off the screen should
+        // leave the key at the edge, not leave it where it was.
+        keys.move("num1", 40f, -40f);
+        eq(KeypadArrangement.MAX_OFFSET, keys.offsetX("num1"), "a drag off the screen stops");
+        eq(-KeypadArrangement.MAX_OFFSET, keys.offsetY("num1"), "in both directions");
+
+        keys.move("num1", 0f, 0f);
+        check(!keys.isMoved("num1"), "a key dragged back is not a moved key any more");
+
+        keys.setScale(500);
+        eq(KeypadArrangement.MAX_SCALE, keys.scale(), "keys cannot be made any size at all");
+        keys.setScale(1);
+        eq(KeypadArrangement.MIN_SCALE, keys.scale(), "nor small enough to lose");
+        keys.setScale(120);
+        eq(76, keys.sizeOf(64), "and the size follows the scale");
+
+        // Through JSON, because this is a setting someone spends time on and
+        // would not spend twice.
+        GameProfile restored = GameProfile.fromJson(
+                Json.readObject(Json.write(profile.toJson())));
+        KeypadArrangement back = restored.keypadArrangement();
+        eq(120, back.scale(), "the size survives a restart");
+        eq(0.5f, back.offsetX("fire"), "and so does where a key was put");
+        eq(-1.25f, back.offsetY("fire"), "to the thousandth of a key");
+        eq(1, back.movedKeys().size(), "and nothing else came back with it");
+
+        keys.reset();
+        check(!keys.isCustom(), "and it can all be put back");
+        eq(100, keys.scale(), "size included");
     }
 
     /** A PNG header of the given size, which is all the detector reads. */
@@ -262,6 +314,8 @@ public final class ProfileTest extends Test {
         eq(60, profile.keypadOpacityAfter(4_999L), "the keypad holds until the delay is up");
         eq(20, profile.keypadOpacityAfter(5_000L), "then steps back out of the way");
         profile.setKeypadFadeDelay(0);
+
+        arrangement(profile);
 
         profile.setVolume(150);
         eq(100, profile.volume(), "volume is clamped to 100");

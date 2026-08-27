@@ -54,6 +54,7 @@ sealed interface Route {
     data class Saves(val suiteId: String) : Route
     data class Screenshots(val suiteId: String) : Route
     data class SaveSlots(val suiteId: String) : Route
+    data class ArrangeKeys(val suiteId: String) : Route
 }
 
 @Composable
@@ -128,6 +129,7 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
                 library = library,
                 suiteId = current.suiteId,
                 onBack = { route = Route.Detail(current.suiteId) },
+                onArrangeKeys = { route = Route.ArrangeKeys(current.suiteId) },
             )
             return
         }
@@ -156,6 +158,18 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
                 suiteId = current.suiteId,
                 onBack = { route = Route.Detail(current.suiteId) },
             )
+            return
+        }
+
+        is Route.ArrangeKeys -> {
+            BackedScreen("Sắp xếp bàn phím",
+                onBack = { route = Route.GameSettings(current.suiteId) }) {
+                ArrangeKeysScreen(
+                    library = library,
+                    suiteId = current.suiteId,
+                    onBack = { route = Route.GameSettings(current.suiteId) },
+                )
+            }
             return
         }
 

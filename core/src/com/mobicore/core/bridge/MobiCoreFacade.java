@@ -20,6 +20,7 @@ import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.model.InputProfile;
+import com.mobicore.core.model.KeypadArrangement;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.mod.ModManager;
 import com.mobicore.core.mod.ModPackage;
@@ -504,6 +505,118 @@ public final class MobiCoreFacade {
             return Json.write(json);
         } catch (IOException e) {
             return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Where the keys have been dragged to, and how big they are drawn.
+     *
+     * <p>Every moved key comes back with it: the screen that lets keys be
+     * dragged has to draw the keypad as it stands, and asking per key would
+     * be twenty calls to draw one keypad.</p>
+     */
+    public String keypadArrangementJson(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            KeypadArrangement arrangement = profile.keypadArrangement();
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("scale", Integer.valueOf(arrangement.scale()));
+            json.put("custom", Boolean.valueOf(arrangement.isCustom()));
+            List<Object> keys = new ArrayList<Object>();
+            List<String> moved = arrangement.movedKeys();
+            for (int i = 0; i < moved.size(); i++) {
+                String button = moved.get(i);
+                Map<String, Object> key = Json.object();
+                key.put("button", button);
+                key.put("x", Integer.valueOf(Math.round(arrangement.offsetX(button) * 1000)));
+                key.put("y", Integer.valueOf(Math.round(arrangement.offsetY(button) * 1000)));
+                keys.add(key);
+            }
+            json.put("keys", keys);
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Drags one key to an offset from where the standard layout puts it.
+     *
+     * <p>Offsets are in thousandths of a key rather than pixels, because a
+     * key is a different number of pixels upright, sideways, and on every
+     * different phone — and the same arrangement has to hold for all of
+     * them.</p>
+     */
+    public String moveKey(String suiteId, String button, int xMilli, int yMilli) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.keypadArrangement().move(button, xMilli / 1000f, yMilli / 1000f);
+            library.saveProfile(profile);
+            applyArrangement(suiteId, profile);
+            return keypadArrangementJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** How big the keys are drawn, 60-160 percent of the standard size. */
+    public String setKeyScale(String suiteId, int percent) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.keypadArrangement().setScale(percent);
+            library.saveProfile(profile);
+            applyArrangement(suiteId, profile);
+            return keypadArrangementJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Puts every key back where the standard layout has it. */
+    public String resetKeypad(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.keypadArrangement().reset();
+            library.saveProfile(profile);
+            applyArrangement(suiteId, profile);
+            return keypadArrangementJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Hands the running game the arrangement that was just edited.
+     *
+     * <p>Keys are dragged while looking at the game they are for, so the
+     * change has to be there when the editor is closed rather than at the
+     * next start.</p>
+     */
+    private void applyArrangement(String suiteId, GameProfile edited) {
+        if (session == null || !suiteId.equals(activeSuiteId)) {
+            return;
+        }
+        KeypadArrangement live = session.profile().keypadArrangement();
+        live.reset();
+        live.setScale(edited.keypadArrangement().scale());
+        List<String> moved = edited.keypadArrangement().movedKeys();
+        for (int i = 0; i < moved.size(); i++) {
+            String button = moved.get(i);
+            live.move(button, edited.keypadArrangement().offsetX(button),
+                    edited.keypadArrangement().offsetY(button));
         }
     }
 
