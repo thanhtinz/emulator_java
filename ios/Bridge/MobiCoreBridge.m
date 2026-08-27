@@ -447,6 +447,10 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)shareScreenshot:(NSString *)name forSuite:(NSString *)suiteId {
+    return [_facade shareScreenshotWithNSString:suiteId withNSString:name];
+}
+
 - (NSString *)collectionsJSONForSuite:(NSString *)suiteId {
     return [_facade collectionsJsonWithNSString:suiteId];
 }

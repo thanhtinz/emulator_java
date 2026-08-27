@@ -20,9 +20,10 @@ public final class IconData {
             "keyboard_arrow_left", "keyboard_arrow_right", "keyboard_arrow_up", "more_vert",
             "north_east", "north_west", "photo_camera", "photo_library",
             "play_arrow", "save", "screen_rotation", "search",
-            "settings", "sort", "south_east", "south_west",
-            "speed", "star", "star_border", "stop_circle",
-            "tune", "undo", "videocam", "videogame_asset",
+            "settings", "share", "sort", "south_east",
+            "south_west", "speed", "star", "star_border",
+            "stop_circle", "tune", "undo", "videocam",
+            "videogame_asset",
     };
 
     private static final String[] ADD_BITS = {
@@ -924,6 +925,37 @@ public final class IconData {
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
     };
 
+    private static final String[] SHARE_BITS = {
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADeZcwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABM////xAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAB///////cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABf///////1AAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAe////////4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/////////3AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAv///",
+            "//////sAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADv/////////gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO//////////AAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAA3/////////0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbv////////+gAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAADz//////////1AAAAAAAAAAAAAAAAAAAAAAAAAAAAAZ///////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAB+////////",
+            "///+IAAAAAAAAAAAAAAAAAAAAAAAAAAATf////xd/////9MAAAAAAAAAAAAAAAAAAAAAAAAAACv////+YAF9///XEAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAY/////4EAAAA0QwAAAAAAAAAAAAAAAAAAAAAAAAAABu////+yAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPP",
+            "////1AAAAAAAAAAAAAAAAAAAAAAAAAAAON7sggABn////+cAAAAAAAAAAAAAAAAAAAAAAAAAAAn/////gX7////5EAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAv//////+/////DAAAAAAAAAAAAAAAAAAAAAAAAAAAAn///////////5gAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "P///////////gQAAAAAAAAAAAAAAAAAAAAAAAAAAAACP/////////7IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM/////////8AAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAA7/////////4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADv/////////gAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAM/////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAj/////////+yAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/",
+            "//////////+BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAn///////////5gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAL///////v////ww",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAACf////+Bfv////kQAAAAAAAAAAAAAAAAAAAAAAAAAAAAON7sggABn////+cAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAADz////9QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG7////7IAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAY/////4EAAAABEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAr/////mAAOu/+pAAAAAAAAAAAAAAAAAAAAAAAAAAAAABd",
+            "/////En/////oQAAAAAAAAAAAAAAAAAAAAAAAAAAAAB+///////////7AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKv//////////+A",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPP//////////IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbv////////9wAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAK/////////6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAv/////////sAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAC/////////+wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI/////////4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/////////MA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAL////////sAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALv//////4gAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAD3/////0wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZ7//+kQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAUZkEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    };
+
     private static final String[] SORT_BITS = {
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -1297,17 +1329,18 @@ public final class IconData {
             case 26: return join(SCREEN_ROTATION_BITS);
             case 27: return join(SEARCH_BITS);
             case 28: return join(SETTINGS_BITS);
-            case 29: return join(SORT_BITS);
-            case 30: return join(SOUTH_EAST_BITS);
-            case 31: return join(SOUTH_WEST_BITS);
-            case 32: return join(SPEED_BITS);
-            case 33: return join(STAR_BITS);
-            case 34: return join(STAR_BORDER_BITS);
-            case 35: return join(STOP_CIRCLE_BITS);
-            case 36: return join(TUNE_BITS);
-            case 37: return join(UNDO_BITS);
-            case 38: return join(VIDEOCAM_BITS);
-            case 39: return join(VIDEOGAME_ASSET_BITS);
+            case 29: return join(SHARE_BITS);
+            case 30: return join(SORT_BITS);
+            case 31: return join(SOUTH_EAST_BITS);
+            case 32: return join(SOUTH_WEST_BITS);
+            case 33: return join(SPEED_BITS);
+            case 34: return join(STAR_BITS);
+            case 35: return join(STAR_BORDER_BITS);
+            case 36: return join(STOP_CIRCLE_BITS);
+            case 37: return join(TUNE_BITS);
+            case 38: return join(UNDO_BITS);
+            case 39: return join(VIDEOCAM_BITS);
+            case 40: return join(VIDEOGAME_ASSET_BITS);
             default: return null;
         }
     }

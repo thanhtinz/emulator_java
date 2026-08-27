@@ -213,6 +213,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.
 - (NSString *)noteKeypadUse;
+/// Gets one picture or clip ready to leave the app, under a readable name.
+- (NSString *)shareScreenshot:(NSString *)name forSuite:(NSString *)suiteId;
+
 /// Shelves the player puts their games on.
 - (NSString *)collectionsJSONForSuite:(NSString *)suiteId;
 - (NSString *)createCollection:(NSString *)name;

@@ -333,6 +333,19 @@ final class MobiCoreClient: ObservableObject {
         return Image(uiImage: image)
     }
 
+    /// Gets one picture or clip ready to send.
+    ///
+    /// Inside the app it is called `1700000000000.png` — the right name for a
+    /// file the app itself reads, and one that says nothing in a chat. So a
+    /// copy is made under a readable name, and it is the copy that goes.
+    func prepareShare(_ suiteId: String, named name: String) -> URL? {
+        let shared: SharedFile? = decode(bridge.shareScreenshot(name, forSuite: suiteId))
+        guard let path = shared?.path else {
+            return nil
+        }
+        return URL(fileURLWithPath: path)
+    }
+
     func deleteScreenshot(_ suiteId: String, named name: String) {
         report(decode(bridge.deleteScreenshot(forSuite: suiteId, named: name)))
     }

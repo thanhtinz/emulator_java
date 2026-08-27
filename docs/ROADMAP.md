@@ -41,6 +41,7 @@
 | 37 | Tệp riêng của game (JSR-75) | Xong |
 | 38 | Cài game từ liên kết | Xong |
 | 39 | Bộ sưu tập trong thư viện | Xong |
+| 40 | Chia sẻ ảnh chụp và đoạn quay | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1446,3 +1447,44 @@ xem hay không — màn hình xếp game cần cả hai), `createCollection`,
 `toggleCollection`, `renameCollection`, `deleteCollection`, `collectionJson`
 (trả về game theo **đúng hình dạng** mà cả thư viện trả về, nên màn hình vẽ danh
 sách game không cần cách vẽ thứ hai).
+
+
+## Giai đoạn 40 — chia sẻ ảnh chụp và đoạn quay
+
+Một tấm ảnh **không gửi đi được** thì mới là nửa tấm ảnh. Thư viện ảnh xem
+được, xoá được — nhưng lý do người ta bấm chụp là để **cho người khác xem**, và
+điều đó cần tệp tồn tại ở chỗ ứng dụng khác mở được, dưới một cái tên **có
+nghĩa** khi nó rơi vào một khung chat.
+
+Trong ứng dụng, tấm ảnh tên là `1700000000000.png` — một con số biết sắp xếp,
+đúng là cái tên nên đặt cho tệp mà chính ứng dụng đọc. Gửi cho người khác thì
+cái tên đó **chẳng nói gì cả**: thứ đáng nằm trên đó là **tên game và lúc nào**.
+Nên một bản sao được tạo dưới tên đọc được, và **bản sao mới là thứ đi ra**.
+
+`core/library/ShareExport.java`:
+
+- Tên có dạng `Sky Runner 2023-11-14 22-13.gif`. Dấu hai chấm và dấu gạch chéo
+  không có trong đó, vì tên tệp mang một trong hai thứ đó là tên mà điện thoại
+  nào, ứng dụng chat nào hoặc máy tính nào cũng sẽ từ chối — thay hai chấm bằng
+  gạch nối là thứ mọi công cụ chụp màn hình đều đã đi đến, vì cùng một lý do.
+- **Tên game là của người chơi**: họ đổi tên game thành gì cũng được, kể cả
+  thành một đường dẫn. Mọi ký tự có thể lái chỗ ghi đi nơi khác, hoặc mà hệ tệp
+  từ chối, đều bị bỏ; `../../etc/passwd` ra `etcpasswd`.
+- **Ngày giờ tính bằng số học, không dùng bộ định dạng ngày**: lõi không có phụ
+  thuộc nào để còn dịch được sang iOS, mà đổi từ mili giây ra ngày dương lịch
+  chỉ tốn hơn chục dòng (thuật toán *civil-from-days* của Howard Hinnant — dời
+  lịch cho năm bắt đầu từ tháng Ba, để ngày nhuận rơi vào cuối năm và độ dài các
+  tháng thành một đường thẳng thay vì một bảng ngoại lệ). Bài kiểm tra soi đúng
+  ba ngày mà một cuốn lịch viết tay hay sai: ngày nhuận, ngày sau ngày nhuận, và
+  một năm tròn thế kỷ **không** nhuận.
+- Bản sao nằm trong **cache**, cố ý: thứ đưa cho ứng dụng khác là bản sao người
+  chơi không yêu cầu giữ, và điện thoại được phép dọn nó bất cứ lúc nào. Giữ 20
+  bản mới nhất — một thư mục chỉ có lớn lên là một thư mục sẽ có ngày trở thành
+  lý do điện thoại hết chỗ.
+
+Bên Android, tệp đi ra qua `FileProvider` mở **đúng một thư mục** — chỗ để các
+bản sao đã chuẩn bị. Dữ liệu lưu của game, tệp riêng của game, chỉ mục thư viện
+đều **không** lộ ra. Bên iOS là `ShareLink` trỏ vào chính bản sao đó.
+
+Nút chia sẻ nằm **ngay trên tấm ảnh**, cạnh nút xoá: gửi đi là lý do tấm ảnh
+được chụp, nó không nên nằm sau một cú nhấn giữ mà không ai tìm ra.

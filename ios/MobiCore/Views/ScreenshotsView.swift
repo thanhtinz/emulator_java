@@ -60,6 +60,19 @@ struct ScreenshotsView: View {
                                                alignment: .bottomLeading)
                                         .padding(6)
                                 }
+                                // Sending is the reason a picture was taken,
+                                // so it sits on the picture beside the way to
+                                // delete it.
+                                if opened == shot.name,
+                                   let file = client.prepareShare(suiteId, named: shot.name) {
+                                    ShareLink(item: file) {
+                                        Image(systemName: "square.and.arrow.up")
+                                            .padding(8)
+                                            .foregroundStyle(Palette.accent)
+                                    }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity,
+                                           alignment: .topLeading)
+                                }
                                 if opened == shot.name {
                                     // The one action a picture needs, shown on
                                     // the picture rather than behind a long

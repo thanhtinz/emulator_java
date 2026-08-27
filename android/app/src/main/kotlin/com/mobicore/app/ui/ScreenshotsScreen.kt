@@ -21,11 +21,17 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
+import java.io.File
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +59,7 @@ fun ScreenshotsScreen(
     onBack: () -> Unit,
 ) {
     var revision by remember { mutableStateOf(0) }
+    val context = LocalContext.current
     val names = remember(suiteId, revision) { library.screenshots(suiteId) }
     var opened by remember { mutableStateOf<String?>(null) }
 
@@ -130,6 +137,17 @@ fun ScreenshotsScreen(
                         }
                     }
                     if (opened == name) {
+                        // Sending is the reason a picture was taken, so it
+                        // sits on the picture beside the way to delete it.
+                        IconButton(
+                            onClick = { shareScreenshot(context, library, suiteId, name) },
+                            modifier = Modifier.align(Alignment.TopStart),
+                        ) {
+                            Icon(Icons.Filled.Share, contentDescription = "Chia sẻ",
+                                tint = MobiColors.Accent)
+                        }
+                    }
+                    if (opened == name) {
                         // The one action a picture needs, shown on the picture
                         // rather than behind a long press nobody discovers.
                         IconButton(
@@ -167,4 +185,33 @@ private fun galleryCount(names: List<String>): String {
         return "$clips đoạn quay"
     }
     return "$stills ảnh, $clips đoạn quay"
+}
+
+/**
+ * Hands one picture or clip to whatever the phone can send it with.
+ *
+ * The file another app receives is the prepared copy in the cache, reached
+ * through the provider: the app's own storage — a game's saves, its files, the
+ * library index — is never exposed, only what the player asked to send.
+ */
+private fun shareScreenshot(
+    context: Context,
+    library: LibraryRepository,
+    suiteId: String,
+    name: String,
+) {
+    val prepared = library.prepareShare(suiteId, name) ?: return
+    // The path is already absolute — the library's own root lives under the
+    // app's files directory, which is exactly what the provider maps.
+    val file = File(prepared.first)
+    if (!file.exists()) {
+        return
+    }
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.share", file)
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = prepared.second
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(intent, "Chia sẻ"))
 }

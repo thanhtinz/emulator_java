@@ -43,5 +43,20 @@
                 <data android:scheme="content" android:mimeType="text/vnd.sun.j2me.app-descriptor" />
             </intent-filter>
         </activity>
+
+        <!--
+            Sharing a picture or a clip hands another app a file. The provider
+            exposes exactly one folder — the prepared copies — and nothing
+            else the app has stored.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.share"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/share_paths" />
+        </provider>
     </application>
 </manifest>

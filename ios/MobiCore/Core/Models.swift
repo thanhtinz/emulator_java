@@ -241,6 +241,14 @@ struct Screenshot: Codable, Identifiable, Hashable {
     var isClip: Bool { clip ?? false }
 }
 
+/// A picture or clip made ready to leave the app.
+struct SharedFile: Codable {
+    let path: String
+    let name: String
+    let mime: String
+    let clip: Bool
+}
+
 /// One shelf the player has put games on.
 struct Collection: Codable, Identifiable, Hashable {
     let name: String

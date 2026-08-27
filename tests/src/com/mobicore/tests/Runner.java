@@ -26,6 +26,7 @@ public final class Runner {
         tests.add(new NokiaTest(fixtures));
         tests.add(new BatchImportTest(fixtures));
         tests.add(new CollectionTest(fixtures));
+        tests.add(new ShareTest(fixtures));
         tests.add(new DownloadTest(fixtures));
         tests.add(new FileTest(fixtures));
         tests.add(new GifTest());

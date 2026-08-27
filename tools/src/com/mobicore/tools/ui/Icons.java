@@ -42,6 +42,8 @@ public final class Icons {
     public static final String PHOTO = "photo_library";
     public static final String CAMERA = "photo_camera";
     /** Recording a few seconds of play, and stopping again. */
+    /** Sending a picture or a clip out of the app. */
+    public static final String SHARE = "share";
     public static final String RECORD = "videocam";
     public static final String STOP = "stop_circle";
     public static final String UNDO = "undo";

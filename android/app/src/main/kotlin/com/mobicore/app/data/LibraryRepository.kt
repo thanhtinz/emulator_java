@@ -9,6 +9,7 @@ import com.mobicore.core.library.PresetStore
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
 import com.mobicore.core.library.CollectionStore
+import com.mobicore.core.library.ShareExport
 import com.mobicore.core.library.UrlInstaller
 import com.mobicore.core.midp.MidpFiles
 import com.mobicore.core.net.HttpTransport
@@ -459,6 +460,28 @@ class LibraryRepository(filesDir: String) {
         val base = StorageLayout.join(library.layout().gameDir(suiteId), "files")
         val full = MidpFiles.resolveOrNull(base, path) ?: return false
         return library.storage().delete(full)
+    }
+
+    /**
+     * Gets one picture or clip ready to leave the app.
+     *
+     * Inside the app it is called `1700000000000.png`, which is the right name
+     * for a file the app itself reads and says nothing at all in a chat. So a
+     * copy is made under a readable name, and it is the copy that goes.
+     *
+     * @return the copy's path and what to call it, or null when there is
+     *     nothing to send
+     */
+    fun prepareShare(suiteId: String, name: String): Pair<String, String>? {
+        val bytes = library.readScreenshot(suiteId, name) ?: return null
+        if (bytes.isEmpty()) {
+            return null
+        }
+        val title = library.find(suiteId)?.title() ?: "MobiCore"
+        val share = ShareExport(library.storage(), library.layout())
+        return runCatching {
+            share.prepare(title, name, bytes) to ShareExport.mimeOf(name)
+        }.getOrNull()
     }
 
     /** Keeps a recorded clip beside the pictures; returns where it went. */

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The one folder another app may read from: the prepared copies of pictures
+    and clips the player asked to send. Nothing else in the app's storage is
+    exposed — a game's saves, its files and the library index stay ours.
+-->
+<paths>
+    <files-path name="mobicore-share" path="MobiCore/cache/share/" />
+</paths>

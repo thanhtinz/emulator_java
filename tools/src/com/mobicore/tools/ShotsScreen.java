@@ -94,11 +94,13 @@ public final class ShotsScreen {
             }
         }
 
-        // One tile open, showing the only action a picture needs.
+        // One tile open, showing the two things a picture needs: sending it,
+        // which is why it was taken, and throwing it away.
         int openX = gap;
         int openY = bar + gap;
         frame.setColor(0x66000000);
         frame.fillRoundRect(openX, openY, tile, tileHeight, 18, 18);
+        Icons.drawCentred(frame, Icons.SHARE, openX + 26, openY + 26, 24, Theme.ACCENT);
         Icons.drawCentred(frame, Icons.DELETE, openX + tile - 26, openY + 26, 24, Theme.BAD);
         return frame;
     }

@@ -14,6 +14,7 @@ import com.mobicore.core.library.CollectionStore;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryArchive;
 import com.mobicore.core.library.PresetStore;
+import com.mobicore.core.library.ShareExport;
 import com.mobicore.core.library.UrlInstaller;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
@@ -1303,6 +1304,41 @@ public final class MobiCoreFacade {
             return png == null ? new byte[0] : png;
         } catch (IOException e) {
             return new byte[0];
+        }
+    }
+
+    /**
+     * Gets one picture or clip ready to leave the app.
+     *
+     * <p>A screenshot nobody can send is half a screenshot. Inside the app it
+     * is called {@code 1700000000000.png}, which is the right name for a file
+     * the app itself reads and says nothing at all in a chat — so a copy is
+     * made under a readable name and it is the copy that goes.</p>
+     *
+     * @return where the copy is, what it should be called, and what it is
+     */
+    public String shareScreenshot(String suiteId, String name) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            byte[] bytes = library.readScreenshot(suiteId, name);
+            if (bytes == null || bytes.length == 0) {
+                return error("Không có ảnh này");
+            }
+            LibraryEntry entry = library.find(suiteId);
+            String title = entry == null ? "MobiCore" : entry.title();
+            ShareExport share = new ShareExport(library.storage(), library.layout());
+            String path = share.prepare(title, name, bytes);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("path", path);
+            json.put("name", share.fileNameFor(title, name));
+            json.put("mime", ShareExport.mimeOf(name));
+            json.put("clip", Boolean.valueOf(ShareExport.isClip(name)));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
         }
     }
 
