@@ -16,8 +16,8 @@ struct GameSettingsView: View {
     @State private var gamepad: GamepadSettings?
     /// Whether tilting steers this game, re-read after every change.
     @State private var tilt: TiltSettings?
-    /// Máy mà game này được cho là đang chạy trên đó.
-    @State private var handset: HandsetSettings?
+    /// Những gì game đọc được khi nó hỏi máy nó đang chạy trên đó là máy gì.
+    @State private var properties: SystemPropertyTable?
     @State private var tiltSensitivity = 100
     @State private var keyChoices: [KeyChoice] = []
 
@@ -92,49 +92,19 @@ struct GameSettingsView: View {
                     }
 
                     // Game J2ME hỏi nó đang chạy trên máy nào rồi mới chọn bộ
-                    // ảnh và nhánh vẽ. Đây là chỗ trả lời câu hỏi ấy — một
-                    // chuỗi chữ, không phải một cỗ máy khác: màn hình vẫn
-                    // 240×320 và bàn phím vẫn một kiểu.
-                    SectionCard(title: "TÊN MÁY GAME ĐỌC",
-                                trailing: handset?.name ?? "") {
+                    // ảnh và nhánh vẽ. Máy ảo có đúng một câu trả lời cho mọi
+                    // game, nên đây là chỗ để đọc chứ không phải chỗ để chọn.
+                    SectionCard(title: "GAME ĐỌC ĐƯỢC GÌ",
+                                trailing: properties?.platform ?? "") {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Game đọc microedition.platform rồi mới chọn cách chạy. "
-                                 + "Đây chỉ là chuỗi chữ nó đọc được: màn hình và bàn phím "
-                                 + "không đổi theo.")
+                                 + "Máy ảo trả lời như một chiếc Nokia đời J2ME cho mọi game.")
                                 .font(.caption2)
                                 .foregroundStyle(Palette.textDim)
 
-                            ForEach(handset?.handsets ?? []) { option in
-                                Button {
-                                    client.setHandset(option.id, for: suiteId)
-                                    handset = client.handset(suiteId)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(option.name)
-                                            .font(.footnote.weight(option.chosen ? .semibold : .regular))
-                                            .foregroundStyle(option.chosen ? Palette.accent : Palette.text)
-                                        // Đúng chuỗi game đọc được, chứ không
-                                        // phải lời giới thiệu một chiếc máy.
-                                        Text(option.platform)
-                                            .font(.caption2)
-                                            .foregroundStyle(Palette.textDim)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .buttonStyle(.plain)
-                            }
-
-                            // Đúng những chuỗi game đọc được: khi một game
-                            // chạy sai vì tưởng mình ở trên máy khác, đây là
-                            // thứ cần nhìn.
-                            ForEach(handset?.properties ?? []) { property in
+                            ForEach(properties?.properties ?? []) { property in
                                 FieldRow(label: property.name, value: property.value)
                             }
-
-                            // Game đang chạy đã đọc xong câu này từ lúc mở màn.
-                            Text("Đổi tên chỉ ăn từ lần mở game sau.")
-                                .font(.caption2)
-                                .foregroundStyle(Palette.textDim)
                         }
                     }
 
@@ -515,7 +485,7 @@ struct GameSettingsView: View {
             gamepad = client.gamepad(suiteId)
             tilt = client.tilt(suiteId)
             tiltSensitivity = tilt?.sensitivity ?? 100
-            handset = client.handset(suiteId)
+            properties = client.systemProperties()
         }
     }
 

@@ -143,10 +143,10 @@ public final class EmulatorSession {
         // A game paces itself off the clock it is given, so the clock is the
         // one place a speed control can live without the game noticing.
         SpeedClock speedClock = new SpeedClock(host == null ? VmHost.DEFAULT : host);
-        // Máy giả nằm ngoài cùng: game hỏi nó đang chạy trên máy nào thì hồ
-        // sơ của chính game trả lời, chứ không phải một cái tên cố định mà
+        // Bảng thuộc tính nằm ngoài cùng: game hỏi nó đang chạy trên máy nào
+        // thì nghe thấy một chiếc điện thoại thật, chứ không phải một cái tên
         // chưa game nào từng nghe.
-        vm.setHost(new HandsetHost(log.hostBridge(speedClock), profile.identity()));
+        vm.setHost(new PropertiesHost(log.hostBridge(speedClock)));
 
         int width = profile.device().width();
         int height = profile.device().height();

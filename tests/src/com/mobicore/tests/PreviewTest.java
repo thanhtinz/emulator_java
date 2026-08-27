@@ -3,7 +3,6 @@ package com.mobicore.tests;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.tools.CrashScreen;
 import com.mobicore.tools.DetailScreen;
-import com.mobicore.tools.DeviceScreen;
 import com.mobicore.tools.ImportScreen;
 import com.mobicore.tools.LinkScreen;
 import com.mobicore.tools.ProfileScreen;
@@ -50,7 +49,6 @@ public final class PreviewTest extends Test {
         clear("Chỗ lưu", new SlotsScreen(fixtureDir).render());
         clear("Nhập từ liên kết", new LinkScreen(fixtureDir).render());
         clear("Game hỏng", new CrashScreen(fixtureDir).render());
-        clear("Máy giả lập", new DeviceScreen(fixtureDir).render());
     }
 
     /**

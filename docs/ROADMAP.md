@@ -1615,7 +1615,7 @@ một đời máy rồi đem chạy trên đời máy khác. Ảnh chụp màn h
 
 Cầu nối: `crashJson`, `hasCrashed` và `dismissCrash`.
 
-## Giai đoạn 44 — giả làm máy khác
+## Giai đoạn 44 — máy ảo khai nó là máy gì
 
 Game J2ME hỏi nó đang chạy trên máy nào:
 
@@ -1630,50 +1630,41 @@ chạy. Câu trả lời của máy ảo này cho tới giờ là `MobiCore`: m�
 game nào từng nghe**, nên game rơi vào đúng nhánh dành cho máy lạ — nhánh ít
 được thử nhất và hỏng nhiều nhất.
 
-Nay mỗi game có một chiếc máy của riêng nó. Mặc định là **Nokia 6233** — đúng
-con máy [J2ME Loader khai trong `assets/defaults/system.props`][props], và cùng
-lý do: nhánh Nokia là nhánh được nhiều game chăm chút nhất, còn phần Nokia thì
-máy ảo này có làm thật (FullCanvas, DirectGraphics, DeviceControl).
+Nay câu trả lời là **Nokia6233/05.10** — đúng con máy [J2ME Loader khai trong
+`assets/defaults/system.props`][props], và cùng lý do: nhánh Nokia là nhánh
+được nhiều game chăm chút nhất, còn phần Nokia thì máy ảo này có làm thật
+(FullCanvas, DirectGraphics, DeviceControl).
+
+**Một câu trả lời, cho mọi game.** Bản đầu của giai đoạn này có một tủ chọn sáu
+chiếc máy, và tủ ấy đã bị bỏ: máy ảo này là **một cỗ máy duy nhất** — một cỡ
+màn hình 240×320 (giai đoạn 32), một kiểu bàn phím, một bảng thuộc tính. Thêm
+một tủ chọn là đẩy sang người chơi đúng câu hỏi mà giai đoạn 32 đã bỏ đi vì họ
+không có cách nào trả lời đúng, và mỗi câu trả lời sai lại là một cỗ máy nữa
+phải chịu trách nhiệm. Màn hình cài đặt vì thế **chỉ bày ra** những gì game đọc
+được, không cho chọn.
 
 Chỉ khai những thứ **thật sự có**. Một chiếc máy khai `microedition.m3g.version`
 rồi để game gọi vào 3D là một chiếc máy nói dối: game không chết ở câu hỏi, nó
-chết ở câu gọi ngay sau đó, và lúc ấy chẳng ai lần ra vì sao. Nên bảng khai
-gồm CLDC-1.1, MIDP-2.0, phần tệp, phần âm thanh và cỡ màu 565 của
-DirectGraphics — hết. Hỏi 3D hay danh bạ thì nghe thấy **không có**, đúng cách
-một chiếc máy không có phần đó trả lời.
-
-Vài chỗ cố ý:
-
-- **Riêng cho từng game.** Đây là thứ chỉ đổi khi một game cụ thể chạy sai; đổi
-  cho cả máy thì sửa được một game và làm hỏng những game khác.
-- **Sửa tay được từng dòng.** Danh sách máy không bao giờ đủ — một game duy nhất
-  đòi đúng một chuỗi lạ thì sửa một dòng vẫn hơn thêm hẳn một chiếc máy vào
-  danh sách cho mọi người cùng nhìn.
-- **Đang chơi thì phải mở lại game mới ăn**, và màn hình nói thẳng như vậy. Game
-  đã đọc xong máy nó đang chạy trên đó ngay lúc mở màn và đã chọn nhánh, chọn bộ
-  ảnh theo câu trả lời ấy; đổi giữa chừng chỉ tạo ra một game nửa nọ nửa kia.
-- **Bảng cài đặt bày ra đúng chuỗi game đọc được**, chứ không phải tên máy cho
-  đẹp: khi một game chạy sai vì tưởng mình ở trên máy khác, đó mới là thứ cần
-  nhìn.
-- **`ISO-8859-1`, không phải UTF-8.** Game đời ấy đọc chuỗi theo từng byte, và
-  đổi bảng mã làm lệch chính chữ của nó.
+chết ở câu gọi ngay sau đó, và lúc ấy chẳng ai lần ra vì sao. Nên bảng khai gồm
+CLDC-1.1, MIDP-2.0, phần tệp, phần âm thanh và cỡ màu 565 của DirectGraphics —
+hết. Hỏi 3D hay danh bạ thì nghe thấy **không có**, đúng cách một chiếc máy
+không có phần đó trả lời. Và `ISO-8859-1`, không phải UTF-8: game đời ấy đọc
+chuỗi theo từng byte, đổi bảng mã làm lệch chính chữ của nó.
 
 Bản mẫu `demo.DeviceDemo` hỏi đúng câu ấy rồi tự viết ra nó nghe thấy gì và rẽ
 nhánh theo. Bài kiểm tra **nhìn vào điểm ảnh** để biết game rẽ nhánh nào: cùng
-một lớp bytecode, giả làm Nokia thì vào nhánh Nokia, giả làm máy chung thì
-không. Ảnh chụp màn hình cũng là khung hình thật của bản mẫu ấy.
+một lớp bytecode, nghe thấy tên Nokia thì vào nhánh Nokia.
 
-**Không phải danh sách máy quay lại.** Giai đoạn 32 bỏ bảy cỡ máy vì nó bắt
-người chơi chọn một thứ họ không có cách nào biết, và chọn sai thì game chạy
-trên màn hình nó chưa từng được vẽ cho. Chỗ này **chỉ là một chuỗi chữ**: màn
-hình vẫn đúng một cỡ 240×320, bàn phím vẫn đúng một kiểu, và đổi ở đây không
-đụng đến cái nào trong hai thứ đó. Nên màn hình gọi nó bằng đúng tên nó là —
-**"Tên máy game đọc"** — và dưới mỗi lựa chọn là đúng chuỗi game đọc được
-(`Nokia6233/05.10`), chứ không phải lời giới thiệu một chiếc điện thoại.
+Nhân tiện, `Ui.field` được sửa cho đúng cái nó vẫn làm sai: nhãn dài nuốt hết
+chỗ của giá trị. Một cái tên như `com.nokia.mid.ui.DirectGraphics.PIXEL_FORMAT`
+chạy hết hàng và ép giá trị `565` xuống còn đúng dấu ba chấm. Nay giá trị giữ
+chỗ của nó trước, nhãn cắt bớt sau — vì giá trị mới là thứ người ta đọc, còn
+nhãn thì cắt bớt vẫn đoán ra.
 
-Cầu nối: `handsetJson`, `setHandset`, `setSystemProperty` và `resetHandset`.
+Cầu nối: `systemPropertiesJson` — chỉ để đọc.
 
 [props]: https://github.com/nikita36078/J2ME-Loader/blob/master/app/src/main/assets/defaults/system.props
+
 
 ### Sửa: trang xem trước không còn bị cắt ngang
 

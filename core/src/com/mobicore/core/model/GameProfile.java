@@ -83,8 +83,6 @@ public final class GameProfile {
     private GamepadProfile gamepad = GamepadProfile.defaults();
     /** Whether tilting the phone steers, and how far it has to lean. */
     private TiltProfile tilt = new TiltProfile();
-    /** Chiếc máy game tưởng nó đang chạy trên đó. */
-    private HandsetIdentity identity = new HandsetIdentity();
     /**
      * Which MIDlet inside the suite to open, or empty for the first.
      *
@@ -350,17 +348,6 @@ public final class GameProfile {
         return tilt;
     }
 
-    /**
-     * Máy mà game này được cho là đang chạy trên đó.
-     *
-     * <p>Riêng cho từng game, vì đây là thứ chỉ đổi khi một game cụ thể chạy
-     * sai: đổi cho cả máy thì sửa được một game và làm hỏng những game
-     * khác.</p>
-     */
-    public HandsetIdentity identity() {
-        return identity;
-    }
-
     /** Replaces the whole pad mapping, which is what "put it back" does. */
     public void setGamepad(GamepadProfile gamepad) {
         this.gamepad = gamepad == null ? GamepadProfile.defaults() : gamepad;
@@ -566,7 +553,6 @@ public final class GameProfile {
         json.put("keypadArrangement", keypadArrangement.toJson());
         json.put("gamepad", gamepad.toJson());
         json.put("tilt", tilt.toJson());
-        json.put("identity", identity.toJson());
         json.put("midletClass", midletClass);
         json.put("frameLimit", Integer.valueOf(frameLimit));
         json.put("volume", Integer.valueOf(volume));
@@ -603,7 +589,6 @@ public final class GameProfile {
                 Json.child(json, "keypadArrangement"));
         profile.gamepad = GamepadProfile.fromJson(Json.child(json, "gamepad"));
         profile.tilt = TiltProfile.fromJson(Json.child(json, "tilt"));
-        profile.identity = HandsetIdentity.fromJson(Json.child(json, "identity"));
         profile.midletClass = Json.string(json, "midletClass", "");
         profile.frameLimit = Json.integer(json, "frameLimit", 30);
         profile.volume = Json.integer(json, "volume", 70);

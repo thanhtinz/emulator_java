@@ -41,10 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobicore.app.data.LibraryRepository
+import com.mobicore.core.emu.SystemProperties
 import com.mobicore.core.midp.MidpContext
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.model.GamepadProfile
-import com.mobicore.core.model.HandsetIdentity
 import com.mobicore.core.model.InputProfile
 
 /** Per-game configuration: device, display, audio, input and network. */
@@ -79,8 +79,6 @@ fun GameSettingsScreen(
     var tiltSensitivity by remember { mutableIntStateOf(profile.tilt().sensitivity()) }
     var tiltAxes by remember { mutableIntStateOf(profile.tilt().axes()) }
     var tiltInverted by remember { mutableStateOf(profile.tilt().isInverted) }
-    val handset = profile.identity()
-    var handsetId by remember { mutableStateOf(handset.handsetId()) }
     // Bumped when a control is remapped: the pad profile is a plain object,
     // and Compose has no way of knowing a string inside it changed.
     var padRevision by remember { mutableIntStateOf(0) }
@@ -405,53 +403,22 @@ fun GameSettingsScreen(
 
         item {
             // Game J2ME hỏi nó đang chạy trên máy nào rồi mới chọn bộ ảnh và
-            // nhánh vẽ. Đây là chỗ trả lời câu hỏi ấy — một chuỗi chữ, không
-            // phải một cỗ máy khác: màn hình vẫn 240×320 và bàn phím vẫn một
-            // kiểu, đúng như từ giai đoạn 32.
-            SectionCard(title = "TÊN MÁY GAME ĐỌC", trailing = handset.handset().name()) {
+            // nhánh vẽ. Máy ảo có đúng một câu trả lời cho mọi game, nên đây
+            // là chỗ để đọc chứ không phải chỗ để chọn.
+            SectionCard(title = "GAME ĐỌC ĐƯỢC GÌ", trailing = SystemProperties.PLATFORM) {
                 Column {
                     Text(
                         "Game đọc microedition.platform rồi mới chọn cách chạy. " +
-                            "Đây chỉ là chuỗi chữ nó đọc được: màn hình và bàn phím " +
-                            "không đổi theo.",
+                            "Máy ảo trả lời như một chiếc Nokia đời J2ME cho mọi game.",
                         color = MobiColors.TextDim,
                         fontSize = 11.sp,
                     )
                     Spacer(Modifier.height(8.dp))
-                    HandsetIdentity.CATALOG.forEach { candidate ->
-                        val chosen = candidate.id() == handsetId
-                        Column(
-                            Modifier.fillMaxWidth()
-                                .clickable {
-                                    handsetId = candidate.id()
-                                    persist { it.identity().setHandset(candidate.id()) }
-                                }
-                                .padding(vertical = 6.dp),
-                        ) {
-                            Text(
-                                candidate.name(),
-                                color = if (chosen) MobiColors.Accent else MobiColors.Text,
-                                fontSize = 14.sp,
-                                fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal,
-                            )
-                            // Dòng dưới là đúng chuỗi game đọc được, chứ không
-                            // phải lời giới thiệu một chiếc máy.
-                            Text(candidate.platform(), color = MobiColors.TextDim,
-                                fontSize = 11.sp)
-                        }
+                    SystemProperties.toJson().forEach { row ->
+                        @Suppress("UNCHECKED_CAST")
+                        val entry = row as Map<String, Any>
+                        FieldRow(entry["name"].toString(), entry["value"].toString())
                     }
-                    Spacer(Modifier.height(6.dp))
-                    // Đúng chuỗi game đọc được: khi một game chạy sai vì
-                    // tưởng mình ở trên máy khác, đây là thứ cần nhìn.
-                    handset.all().forEach { (name, value) ->
-                        FieldRow(name, value)
-                    }
-                    // Game đang chạy đã đọc xong câu này từ lúc mở màn.
-                    Text(
-                        "Đổi tên chỉ ăn từ lần mở game sau.",
-                        color = MobiColors.TextDim,
-                        fontSize = 11.sp,
-                    )
                 }
             }
         }

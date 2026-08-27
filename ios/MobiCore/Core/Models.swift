@@ -253,35 +253,18 @@ struct ContinueCard: Codable {
     let playedName: String?
 }
 
-/// Máy mà một game được cho là đang chạy trên đó.
+/// Những gì game đọc được khi nó hỏi máy nó đang chạy trên đó là máy gì.
 ///
-/// Game J2ME đọc `microedition.platform` rồi mới chọn bộ ảnh, nhánh vẽ và mã
-/// phím, nên đây là thứ đầu tiên nên thử khi một game chạy sai mà không rõ vì
-/// sao. `properties` là đúng những chuỗi game đọc được.
-struct HandsetSettings: Codable {
-    let handset: String
-    let name: String
+/// Chỉ để đọc: máy ảo là một cỗ máy duy nhất và bảng này là của chung, không
+/// có bản riêng cho từng game.
+struct SystemPropertyTable: Codable {
     let platform: String
-    let note: String
-    let custom: Bool
-    let handsets: [HandsetOption]
-    let properties: [HandsetProperty]
-    /// Đang chơi thì lời sửa chỉ ăn từ lần mở sau.
-    let restartNeeded: Bool?
+    let properties: [SystemProperty]
 }
 
-struct HandsetOption: Codable, Identifiable {
-    let id: String
-    let name: String
-    let platform: String
-    let note: String
-    let chosen: Bool
-}
-
-struct HandsetProperty: Codable, Identifiable {
+struct SystemProperty: Codable, Identifiable {
     let name: String
     let value: String
-    let edited: Bool
 
     var id: String { name }
 }

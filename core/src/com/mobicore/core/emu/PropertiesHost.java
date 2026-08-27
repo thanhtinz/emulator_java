@@ -1,6 +1,5 @@
 package com.mobicore.core.emu;
 
-import com.mobicore.core.model.HandsetIdentity;
 import com.mobicore.core.vm.VmHost;
 
 /**
@@ -8,24 +7,20 @@ import com.mobicore.core.vm.VmHost;
  *
  * <p>Chỉ chen vào đúng một câu hỏi — {@code System.getProperty} — và chuyển
  * mọi thứ còn lại cho máy thật. Đứng riêng chứ không nằm trong nhật ký như
- * trước, vì câu trả lời nay đọc từ hồ sơ của từng game, và hồ sơ ấy có thể
- * đổi giữa hai lần game hỏi.</p>
+ * trước, vì trả lời game đang chạy trên máy nào không phải việc của nhật
+ * ký.</p>
  */
-public final class HandsetHost implements VmHost {
+public final class PropertiesHost implements VmHost {
 
     private final VmHost delegate;
-    private final HandsetIdentity identity;
 
-    public HandsetHost(VmHost delegate, HandsetIdentity identity) {
+    public PropertiesHost(VmHost delegate) {
         this.delegate = delegate;
-        this.identity = identity;
     }
 
     @Override
     public String property(String name) {
-        String answer = identity.value(name);
-        // Không biết thì hỏi tiếp máy thật, và máy thật không biết thì trả
-        // null — đúng cách một chiếc điện thoại không có phần đó trả lời.
+        String answer = SystemProperties.value(name);
         return answer != null ? answer : delegate.property(name);
     }
 

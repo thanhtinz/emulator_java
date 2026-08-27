@@ -226,16 +226,11 @@ NS_ASSUME_NONNULL_BEGIN
 /// A lean, in thousandths, from -1000 to 1000 on each axis.
 - (NSString *)tiltedX:(NSInteger)xMilli y:(NSInteger)yMilli;
 
-#pragma mark - Máy giả lập
+#pragma mark - Máy ảo khai gì
 
-/// Máy mà game này được cho là đang chạy trên đó, và đúng những chuỗi nó đọc.
-- (NSString *)handsetJSONForSuite:(NSString *)suiteId;
-- (NSString *)setHandset:(NSString *)handsetId forSuite:(NSString *)suiteId;
-/// Đặt tay một dòng; giá trị rỗng thì bỏ dòng đó đi.
-- (NSString *)setSystemProperty:(NSString *)name
-                             to:(NSString *)value
-                       forSuite:(NSString *)suiteId;
-- (NSString *)resetHandsetForSuite:(NSString *)suiteId;
+/// Những gì game đọc được khi nó hỏi máy nó đang chạy trên đó là máy gì.
+/// Chỉ để đọc: máy ảo là một cỗ máy duy nhất, bảng này là của chung.
+- (NSString *)systemPropertiesJSON;
 
 #pragma mark - Khi game hỏng
 

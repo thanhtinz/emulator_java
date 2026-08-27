@@ -1,6 +1,7 @@
 package com.mobicore.tools;
 
 import com.mobicore.core.emu.EmulatorSession;
+import com.mobicore.core.emu.SystemProperties;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
@@ -16,6 +17,7 @@ import com.mobicore.tools.ui.Theme;
 import com.mobicore.tools.ui.Ui;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Preview of the per-game settings screen: device profile, display, input
@@ -252,6 +254,21 @@ public final class ProfileScreen {
         ui.field("Sao lưu", library.backupsFor(entry.suiteId()).size() + " bản", fieldX, row,
                 fieldWidth);
         y += saveHeight + 14;
+
+        // What the game reads about the machine -------------------------
+        // Chỉ bày ra, không cho chọn: máy ảo là một cỗ máy duy nhất và bảng
+        // này là của chung, không có bản riêng cho từng game.
+        List<Object> properties = SystemProperties.toJson();
+        int propsHeight = 12 + ui.small().height() + 8 + properties.size() * Ui.ROW + 6;
+        row = ui.section(margin, y, width, propsHeight, "GAME ĐỌC ĐƯỢC GÌ",
+                SystemProperties.PLATFORM);
+        for (int i = 0; i < properties.size(); i++) {
+            Map<String, Object> property = (Map<String, Object>) properties.get(i);
+            ui.field(String.valueOf(property.get("name")), String.valueOf(property.get("value")),
+                    fieldX, row, fieldWidth);
+            row += Ui.ROW;
+        }
+        y += propsHeight + 14;
 
         // Network --------------------------------------------------------
         int netHeight = 12 + ui.small().height() + 8 + Ui.ROW + ui.small().height() + 12;

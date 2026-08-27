@@ -283,8 +283,14 @@ public final class Ui {
 
     /** Key/value row used across the detail and inspector screens. */
     public void field(String label, String value, int x, int y, int width) {
-        text(medium, label, x, y, Theme.TEXT_DIM);
-        int labelWidth = medium.stringWidth(label) + 16;
+        // Nhãn dài không được nuốt hết chỗ của giá trị. Trước đây nó nuốt: một
+        // cái tên như com.nokia.mid.ui.DirectGraphics.PIXEL_FORMAT chạy hết
+        // hàng, và giá trị 565 bị ép xuống còn đúng dấu ba chấm. Giá trị mới
+        // là thứ người ta đọc; nhãn thì cắt bớt vẫn đoán ra.
+        int room = Math.min(mediumBold.stringWidth(value), width * 3 / 5);
+        String shown = ellipsize(medium, label, width - room - 16);
+        text(medium, shown, x, y, Theme.TEXT_DIM);
+        int labelWidth = medium.stringWidth(shown) + 16;
         textRight(mediumBold, ellipsize(mediumBold, value, width - labelWidth), x + width, y,
                 Theme.TEXT);
     }
