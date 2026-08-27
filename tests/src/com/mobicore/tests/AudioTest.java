@@ -1,6 +1,7 @@
 package com.mobicore.tests;
 
 import com.mobicore.core.audio.AudioClip;
+import com.mobicore.core.audio.MidiDecoder;
 import com.mobicore.core.audio.AudioLog;
 import com.mobicore.core.audio.ToneSequence;
 import com.mobicore.core.audio.ToneSynth;
@@ -35,6 +36,7 @@ public final class AudioTest extends Test {
     public void run() throws Exception {
         synth();
         wav();
+        midi();
         sequences();
         log();
         if (!new File(fixtureDir, "demo/SoundDemo.class").exists()) {
@@ -97,6 +99,138 @@ public final class AudioTest extends Test {
         expectIo("only PCM is decoded", compressedWav());
         expectIo("a file with no data chunk is refused", headerOnlyWav());
         expectIo("a file that is not a WAV at all is refused", new byte[]{'N', 'O', 'P', 'E'});
+    }
+
+    // --------------------------------------------------------------- midi
+
+    /**
+     * MIDI: what nearly every J2ME game's music is.
+     *
+     * <p>The file built here is the smallest one that proves the reader did
+     * its job — a tempo, two notes of known length, one of them on the
+     * percussion channel — so the checks are about time and pitch rather than
+     * about bytes going in and out.</p>
+     */
+    private void midi() throws Exception {
+        check(MidiDecoder.looksLikeMidi(simpleMidi()), "a MIDI file is recognised");
+        check(!MidiDecoder.looksLikeMidi(new byte[]{'N', 'O', 'P', 'E'}),
+                "and something else is not");
+
+        AudioClip clip = MidiDecoder.decode(simpleMidi(), 80);
+        eq(ToneSynth.SAMPLE_RATE, clip.sampleRate(), "it renders at the emulator's rate");
+        // Two beats at 120 bpm is a second; the render adds a short tail.
+        check(clip.durationMs() >= 1000 && clip.durationMs() < 1600,
+                "the tempo is followed rather than guessed: " + clip.durationMs() + " ms");
+
+        // The first note sounds, and the gap after the second is silent.
+        check(loudness(clip, 0, 200) > 0, "the first note is audible");
+        check(loudness(clip, 1100, 1300) == 0, "and the piece ends where the notes end");
+
+        // Percussion is left silent: channel 10 carries drum numbers, not
+        // pitches, so sounding it would put a note in the tune that was never
+        // written there.
+        AudioClip drumsOnly = null;
+        try {
+            drumsOnly = MidiDecoder.decode(percussionOnlyMidi(), 80);
+            fail("a file with nothing but drums has nothing to sound");
+        } catch (java.io.IOException expected) {
+            check(true, "a file with nothing but drums is refused rather than rendered as noise");
+        }
+
+        expectMidiFailure("a file that is not MIDI is refused", new byte[]{1, 2, 3, 4});
+        expectMidiFailure("so is one that ends mid-track", truncatedMidi());
+    }
+
+    private void expectMidiFailure(String message, byte[] data) {
+        try {
+            MidiDecoder.decode(data, 80);
+            fail(message);
+        } catch (java.io.IOException expected) {
+            check(true, message);
+        }
+    }
+
+    /** Peak sample between two moments, in milliseconds. */
+    private int loudness(AudioClip clip, int fromMs, int toMs) {
+        int from = fromMs * clip.sampleRate() / 1000;
+        int to = Math.min(clip.frames(), toMs * clip.sampleRate() / 1000);
+        int peak = 0;
+        for (int i = from; i < to; i++) {
+            peak = Math.max(peak, Math.abs(clip.sample(i)));
+        }
+        return peak;
+    }
+
+    /**
+     * Two crotchets at 120 beats a minute: one melodic, one on the drum
+     * channel, so both halves of the reader are exercised.
+     */
+    private byte[] simpleMidi() {
+        java.io.ByteArrayOutputStream track = new java.io.ByteArrayOutputStream();
+        // Tempo: 500000 microseconds a beat, which is 120 bpm.
+        track.write(0x00);
+        track.write(0xFF);
+        track.write(0x51);
+        track.write(0x03);
+        track.write(0x07);
+        track.write(0xA1);
+        track.write(0x20);
+        // Note on, middle C, then off a beat later.
+        note(track, 0x90, 60, 100, 0);
+        note(track, 0x80, 60, 0, 96);
+        // A drum hit over the second beat, which must not be heard.
+        note(track, 0x99, 38, 100, 0);
+        note(track, 0x89, 38, 0, 96);
+        // End of track.
+        track.write(0x00);
+        track.write(0xFF);
+        track.write(0x2F);
+        track.write(0x00);
+        return midiFile(track.toByteArray());
+    }
+
+    private byte[] percussionOnlyMidi() {
+        java.io.ByteArrayOutputStream track = new java.io.ByteArrayOutputStream();
+        note(track, 0x99, 38, 100, 0);
+        note(track, 0x89, 38, 0, 96);
+        track.write(0x00);
+        track.write(0xFF);
+        track.write(0x2F);
+        track.write(0x00);
+        return midiFile(track.toByteArray());
+    }
+
+    private byte[] truncatedMidi() {
+        byte[] whole = simpleMidi();
+        byte[] cut = new byte[whole.length - 6];
+        System.arraycopy(whole, 0, cut, 0, cut.length);
+        return cut;
+    }
+
+    private void note(java.io.ByteArrayOutputStream out, int status, int note, int velocity,
+                      int delta) {
+        out.write(delta);
+        out.write(status);
+        out.write(note);
+        out.write(velocity);
+    }
+
+    private byte[] midiFile(byte[] track) {
+        byte[] file = new byte[14 + 8 + track.length];
+        ascii(file, 0, "MThd");
+        // MIDI is big-endian, where WAV is little: the same helper cannot
+        // serve both.
+        writeBigInt(file, 4, 6);
+        file[8] = 0;
+        file[9] = 0;      // format 0
+        file[10] = 0;
+        file[11] = 1;     // one track
+        file[12] = 0;
+        file[13] = 96;    // ticks per beat
+        ascii(file, 14, "MTrk");
+        writeBigInt(file, 18, track.length);
+        System.arraycopy(track, 0, file, 22, track.length);
+        return file;
     }
 
     private void expectIo(String message, byte[] data) {
@@ -323,6 +457,13 @@ public final class AudioTest extends Test {
         for (int i = 0; i < text.length(); i++) {
             out[at + i] = (byte) text.charAt(i);
         }
+    }
+
+    private void writeBigInt(byte[] out, int at, int value) {
+        out[at] = (byte) (value >> 24);
+        out[at + 1] = (byte) (value >> 16);
+        out[at + 2] = (byte) (value >> 8);
+        out[at + 3] = (byte) value;
     }
 
     private void writeInt(byte[] out, int at, int value) {

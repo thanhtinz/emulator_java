@@ -105,7 +105,8 @@ public final class Compatibility {
 
     /** Things that run, but not the way the hardware did. */
     private static final String[][] PARTIAL = {
-            {"javax/microedition/media/Manager", "Âm thanh: phát WAV và chuỗi nốt, không phát MIDI"},
+            {"javax/microedition/media/Manager",
+                    "Âm thanh: phát WAV, MIDI và chuỗi nốt, không phát MP3"},
     };
 
     private Compatibility() {

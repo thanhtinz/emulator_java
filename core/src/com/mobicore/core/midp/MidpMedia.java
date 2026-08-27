@@ -4,6 +4,7 @@ import com.mobicore.core.audio.AudioClip;
 import com.mobicore.core.audio.AudioSink;
 import com.mobicore.core.audio.ToneSequence;
 import com.mobicore.core.audio.ToneSynth;
+import com.mobicore.core.audio.MidiDecoder;
 import com.mobicore.core.audio.WavDecoder;
 import com.mobicore.core.rt.Rt;
 import com.mobicore.core.vm.NativeMethod;
@@ -25,12 +26,14 @@ import java.io.InputStream;
  * half of a J2ME game people remember: the tone that plays when you die is
  * part of what the game was.</p>
  *
- * <p>What plays: tones, tone sequences, and uncompressed WAV. What does not:
- * MIDI and MP3, which needed a synthesiser and a decoder that a handset had in
- * hardware. Those are refused honestly — the player is created, reports that
- * it cannot realise the media, and the game carries on silently instead of
- * dying. A game that ignores the exception, which most do, plays without
- * music; one that handles it can pick another file.</p>
+ * <p>What plays: tones, tone sequences, uncompressed WAV, and MIDI through
+ * the small synthesiser in {@link MidiDecoder} — music in these games is
+ * nearly always a {@code .mid}, so without it every game that ships music is
+ * silent. What does not play is MP3, which needed a decoder a handset had in
+ * hardware. That is refused honestly — the player is created, reports that it
+ * cannot realise the media, and the game carries on silently instead of dying.
+ * A game that ignores the exception, which most do, plays without music; one
+ * that handles it can pick another file.</p>
  */
 public final class MidpMedia {
 
@@ -195,8 +198,9 @@ public final class MidpMedia {
         VmObject player = vm.newInstance(PLAYER);
         PlayerState state = new PlayerState(type == null ? "" : type);
         state.media = media;
-        if (!WavDecoder.looksLikeWav(media) && !isToneSequenceType(type)) {
-            state.unsupported = "MobiCore plays uncompressed WAV and tone sequences, not "
+        if (!WavDecoder.looksLikeWav(media) && !MidiDecoder.looksLikeMidi(media)
+                && !isToneSequenceType(type)) {
+            state.unsupported = "MobiCore plays WAV, MIDI and tone sequences, not "
                     + (type == null || type.length() == 0 ? "this file" : type);
         }
         player.host = state;
@@ -451,6 +455,11 @@ public final class MidpMedia {
                         : ToneSequence.render(state.sequence, state.volume);
             } else if (WavDecoder.looksLikeWav(state.media)) {
                 state.clip = WavDecoder.decode(state.media);
+            } else if (MidiDecoder.looksLikeMidi(state.media)) {
+                // Music in a J2ME game is nearly always a .mid: it was the
+                // only format that fitted, and the handset had a synthesiser
+                // in hardware. Without one every such game is silent.
+                state.clip = MidiDecoder.decode(state.media, state.volume);
             } else {
                 state.clip = ToneSequence.render(state.media, state.volume);
             }

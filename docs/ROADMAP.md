@@ -29,6 +29,7 @@
 | 25 | Tua lại vài giây | Xong |
 | 26 | Chọn MIDlet trong gói | Xong |
 | 27 | Thống kê thời gian chơi | Xong |
+| 28 | Phát nhạc MIDI | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -967,3 +968,34 @@ game mở đúng một lần.
   là sập khi rời game.
 
 Ảnh: `build/screenshots/06-game-detail.png`.
+
+## Nhạc MIDI: phần còn thiếu của âm thanh
+
+Nhạc trong game J2ME gần như luôn là một tệp `.mid` — đó là định dạng duy nhất
+vừa dung lượng, và máy thật có sẵn bộ tổng hợp trong phần cứng. Không có bộ
+tổng hợp thì **mọi game có nhạc đều im tiếng**, mà tiếng nhạc là một nửa những
+gì người ta còn nhớ về mấy game này.
+
+`core/audio/MidiDecoder.java` là một trình đọc tệp cộng một bộ tổng hợp rất
+nhỏ: đọc header, gộp các track thành một dòng thời gian note-on/note-off, bám
+theo mọi lệnh đổi nhịp (tempo), rồi phát mỗi nốt bằng sóng vuông đúng bằng
+khoảng thời gian nó được giữ.
+
+Những chỗ cố tình không làm, và lý do:
+
+- **Không có bộ nhạc cụ (soundbank)**: máy thật có chip với đủ nhạc cụ; ở đây
+  piano và sáo cùng một dạng sóng. Đó là đánh đổi trung thực — **giai điệu,
+  nhịp và hoà âm là của game**, còn âm sắc là của trình giả lập.
+- **Kênh 10 (trống) để im**: kênh này chở *số hiệu trống* chứ không phải cao
+  độ; phát nó như cao độ là thêm vào bản nhạc những nốt chưa từng có ở đó —
+  đúng nghĩa đen là tiếng ồn chồng lên giai điệu.
+- **MIDI theo SMPTE bị từ chối** thay vì đoán: không game J2ME nào dùng, mà
+  đoán sai thì phát sai tốc độ chứ không phải không phát.
+- **Cắt ngọn khi trộn** chứ không hạ âm lượng cả bài: một hợp âm to không được
+  làm cả bản nhạc nhỏ đi.
+- Giới hạn 180 giây cho một bản, để một tệp dài không ăn hết bộ nhớ.
+
+MP3 vẫn từ chối một cách trung thực như cũ. Fixture `SoundDemo` nay phát một
+tệp MIDI thật (do chính nó dựng ra) và báo "MIDI: phát được".
+
+Ảnh: `build/screenshots/13-sound.png`.

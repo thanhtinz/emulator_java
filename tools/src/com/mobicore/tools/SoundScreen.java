@@ -85,12 +85,11 @@ public final class SoundScreen {
 
     /** What each recorded clip came from, in the order the MIDlet plays them. */
     private String label(int index) {
-        if (index == 0) {
-            return "playTone — nốt La";
+        switch (index) {
+            case 0: return "playTone — nốt La";
+            case 1: return "ToneControl — chuỗi nốt";
+            case 2: return "WAV — hiệu ứng";
+            default: return "MIDI — nhạc nền";
         }
-        if (index == 1) {
-            return "ToneControl — chuỗi nốt";
-        }
-        return "WAV — hiệu ứng";
     }
 }

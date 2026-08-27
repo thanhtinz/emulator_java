@@ -23,8 +23,9 @@ import java.io.ByteArrayInputStream;
  * <p>Compiled to real bytecode and run by the interpreter in the test suite,
  * so every path here is exercised as a game would exercise it: a beep on a
  * key press, a tune built as a tone sequence with a repeated block, a WAV
- * sound effect, and a player whose media the emulator cannot decode — which
- * a game must survive, because half the games of the era shipped MIDI.</p>
+ * sound effect, and
+ * a MIDI tune, which is what half the games of the era shipped their music
+ * as.</p>
  */
 public final class SoundDemo extends MIDlet implements CommandListener {
 
@@ -70,7 +71,7 @@ public final class SoundDemo extends MIDlet implements CommandListener {
             beep();
             tune();
             effect();
-            unsupported();
+            music();
             say("Sự kiện: " + updates);
             repaint();
         }
@@ -133,18 +134,50 @@ public final class SoundDemo extends MIDlet implements CommandListener {
             }
         }
 
-        /** MIDI: created, refused at realise, and the game carries on. */
-        void unsupported() {
+        /**
+         * MIDI: what a J2ME game's music nearly always was.
+         *
+         * <p>Two notes and a tempo, which is the smallest file that proves
+         * the emulator read one. A game whose music will not play carries on
+         * silently, so this also has to survive being refused.</p>
+         */
+        void music() {
             try {
-                byte[] midi = {'M', 'T', 'h', 'd', 0, 0, 0, 6};
-                Player player = Manager.createPlayer(new ByteArrayInputStream(midi), "audio/midi");
+                Player player = Manager.createPlayer(
+                        new ByteArrayInputStream(midiFile()), "audio/midi");
                 player.realize();
-                say("MIDI: chạy được?");
+                player.start();
+                say("MIDI: phát được");
             } catch (MediaException e) {
                 say("MIDI: bị từ chối, game vẫn chạy");
             } catch (Exception e) {
                 say("MIDI: " + e.getMessage());
             }
+        }
+
+        /** One bar: a tempo, a note on, a note off, end of track. */
+        private byte[] midiFile() {
+            byte[] track = {
+                    0, (byte) 0xFF, 0x51, 3, 0x07, (byte) 0xA1, 0x20,
+                    0, (byte) 0x90, 60, 100,
+                    96, (byte) 0x80, 60, 0,
+                    0, (byte) 0xFF, 0x2F, 0,
+            };
+            byte[] file = new byte[22 + track.length];
+            file[0] = 'M';
+            file[1] = 'T';
+            file[2] = 'h';
+            file[3] = 'd';
+            file[7] = 6;
+            file[11] = 1;
+            file[13] = 96;
+            file[14] = 'M';
+            file[15] = 'T';
+            file[16] = 'r';
+            file[17] = 'k';
+            file[21] = (byte) track.length;
+            System.arraycopy(track, 0, file, 22, track.length);
+            return file;
         }
 
         public void playerUpdate(Player player, String event, Object data) {
