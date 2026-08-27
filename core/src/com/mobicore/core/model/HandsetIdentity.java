@@ -17,10 +17,18 @@ import java.util.Map;
  * "MobiCore" là trả lời một cái tên chưa game nào từng nghe, và game rơi vào
  * đúng nhánh dành cho máy lạ.</p>
  *
- * <p>Mặc định vì thế là một chiếc Nokia 6233 — cùng con máy J2ME Loader khai
- * trong {@code assets/defaults/system.props}, và cùng lý do: nhánh Nokia là
- * nhánh được nhiều game chăm chút nhất, còn phần Nokia thì máy ảo này có
- * làm (FullCanvas, DirectGraphics, DeviceControl).</p>
+ * <p>Mặc định vì thế là tên của một chiếc Nokia 6233 — cùng con máy J2ME
+ * Loader khai trong {@code assets/defaults/system.props}, và cùng lý do:
+ * nhánh Nokia là nhánh được nhiều game chăm chút nhất, còn phần Nokia thì máy
+ * ảo này có làm (FullCanvas, DirectGraphics, DeviceControl).</p>
+ *
+ * <p><b>Đây chỉ là một chuỗi chữ.</b> Máy ảo vẫn có đúng một loại màn hình
+ * (240×320, giai đoạn 32) và đúng một kiểu bàn phím; đổi ở đây không đổi cỡ
+ * màn hình, không đổi phím, không đổi gì trong máy — chỉ đổi câu trả lời khi
+ * game hỏi. Danh sách bảy cỡ máy bỏ đi hồi ấy bị bỏ vì nó bắt người chơi chọn
+ * một thứ họ không có cách nào biết; chỗ này thì ngược lại, nó chỉ có một câu
+ * trả lời mặc định đúng cho gần như mọi game, và có mặt cho đúng cái game
+ * hiếm hoi đòi nghe tên khác.</p>
  *
  * <p>Chỉ khai những thứ thật sự có. Một cái máy khai {@code
  * microedition.m3g.version} rồi để game gọi vào 3D là một cái máy nói dối,
@@ -73,17 +81,17 @@ public final class HandsetIdentity {
      */
     public static final Handset[] CATALOG = {
             new Handset("nokia6233", "Nokia 6233", "Nokia6233/05.10",
-                    "Nhánh nhiều game chăm nhất; bật đường vẽ riêng của Nokia"),
+                    "Mặc định — nhánh nhiều game chăm nhất"),
             new Handset("nokiaN73", "Nokia N73", "NokiaN73/4.0839.42.2.1",
-                    "Máy Nokia màn hình lớn, cho game ra sau"),
+                    "Cho game chỉ nhận đúng máy Nokia đời sau"),
             new Handset("sonyericssonK750", "Sony Ericsson K750", "SonyEricssonK750/R1",
-                    "Cho game có bộ ảnh riêng cho Sony Ericsson"),
+                    "Cho game có nhánh riêng cho Sony Ericsson"),
             new Handset("samsungE250", "Samsung SGH-E250", "SAMSUNG-SGH-E250/1.0",
-                    "Cho game hỏi máy Samsung"),
+                    "Cho game có nhánh riêng cho Samsung"),
             new Handset("siemensS65", "Siemens S65", "Siemens/S65",
-                    "Cho game đời Siemens"),
-            new Handset("generic", "Máy J2ME chung", "j2me",
-                    "Không giả làm hãng nào; hợp khi game chạy sai vì tưởng là máy khác"),
+                    "Cho game có nhánh riêng cho Siemens"),
+            new Handset("generic", "Không nói tên hãng", "j2me",
+                    "Khi game chạy sai vì tưởng đang ở trên máy hãng"),
     };
 
     /** Máy mặc định, và lý do nằm ở phần mô tả lớp. */

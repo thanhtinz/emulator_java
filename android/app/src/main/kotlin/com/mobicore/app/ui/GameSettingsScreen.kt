@@ -404,14 +404,16 @@ fun GameSettingsScreen(
         }
 
         item {
-            // Game J2ME hỏi nó đang chạy trên máy nào rồi mới chọn bộ ảnh,
-            // nhánh vẽ và mã phím. Đây là chỗ trả lời câu hỏi ấy, và là thứ
-            // đầu tiên nên thử khi một game chạy sai mà không rõ vì sao.
-            SectionCard(title = "MÁY GIẢ LẬP", trailing = handset.handset().name()) {
+            // Game J2ME hỏi nó đang chạy trên máy nào rồi mới chọn bộ ảnh và
+            // nhánh vẽ. Đây là chỗ trả lời câu hỏi ấy — một chuỗi chữ, không
+            // phải một cỗ máy khác: màn hình vẫn 240×320 và bàn phím vẫn một
+            // kiểu, đúng như từ giai đoạn 32.
+            SectionCard(title = "TÊN MÁY GAME ĐỌC", trailing = handset.handset().name()) {
                 Column {
                     Text(
                         "Game đọc microedition.platform rồi mới chọn cách chạy. " +
-                            "Nghe thấy một cái tên lạ, nó rơi vào nhánh dành cho máy lạ.",
+                            "Đây chỉ là chuỗi chữ nó đọc được: màn hình và bàn phím " +
+                            "không đổi theo.",
                         color = MobiColors.TextDim,
                         fontSize = 11.sp,
                     )
@@ -432,7 +434,10 @@ fun GameSettingsScreen(
                                 fontSize = 14.sp,
                                 fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal,
                             )
-                            Text(candidate.note(), color = MobiColors.TextDim, fontSize = 11.sp)
+                            // Dòng dưới là đúng chuỗi game đọc được, chứ không
+                            // phải lời giới thiệu một chiếc máy.
+                            Text(candidate.platform(), color = MobiColors.TextDim,
+                                fontSize = 11.sp)
                         }
                     }
                     Spacer(Modifier.height(6.dp))
@@ -443,7 +448,7 @@ fun GameSettingsScreen(
                     }
                     // Game đang chạy đã đọc xong câu này từ lúc mở màn.
                     Text(
-                        "Đổi máy chỉ ăn từ lần mở game sau.",
+                        "Đổi tên chỉ ăn từ lần mở game sau.",
                         color = MobiColors.TextDim,
                         fontSize = 11.sp,
                     )

@@ -41,7 +41,7 @@ public final class DeviceScreen {
         Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
-        ui.appBar("Máy giả lập", "Sky Runner");
+        ui.appBar("Tên máy game đọc", "Sky Runner");
 
         int margin = Ui.PAD;
         int width = frame.width() - margin * 2;
@@ -64,9 +64,9 @@ public final class DeviceScreen {
         ui.text(ui.mediumBold(), "Game hỏi máy nào", noteX, noteY, Theme.TEXT);
         noteY += ui.mediumBold().height() + 8;
         List<String> why = ui.wrap(ui.small(),
-                "Game đời ấy đọc microedition.platform rồi mới chọn bộ ảnh, nhánh vẽ "
-                        + "và mã phím. Nghe thấy một cái tên lạ, nó rơi vào nhánh dành "
-                        + "cho máy lạ.", noteWidth, 8);
+                "Game đời ấy đọc microedition.platform rồi mới chọn bộ ảnh và nhánh "
+                        + "vẽ. Đây chỉ là chuỗi chữ nó đọc được: màn hình vẫn 240×320 "
+                        + "và bàn phím vẫn một kiểu, không đổi theo.", noteWidth, 8);
         for (int i = 0; i < why.size(); i++) {
             ui.text(ui.small(), why.get(i), noteX, noteY, Theme.TEXT_DIM);
             noteY += ui.small().height() + 4;
@@ -77,7 +77,7 @@ public final class DeviceScreen {
         List<Object> handsets = Json.array(handset, "handsets");
         int row = 46;
         int listHeight = 12 + ui.small().height() + 8 + handsets.size() * row + 8;
-        int top = ui.section(margin, y, width, listHeight, "GIẢ LÀM MÁY", null);
+        int top = ui.section(margin, y, width, listHeight, "TÊN MÁY GAME ĐỌC ĐƯỢC", null);
         int glyph = ui.small().height() + 2;
         for (int i = 0; i < handsets.size(); i++) {
             Map<String, Object> entry = (Map<String, Object>) handsets.get(i);
@@ -89,9 +89,11 @@ public final class DeviceScreen {
             }
             ui.text(ui.medium(), Json.string(entry, "name", ""), fieldX, top,
                     chosen ? Theme.ACCENT : Theme.TEXT);
-            ui.text(ui.small(), ui.ellipsize(ui.small(), Json.string(entry, "note", ""),
-                            width - Ui.PAD * 2 - glyph - 12),
-                    fieldX, top + ui.medium().height() + 2, Theme.TEXT_DIM);
+            // Dòng dưới là đúng chuỗi game đọc được, chứ không phải một lời
+            // quảng cáo về chiếc máy: nó nhắc rằng thứ đang chọn là một cái
+            // tên, không phải một cỗ máy khác.
+            ui.text(ui.small(), Json.string(entry, "platform", ""), fieldX,
+                    top + ui.medium().height() + 2, Theme.TEXT_DIM);
             if (chosen) {
                 Icons.draw(frame, Icons.CHECK, margin + width - Ui.PAD - glyph,
                         top + 2, glyph, Theme.ACCENT);

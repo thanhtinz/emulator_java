@@ -1663,6 +1663,14 @@ nhánh theo. Bài kiểm tra **nhìn vào điểm ảnh** để biết game rẽ
 một lớp bytecode, giả làm Nokia thì vào nhánh Nokia, giả làm máy chung thì
 không. Ảnh chụp màn hình cũng là khung hình thật của bản mẫu ấy.
 
+**Không phải danh sách máy quay lại.** Giai đoạn 32 bỏ bảy cỡ máy vì nó bắt
+người chơi chọn một thứ họ không có cách nào biết, và chọn sai thì game chạy
+trên màn hình nó chưa từng được vẽ cho. Chỗ này **chỉ là một chuỗi chữ**: màn
+hình vẫn đúng một cỡ 240×320, bàn phím vẫn đúng một kiểu, và đổi ở đây không
+đụng đến cái nào trong hai thứ đó. Nên màn hình gọi nó bằng đúng tên nó là —
+**"Tên máy game đọc"** — và dưới mỗi lựa chọn là đúng chuỗi game đọc được
+(`Nokia6233/05.10`), chứ không phải lời giới thiệu một chiếc điện thoại.
+
 Cầu nối: `handsetJson`, `setHandset`, `setSystemProperty` và `resetHandset`.
 
 [props]: https://github.com/nikita36078/J2ME-Loader/blob/master/app/src/main/assets/defaults/system.props
