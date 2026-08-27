@@ -27,6 +27,7 @@ public final class SampleSuite {
             + "MIDlet-3: Menu Demo,,demo.MenuDemo\n"
             + "MIDlet-4: Sound Demo,,demo.SoundDemo\n"
             + "MIDlet-5: Timer Demo,,demo.TimerDemo\n"
+            + "MIDlet-6: Nokia Demo,,demo.NokiaDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 
@@ -41,6 +42,7 @@ public final class SampleSuite {
             + "MIDlet-3: Menu Demo,,demo.MenuDemo\n"
             + "MIDlet-4: Sound Demo,,demo.SoundDemo\n"
             + "MIDlet-5: Timer Demo,,demo.TimerDemo\n"
+            + "MIDlet-6: Nokia Demo,,demo.NokiaDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 

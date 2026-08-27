@@ -97,7 +97,6 @@ public final class Compatibility {
             {"javax/microedition/sensor/", "cảm biến"},
             {"javax/microedition/xml/", "bộ đọc XML"},
             {"javax/bluetooth/", "Bluetooth"},
-            {"com/nokia/mid/ui/", "API riêng của Nokia"},
             {"com/siemens/mp/", "API riêng của Siemens"},
             {"com/samsung/util/", "API riêng của Samsung"},
             {"com/motorola/", "API riêng của Motorola"},
@@ -107,6 +106,11 @@ public final class Compatibility {
     private static final String[][] PARTIAL = {
             {"javax/microedition/media/Manager",
                     "Âm thanh: phát WAV, MIDI và chuỗi nốt, không phát MP3"},
+            // FullCanvas, DirectGraphics, DirectUtils and DeviceControl are
+            // emulated; the rest of Nokia's own packages are not, and a game
+            // reaching for those finds them missing at the moment it does.
+            {"com/nokia/mid/ui/",
+                    "API Nokia: có FullCanvas, DirectGraphics và DeviceControl"},
     };
 
     private Compatibility() {
@@ -147,7 +151,13 @@ public final class Compatibility {
 
         if (level != LEVEL_BROKEN) {
             for (int i = 0; i < PARTIAL.length; i++) {
-                if (referenced.contains(PARTIAL[i][0])) {
+                String name = PARTIAL[i][0];
+                // A whole package counts as well as one class: Nokia's UI is
+                // several classes and a game may use any of them.
+                boolean used = name.endsWith("/")
+                        ? usesPrefix(referenced, name)
+                        : referenced.contains(name);
+                if (used) {
                     notes.add(PARTIAL[i][1]);
                     level = LEVEL_PARTIAL;
                 }

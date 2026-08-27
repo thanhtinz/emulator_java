@@ -59,9 +59,18 @@ public final class CompatibilityTest extends Test {
         eq(1, threeD.missing().size(), "with the package named");
         check(threeD.notes().get(0).indexOf("3D") >= 0, "in words the user can act on");
 
+        // Nokia's own UI classes are emulated now, so a game using them runs
+        // — with a note, because the rest of Nokia's packages are not there.
         Compatibility.Report nokia = Compatibility.scan(suiteReferencing(
                 "com/nokia/mid/ui/DirectGraphics"));
-        eq(Compatibility.LEVEL_BROKEN, nokia.level(), "so is a vendor-only API");
+        eq(Compatibility.LEVEL_PARTIAL, nokia.level(),
+                "a Nokia game runs, and says which parts are emulated");
+        check(nokia.playable(), "which is the whole point: most of these games are Nokia games");
+
+        Compatibility.Report siemens = Compatibility.scan(suiteReferencing(
+                "com/siemens/mp/game/Sound"));
+        eq(Compatibility.LEVEL_BROKEN, siemens.level(),
+                "another vendor's own API is still missing");
 
         Compatibility.Report plain = Compatibility.scan(suiteReferencing(
                 "javax/microedition/lcdui/Canvas"));

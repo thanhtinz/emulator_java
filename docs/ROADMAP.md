@@ -30,6 +30,7 @@
 | 26 | Chọn MIDlet trong gói | Xong |
 | 27 | Thống kê thời gian chơi | Xong |
 | 28 | Phát nhạc MIDI | Xong |
+| 29 | API riêng của Nokia | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -999,3 +1000,38 @@ MP3 vẫn từ chối một cách trung thực như cũ. Fixture `SoundDemo` nay
 tệp MIDI thật (do chính nó dựng ra) và báo "MIDI: phát được".
 
 Ảnh: `build/screenshots/13-sound.png`.
+
+## API Nokia: thứ phần lớn game này được viết cho
+
+Nokia bán phần lớn máy thời đó, nên phần lớn game viết theo API riêng của
+Nokia. Và game kế thừa `com.nokia.mid.ui.FullCanvas` thì **không phải chạy dở
+— mà không nạp nổi**: trình nạp lớp chết ở lớp cha, trước cả khung hình đầu
+tiên. Đó là kiểu hỏng tệ nhất để đưa cho người dùng xem, vì trên màn hình
+không có gì giải thích cả.
+
+`core/midp/NokiaUi.java` hiện thực đúng phần các game đó dùng:
+
+- **`FullCanvas`** — Canvas chiếm trọn màn hình ngay khi được tạo, và **từ chối
+  nhận lệnh** đúng như bản thật (game có bắt lỗi đó). Kèm bộ mã phím riêng
+  (`KEY_SOFTKEY1` = -6, …).
+- **`DirectGraphics`** — những thao tác MIDP không có: đổ mảng pixel vào, đọc
+  pixel ra, đa giác đặc, tam giác, và **vẽ ảnh xoay/lật**. Nó là *góc nhìn thứ
+  hai của cùng một bề mặt* mà `Graphics` đang vẽ, không phải bề mặt thứ hai.
+- **`DirectUtils`** — `getDirectGraphics`, `createImage(w, h, argb)`.
+- **`DeviceControl`** — đèn nền và rung. Máy tính để bàn không rung được, nên
+  các hàm này nhận rồi bỏ qua; `flashLights` trả về `false` — trả lời trung
+  thực là "đèn không nháy", đúng cách bản thật báo.
+
+Chi tiết đáng nói: đa giác đặc được lấp bằng cách quạt tam giác từ đỉnh đầu,
+và **tắt khử răng cưa trong lúc lấp** — hai cạnh khử răng cưa chồng lên nhau ở
+mép chung sẽ để lại một đường chỉ chạy giữa hình đặc. Khử răng cưa là để làm
+mượt *đường bao*, không phải mép trong.
+
+Phân loại tương thích đổi theo: game dùng `com.nokia.mid.ui` từ **"chưa chạy
+được"** thành **"chạy được, thiếu vài thứ"** — vì các gói Nokia khác vẫn chưa
+có.
+
+Fixture mới `demo/NokiaDemo` kế thừa `FullCanvas` và vẽ hoàn toàn bằng
+`DirectGraphics`, chạy thật bằng bytecode trong bộ kiểm thử.
+
+Ảnh: `build/screenshots/23-nokia.png`.

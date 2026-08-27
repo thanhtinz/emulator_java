@@ -59,6 +59,7 @@ public final class Preview {
         write(vfs, outDir, "20-game-menu.png", new EmulatorScreen(fixtures).withMenu().render());
         write(vfs, outDir, "21-screenshots.png", new ShotsScreen(fixtures).render());
         write(vfs, outDir, "22-save-slots.png", new SlotsScreen(fixtures).render());
+        write(vfs, outDir, "23-nokia.png", nokiaScreen(fixtures));
 
         // The same screens in the other theme, so both can be reviewed.
         Theme.setMode(Theme.DARK);
@@ -82,6 +83,21 @@ public final class Preview {
         session.keyPressed(MidpContext.KEY_DOWN);
         session.keyPressed(MidpContext.KEY_DOWN);
         session.keyPressed(MidpContext.KEY_FIRE);
+        session.renderFrame();
+        return screen.render();
+    }
+
+    /**
+     * A game written against Nokia's own API, running.
+     *
+     * <p>Everything on that screen is drawn through {@code DirectGraphics}
+     * from a {@code FullCanvas} — the combination that, until it was
+     * implemented, stopped a large share of these games at the class
+     * loader.</p>
+     */
+    private static Framebuffer nokiaScreen(String fixtures) throws Exception {
+        EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.NokiaDemo");
+        EmulatorSession session = screen.boot();
         session.renderFrame();
         return screen.render();
     }

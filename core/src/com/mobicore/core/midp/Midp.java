@@ -14,5 +14,9 @@ public final class Midp {
         MidpForms.install(vm, context);
         MidpGame.install(vm);
         MidpMedia.install(vm, context);
+        // Nokia sold most of the handsets, so most of the games target its
+        // own additions — and one that extends FullCanvas does not load at
+        // all without them.
+        NokiaUi.install(vm, context);
     }
 }
