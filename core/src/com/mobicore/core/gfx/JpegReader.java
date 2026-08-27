@@ -106,7 +106,28 @@ public final class JpegReader {
 
     // ------------------------------------------------------------ giải mã
 
+    /**
+     * Ảnh to nhất chịu đọc.
+     *
+     * <p>Phần khai kích thước chỉ là hai con số trong tệp, và một tệp hỏng
+     * khai 65535×65535 thì bộ đọc sẽ xin gần mười bảy tỉ điểm ảnh — máy hết
+     * bộ nhớ trước khi kịp biết là tệp hỏng. Không máy J2ME nào từng vẽ nổi
+     * một tấm ảnh lớn hơn hạn này.</p>
+     */
+    private static final int MAX_PIXELS = 16 * 1024 * 1024;
+
     public static Image decode(byte[] data) throws IOException {
+        try {
+            return read(data);
+        } catch (ArrayIndexOutOfBoundsException corrupt) {
+            // Lưới an toàn cuối cùng. Mỗi chỗ đọc đều đã tự kiểm, nhưng một
+            // tệp hỏng phải ra IOException — đó là thứ game bắt được và tự xử
+            // lý — chứ không phải một lỗi làm chết cả khung hình.
+            throw new IOException("Tệp JPEG hỏng");
+        }
+    }
+
+    private static Image read(byte[] data) throws IOException {
         if (!looksLikeJpeg(data)) {
             throw new IOException("Không phải tệp JPEG");
         }
@@ -138,7 +159,7 @@ public final class JpegReader {
             int length = readShort(data, at);
             int body = at + 2;
             int end = at + length;
-            if (end > data.length) {
+            if (length < 2 || end > data.length) {
                 throw new IOException("Tệp JPEG cụt");
             }
 
@@ -148,6 +169,10 @@ public final class JpegReader {
                         int precision = (data[body] >> 4) & 0x0F;
                         int id = data[body] & 0x0F;
                         body++;
+                        int size = precision == 0 ? 64 : 128;
+                        if (id >= quant.length || body + size > end) {
+                            throw new IOException("Bảng lượng tử hoá trong tệp JPEG hỏng");
+                        }
                         int[] table = new int[64];
                         for (int i = 0; i < 64; i++) {
                             int value = precision == 0
@@ -155,10 +180,8 @@ public final class JpegReader {
                                     : readShort(data, body + i * 2);
                             table[ZIGZAG[i]] = value;
                         }
-                        body += precision == 0 ? 64 : 128;
-                        if (id < quant.length) {
-                            quant[id] = table;
-                        }
+                        body += size;
+                        quant[id] = table;
                     }
                     break;
                 case 0xC4:  // bảng Huffman
@@ -166,6 +189,9 @@ public final class JpegReader {
                         int cls = (data[body] >> 4) & 0x0F;
                         int id = data[body] & 0x0F;
                         body++;
+                        if (id >= 4 || body + 16 > end) {
+                            throw new IOException("Bảng Huffman trong tệp JPEG hỏng");
+                        }
                         int[] counts = new int[17];
                         int total = 0;
                         for (int i = 1; i <= 16; i++) {
@@ -173,32 +199,44 @@ public final class JpegReader {
                             total += counts[i];
                         }
                         body += 16;
+                        if (body + total > end) {
+                            throw new IOException("Bảng Huffman trong tệp JPEG hỏng");
+                        }
                         int[] values = new int[total];
                         for (int i = 0; i < total; i++) {
                             values[i] = data[body + i] & 0xFF;
                         }
                         body += total;
                         Huffman table = new Huffman(counts, values);
-                        if (id < 4) {
-                            if (cls == 0) {
-                                dcTables[id] = table;
-                            } else {
-                                acTables[id] = table;
-                            }
+                        if (cls == 0) {
+                            dcTables[id] = table;
+                        } else {
+                            acTables[id] = table;
                         }
                     }
                     break;
                 case 0xC0:  // baseline
                 case 0xC1:  // extended sequential, giải mã y hệt
+                    if (body + 6 > end) {
+                        throw new IOException("Tệp JPEG cụt phần khai kích thước");
+                    }
                     if ((data[body] & 0xFF) != 8) {
                         throw new IOException("JPEG không phải 8 bit");
                     }
                     height = readShort(data, body + 1);
                     width = readShort(data, body + 3);
+                    if (width <= 0 || height <= 0
+                            || (long) width * height > MAX_PIXELS) {
+                        throw new IOException("Ảnh JPEG khai kích thước " + width + "x" + height
+                                + ", không đọc được");
+                    }
                     int count = data[body + 5] & 0xFF;
                     if (count != 1 && count != 3) {
                         throw new IOException("JPEG có " + count
                                 + " thành phần màu, chỉ đọc được ảnh xám và ảnh màu thường");
+                    }
+                    if (body + 6 + count * 3 > end) {
+                        throw new IOException("Tệp JPEG cụt phần khai thành phần màu");
                     }
                     components = new Component[count];
                     for (int i = 0; i < count; i++) {
@@ -208,7 +246,10 @@ public final class JpegReader {
                         component.h = (data[p + 1] >> 4) & 0x0F;
                         component.v = data[p + 1] & 0x0F;
                         component.quantTable = data[p + 2] & 0xFF;
-                        if (component.h < 1 || component.v < 1) {
+                        // Chuẩn cho phép tới bốn, và bốn đã là hiếm.
+                        if (component.h < 1 || component.h > 4
+                                || component.v < 1 || component.v > 4
+                                || component.quantTable > 3) {
                             throw new IOException("JPEG khai kiểu lấy mẫu màu không hợp lệ");
                         }
                         components[i] = component;
@@ -239,6 +280,9 @@ public final class JpegReader {
                         throw new IOException("Tệp JPEG thiếu phần khai kích thước");
                     }
                     int scanCount = data[body] & 0xFF;
+                    if (body + 1 + scanCount * 2 > end) {
+                        throw new IOException("Tệp JPEG cụt phần mở đầu ảnh");
+                    }
                     for (int i = 0; i < scanCount; i++) {
                         int id = data[body + 1 + i * 2] & 0xFF;
                         int tables = data[body + 2 + i * 2] & 0xFF;
@@ -280,6 +324,9 @@ public final class JpegReader {
             Component component = components[i];
             component.planeWidth = mcusX * component.h * 8;
             component.planeHeight = mcusY * component.v * 8;
+            if ((long) component.planeWidth * component.planeHeight > MAX_PIXELS) {
+                throw new IOException("Ảnh JPEG khai kiểu lấy mẫu màu quá lớn");
+            }
             component.plane = new int[component.planeWidth * component.planeHeight];
             component.dcPredictor = 0;
         }
@@ -299,12 +346,15 @@ public final class JpegReader {
                 }
                 for (int i = 0; i < components.length; i++) {
                     Component component = components[i];
-                    int[] table = quant[component.quantTable];
+                    int[] table = component.quantTable < quant.length
+                            ? quant[component.quantTable] : null;
                     if (table == null) {
                         throw new IOException("Tệp JPEG thiếu bảng lượng tử hoá");
                     }
-                    Huffman dc = dcTables[component.dcTable];
-                    Huffman ac = acTables[component.acTable];
+                    Huffman dc = component.dcTable < dcTables.length
+                            ? dcTables[component.dcTable] : null;
+                    Huffman ac = component.acTable < acTables.length
+                            ? acTables[component.acTable] : null;
                     if (dc == null || ac == null) {
                         throw new IOException("Tệp JPEG thiếu bảng Huffman");
                     }
@@ -445,19 +495,52 @@ public final class JpegReader {
      * Một điểm của thành phần màu, tại toạ độ của ảnh.
      *
      * <p>Phần màu thường được lưu thưa hơn phần sáng — mắt người nhạy với
-     * sáng tối hơn nhiều so với màu — nên lấy mẫu ở đây là phép chia, chứ
-     * không phải một phép giãn ảnh riêng.</p>
+     * sáng tối hơn nhiều so với màu — nên phải giãn nó ra. Giãn bằng cách
+     * lặp lại điểm gần nhất thì rẻ, nhưng chỗ màu đổi gắt sẽ hiện thành
+     * những mảng vuông 2×2: viền áo nhân vật, chữ màu trên nền màu. Nội suy
+     * giữa hai mẫu kề nhau thì không, và đó cũng là cách thư viện JPEG chuẩn
+     * làm — nên ảnh đọc ra ở đây giống ảnh máy thật vẽ.</p>
+     *
+     * <p>Toạ độ canh theo <em>tâm</em> điểm ảnh chứ không theo mép: một mẫu
+     * màu phủ hai điểm ảnh thì tâm của nó nằm giữa hai điểm ấy, và canh theo
+     * mép sẽ đẩy cả mảng màu lệch đi nửa điểm.</p>
      */
     private static int sample(Component component, int x, int y, int hMax, int vMax) {
-        int sx = x * component.h / hMax;
-        int sy = y * component.v / vMax;
-        if (sx >= component.planeWidth) {
-            sx = component.planeWidth - 1;
+        if (component.h == hMax && component.v == vMax) {
+            int sx = Math.min(x, component.planeWidth - 1);
+            int sy = Math.min(y, component.planeHeight - 1);
+            return component.plane[sy * component.planeWidth + sx];
         }
-        if (sy >= component.planeHeight) {
-            sy = component.planeHeight - 1;
-        }
-        return component.plane[sy * component.planeWidth + sx];
+        int hDen = 2 * hMax;
+        int vDen = 2 * vMax;
+        int hNum = (2 * x + 1) * component.h - hMax;
+        int vNum = (2 * y + 1) * component.v - vMax;
+        int sx = floorDiv(hNum, hDen);
+        int sy = floorDiv(vNum, vDen);
+        int fx = hNum - sx * hDen;
+        int fy = vNum - sy * vDen;
+
+        int x0 = clampTo(sx, component.planeWidth);
+        int x1 = clampTo(sx + 1, component.planeWidth);
+        int y0 = clampTo(sy, component.planeHeight);
+        int y1 = clampTo(sy + 1, component.planeHeight);
+        int topLeft = component.plane[y0 * component.planeWidth + x0];
+        int topRight = component.plane[y0 * component.planeWidth + x1];
+        int bottomLeft = component.plane[y1 * component.planeWidth + x0];
+        int bottomRight = component.plane[y1 * component.planeWidth + x1];
+        int top = topLeft * (hDen - fx) + topRight * fx;
+        int bottom = bottomLeft * (hDen - fx) + bottomRight * fx;
+        return (top * (vDen - fy) + bottom * fy + hDen * vDen / 2) / (hDen * vDen);
+    }
+
+    /** Chia làm tròn xuống, kể cả với số âm — mép trái cần đúng chỗ này. */
+    private static int floorDiv(int value, int divisor) {
+        int quotient = value / divisor;
+        return value % divisor != 0 && (value < 0) ? quotient - 1 : quotient;
+    }
+
+    private static int clampTo(int value, int limit) {
+        return value < 0 ? 0 : (value >= limit ? limit - 1 : value);
     }
 
     private static int clamp(int value) {
@@ -465,6 +548,11 @@ public final class JpegReader {
     }
 
     private static int readShort(byte[] data, int at) {
+        if (at < 0 || at + 1 >= data.length) {
+            // Tệp cụt ngay giữa một con số hai byte. Trả về 0 để chỗ gọi tự
+            // nhận ra là số vô lý, thay vì nổ ở đây.
+            return 0;
+        }
         return ((data[at] & 0xFF) << 8) | (data[at + 1] & 0xFF);
     }
 
