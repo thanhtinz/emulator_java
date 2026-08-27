@@ -606,6 +606,24 @@ mới**: hai phím mềm sẵn có được đánh dấu **L** và **R** ở gó
 vẫn là lệnh của game ("Tạm dừng", "Thoát") vì lệnh đó đổi theo từng màn hình.
 Ai được bảo "bấm R" thì vẫn biết là phím nào, kể cả khi nó đang ghi "Thoát".
 
+**Kích thước phím** cũng lấy theo J2ME Loader, không tự đặt:
+
+```java
+keySize = min(width, height) / 6.5f;   // cầm dọc
+keySize = max(width, height) / 12f;    // cầm ngang
+PHONE_KEY_SCALE_X = 2.0f;  PHONE_KEY_SCALE_Y = 0.75f;   // riêng phím mềm
+```
+
+- Phím **vuông**, cạnh tính theo màn hình chứ không phải con số cố định, nên
+  máy to phím to, máy nhỏ phím nhỏ — ngón tay ở đâu cũng chạm trúng.
+- Phím mềm rộng **2 ô**, cao **0,75 ô**: đọc như một thanh dẹt, không lẫn vào
+  lưới phím.
+- Phím giữa d-pad ghi **F** (fire) đúng như J2ME Loader, không phải "OK".
+- Khi cầm ngang, cạnh phím còn bị ép thêm cho vừa chiều cao của cột: bên đó
+  bàn phím có cột riêng chứ không nổi đè lên game như J2ME Loader.
+- Bàn phím được xếp trước, game lấy phần còn lại: phím là thứ ngón tay phải
+  bấm trúng, còn game nhỏ đi vài chục pixel thì không sao.
+
 **Màn hình ngang** đi theo game chứ không theo người dùng:
 
 - `AutoSetup` thấy game vẽ trên màn hình rộng (320×240 chẳng hạn) thì đặt luôn

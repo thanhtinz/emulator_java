@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -172,7 +171,7 @@ fun EmulatorScreen(
                     softKeyLabel = engine.leftSoftKeyLabel(),
                     onPress = { engine.pressButton(it) },
                     onRelease = { engine.releaseButton(it) },
-                    modifier = Modifier.width(232.dp).fillMaxHeight().padding(vertical = 8.dp),
+                    modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
                 )
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
                     GameSurface(engine, library, suiteId)
@@ -182,7 +181,7 @@ fun EmulatorScreen(
                     softKeyLabel = engine.rightSoftKeyLabel(),
                     onPress = { engine.pressButton(it) },
                     onRelease = { engine.releaseButton(it) },
-                    modifier = Modifier.width(232.dp).fillMaxHeight().padding(vertical = 8.dp),
+                    modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
                 )
             }
             val landscapeError = engine.lastError

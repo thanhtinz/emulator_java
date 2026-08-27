@@ -58,14 +58,12 @@ struct EmulatorView: View {
                     ControlColumn(directional: true, softKeyLabel: engine.leftSoftKeyLabel,
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) })
-                        .frame(width: 232)
                         .padding(.vertical, 8)
                     GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     ControlColumn(directional: false, softKeyLabel: engine.rightSoftKeyLabel,
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) })
-                        .frame(width: 232)
                         .padding(.vertical, 8)
                 }
                 if let error = engine.error {

@@ -5,12 +5,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -34,8 +37,34 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+/**
+ * Key metrics taken from J2ME Loader's on-screen keypad, which is the one
+ * every player of these games already has their thumbs trained on.
+ *
+ * Its keys are square and sized off the screen rather than off a designer's
+ * guess: `keySize = min(width, height) / 6.5` upright, `max(width, height) /
+ * 12` when the phone is turned. The two softkeys are the one exception —
+ * `PHONE_KEY_SCALE_X = 2.0f`, `PHONE_KEY_SCALE_Y = 0.75f` — so they read as a
+ * wide, shallow bar rather than as two more keys in the grid.
+ */
+private const val KEY_DIVISOR_UPRIGHT = 6.5f
+private const val KEY_DIVISOR_TURNED = 12f
+private const val SOFT_SCALE_X = 2.0f
+private const val SOFT_SCALE_Y = 0.75f
+/** A hair of daylight between keys; J2ME Loader snaps its keys together. */
+private val GAP = 4.dp
+
+@Composable
+private fun uprightKeySize(): Dp {
+    val configuration = LocalConfiguration.current
+    return (minOf(configuration.screenWidthDp, configuration.screenHeightDp)
+        / KEY_DIVISOR_UPRIGHT).dp
+}
 
 /**
  * Bàn phím ảo của điện thoại.
@@ -56,23 +85,24 @@ fun Keypad(
     rightSoftKey: String?,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) {
+    val key = uprightKeySize()
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(GAP * 3)) {
         // Directly under the screen, so they line up with the labels the
         // system draws along its bottom edge, as they do on a handset.
         // The two softkeys and nothing else. The call, end and clear keys a
         // handset carried are gone from the pad: they were there because the
         // device was a phone, and on screen they crowd the keys games read.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SoftKey(leftSoftKey, "softLeft", onPress, onRelease, Modifier.weight(1f))
-            SoftKey(rightSoftKey, "softRight", onPress, onRelease, Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            SoftKey(leftSoftKey, "softLeft", onPress, onRelease, key)
+            SoftKey(rightSoftKey, "softRight", onPress, onRelease, key)
         }
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            NumericPad(onPress, onRelease)
-            DirectionalPad(onPress, onRelease)
+            NumericPad(onPress, onRelease, key)
+            DirectionalPad(onPress, onRelease, key)
         }
     }
 }
@@ -93,23 +123,33 @@ fun ControlColumn(
     onRelease: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly,
-    ) {
-        if (directional) {
-            DirectionalPad(onPress, onRelease)
-        } else {
-            NumericPad(onPress, onRelease)
+    // Turned, J2ME Loader sizes its keys off the long edge. Its keypad floats
+    // over the game, though, and this one has a column to itself, so the size
+    // is also held to what the column can hold.
+    val configuration = LocalConfiguration.current
+    val turned = (maxOf(configuration.screenWidthDp, configuration.screenHeightDp)
+        / KEY_DIVISOR_TURNED).dp
+    BoxWithConstraints(modifier.width(turned * 3 + GAP * 2 + 24.dp)) {
+        val room = (maxHeight - GAP * 4) / (4 + SOFT_SCALE_Y)
+        val key = minOf(turned, room)
+        Column(
+            Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            if (directional) {
+                DirectionalPad(onPress, onRelease, key)
+            } else {
+                NumericPad(onPress, onRelease, key)
+            }
+            SoftKey(
+                label = softKeyLabel,
+                button = if (directional) "softLeft" else "softRight",
+                onPress = onPress,
+                onRelease = onRelease,
+                key = key,
+            )
         }
-        SoftKey(
-            label = softKeyLabel,
-            button = if (directional) "softLeft" else "softRight",
-            onPress = onPress,
-            onRelease = onRelease,
-            modifier = Modifier.fillMaxWidth(0.86f),
-        )
     }
 }
 
@@ -129,14 +169,16 @@ private fun SoftKey(
     button: String,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
-    modifier: Modifier = Modifier,
+    key: Dp,
 ) {
     var held by remember { mutableStateOf(false) }
     val bound = !label.isNullOrEmpty()
     val mark = if (button == "softLeft") "L" else "R"
     Box(
-        modifier
-            .height(44.dp)
+        Modifier
+            // Two keys across, three quarters of a key tall: J2ME Loader's
+            // own proportions for these two.
+            .size(key * SOFT_SCALE_X, key * SOFT_SCALE_Y)
             .clip(RoundedCornerShape(12.dp))
             .background(
                 when {
@@ -178,18 +220,18 @@ private fun SoftKey(
  * it comes up by itself when a game asks for text.
  */
 @Composable
-private fun NumericPad(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
+private fun NumericPad(onPress: (String) -> Unit, onRelease: (String) -> Unit, key: Dp) {
     val rows = listOf(
         listOf("1" to "num1", "2" to "num2", "3" to "num3"),
         listOf("4" to "num4", "5" to "num5", "6" to "num6"),
         listOf("7" to "num7", "8" to "num8", "9" to "num9"),
         listOf("*" to "star", "0" to "num0", "#" to "hash"),
     )
-    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(GAP)) {
         rows.forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(GAP)) {
                 row.forEach { (label, button) ->
-                    NumberKey(label, button, onPress, onRelease)
+                    NumberKey(label, button, onPress, onRelease, key)
                 }
             }
         }
@@ -205,28 +247,28 @@ private fun NumericPad(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
  * once, which is what these send.
  */
 @Composable
-private fun DirectionalPad(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
+private fun DirectionalPad(onPress: (String) -> Unit, onRelease: (String) -> Unit, key: Dp) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(GAP),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            ArrowKey(Icons.Filled.NorthWest, "upLeft", "Lên trái", onPress, onRelease, true)
-            ArrowKey(Icons.Filled.KeyboardArrowUp, "up", "Lên", onPress, onRelease)
-            ArrowKey(Icons.Filled.NorthEast, "upRight", "Lên phải", onPress, onRelease, true)
+        Row(horizontalArrangement = Arrangement.spacedBy(GAP)) {
+            ArrowKey(Icons.Filled.NorthWest, "upLeft", "Lên trái", onPress, onRelease, key, true)
+            ArrowKey(Icons.Filled.KeyboardArrowUp, "up", "Lên", onPress, onRelease, key)
+            ArrowKey(Icons.Filled.NorthEast, "upRight", "Lên phải", onPress, onRelease, key, true)
         }
         Row(
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            horizontalArrangement = Arrangement.spacedBy(GAP),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ArrowKey(Icons.Filled.KeyboardArrowLeft, "left", "Trái", onPress, onRelease)
-            FireKey(onPress, onRelease)
-            ArrowKey(Icons.Filled.KeyboardArrowRight, "right", "Phải", onPress, onRelease)
+            ArrowKey(Icons.Filled.KeyboardArrowLeft, "left", "Trái", onPress, onRelease, key)
+            FireKey(onPress, onRelease, key)
+            ArrowKey(Icons.Filled.KeyboardArrowRight, "right", "Phải", onPress, onRelease, key)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            ArrowKey(Icons.Filled.SouthWest, "downLeft", "Xuống trái", onPress, onRelease, true)
-            ArrowKey(Icons.Filled.KeyboardArrowDown, "down", "Xuống", onPress, onRelease)
-            ArrowKey(Icons.Filled.SouthEast, "downRight", "Xuống phải", onPress, onRelease, true)
+        Row(horizontalArrangement = Arrangement.spacedBy(GAP)) {
+            ArrowKey(Icons.Filled.SouthWest, "downLeft", "Xuống trái", onPress, onRelease, key, true)
+            ArrowKey(Icons.Filled.KeyboardArrowDown, "down", "Xuống", onPress, onRelease, key)
+            ArrowKey(Icons.Filled.SouthEast, "downRight", "Xuống phải", onPress, onRelease, key, true)
         }
     }
 }
@@ -237,11 +279,12 @@ private fun NumberKey(
     button: String,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
+    key: Dp,
 ) {
     var held by remember { mutableStateOf(false) }
     Column(
         Modifier
-            .size(62.dp, 46.dp)
+            .size(key)
             .clip(RoundedCornerShape(12.dp))
             .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
             .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, RoundedCornerShape(12.dp))
@@ -260,12 +303,13 @@ private fun ArrowKey(
     description: String,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
+    key: Dp,
     corner: Boolean = false,
 ) {
     var held by remember { mutableStateOf(false) }
     Box(
         Modifier
-            .size(68.dp, 56.dp)
+            .size(key)
             .clip(RoundedCornerShape(14.dp))
             .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
             .border(1.dp, MobiColors.Accent, RoundedCornerShape(14.dp))
@@ -275,23 +319,25 @@ private fun ArrowKey(
         // The corners are quieter than the four main directions: there when a
         // game needs them, not competing for the thumb.
         Icon(icon, contentDescription = description, tint = MobiColors.Accent,
-            modifier = Modifier.size(if (corner) 22.dp else 30.dp))
+            modifier = Modifier.size(if (corner) key * 0.4f else key * 0.6f))
     }
 }
 
 @Composable
-private fun FireKey(onPress: (String) -> Unit, onRelease: (String) -> Unit) {
+private fun FireKey(onPress: (String) -> Unit, onRelease: (String) -> Unit, key: Dp) {
     var held by remember { mutableStateOf(false) }
     Box(
         Modifier
-            .size(68.dp, 56.dp)
+            .size(key)
             .clip(RoundedCornerShape(14.dp))
             .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
             .border(1.dp, MobiColors.Accent, RoundedCornerShape(14.dp))
             .holdable("fire", onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {
-        Text("OK", color = MobiColors.Accent, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        // "F" is what J2ME Loader writes here, and fire is what MIDP calls
+        // it; this key has never been an "OK" button.
+        Text("F", color = MobiColors.Accent, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
