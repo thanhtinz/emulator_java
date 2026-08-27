@@ -60,6 +60,11 @@ public final class Preview {
         write(vfs, outDir, "21-screenshots.png", new ShotsScreen(fixtures).render());
         write(vfs, outDir, "22-save-slots.png", new SlotsScreen(fixtures).render());
         write(vfs, outDir, "23-nokia.png", nokiaScreen(fixtures));
+        // The keypad in the other shape and faded back, which is what the
+        // two new settings do to it.
+        write(vfs, outDir, "24-keypad-look.png", new EmulatorScreen(fixtures)
+                .withKeyLook(com.mobicore.core.model.GameProfile.KEY_SHAPE_ROUND, 45)
+                .render());
 
         // The same screens in the other theme, so both can be reviewed.
         Theme.setMode(Theme.DARK);

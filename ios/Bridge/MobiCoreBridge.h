@@ -202,6 +202,16 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Labels the running screen has mapped to the two softkeys, as JSON.
 - (NSString *)softKeysJSON;
+
+/// How solid the running game's keypad should be drawn now, in percent.
+- (NSInteger)keypadDrawOpacity;
+/// Brings a faded keypad back, for a touch that is not a key press.
+- (NSString *)noteKeypadUse;
+/// How the keypad looks for one game: solidity, key shape, fade delay.
+- (NSString *)keypadJSONForSuite:(NSString *)suiteId;
+- (NSString *)setKeypadOpacity:(NSInteger)percent forSuite:(NSString *)suiteId;
+- (NSString *)setKeypadShape:(NSInteger)shape forSuite:(NSString *)suiteId;
+- (NSString *)setKeypadFadeDelay:(NSInteger)seconds forSuite:(NSString *)suiteId;
 - (void)releaseButton:(NSString *)button;
 - (void)pointerDownAtX:(NSInteger)x y:(NSInteger)y;
 - (void)pointerMovedToX:(NSInteger)x y:(NSInteger)y;

@@ -256,6 +256,19 @@ class EmulatorEngine(
         session?.releaseButton(button)
     }
 
+    /**
+     * How solid the keypad should be drawn right now, in percent.
+     *
+     * The session keeps the clock and the profile holds the setting, so the
+     * answer comes from there rather than being worked out again here.
+     */
+    fun keypadOpacity(): Int = session?.keypadOpacity() ?: 100
+
+    /** Brings a faded keypad back, for a touch that is not a key press. */
+    fun noteKeypadUse() {
+        session?.noteKeypadUse()
+    }
+
     fun pointerDown(x: Int, y: Int) {
         session?.pointerPressed(x, y)
     }

@@ -30,6 +30,12 @@ struct GameSettings: Codable, Hashable {
     var scaleMode: Int
     var orientation: Int
     var keypadLayout: Int
+    /// How solid the keypad is drawn, 20-100 percent.
+    var keypadOpacity: Int?
+    /// Rounded, square or round; see `GameProfile.KEY_SHAPE_*` in the core.
+    var keypadShape: Int?
+    /// Seconds of not being touched before the keypad fades; 0 never fades.
+    var keypadFadeDelay: Int?
     /// Which MIDlet inside the suite the play button opens; empty for the first.
     var midletClass: String
     /// Total time in this game, and the words for it.
@@ -67,6 +73,24 @@ struct GameSettings: Codable, Hashable {
         case 3: return "Ẩn bàn phím"
         default: return "Đầy đủ"
         }
+    }
+
+    /// The three keypad-look settings, with the defaults an older profile
+    /// that predates them is read back with.
+    var keyOpacity: Int { keypadOpacity ?? 100 }
+    var keyShape: Int { keypadShape ?? 0 }
+    var keyFadeDelay: Int { keypadFadeDelay ?? 0 }
+
+    var keypadShapeName: String {
+        switch keyShape {
+        case 1: return "Vuông"
+        case 2: return "Tròn"
+        default: return "Bo góc"
+        }
+    }
+
+    var keypadFadeDelayName: String {
+        keyFadeDelay == 0 ? "Luôn rõ" : "Sau \(keyFadeDelay) giây"
     }
 
     var showsArrows: Bool { keypadLayout == 0 || keypadLayout == 1 }

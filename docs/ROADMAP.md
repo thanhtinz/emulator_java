@@ -34,6 +34,7 @@
 | 30 | Rung thật | Xong |
 | 31 | API Siemens, Samsung, Motorola | Xong |
 | 32 | Một loại màn hình duy nhất | Xong |
+| 33 | Chỉnh bàn phím ảo: độ rõ, hình phím, tự mờ | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1121,3 +1122,43 @@ Những gì đã bỏ đi cùng với nó:
 
 Cài đặt mất một lựa chọn, nhưng là lựa chọn mà mọi câu trả lời trừ một đều làm
 game chạy tệ hơn.
+
+
+## Giai đoạn 33 — chỉnh bàn phím ảo
+
+Bàn phím ảo trước giờ chỉ có một kiểu: phím bo góc, đặc, luôn nằm đó. Dựng
+dọc thì không sao — bàn phím nằm dưới màn game. Nhưng **xoay ngang thì bàn phím
+nằm đè lên chính game**, và một bàn phím đặc kín là khác biệt giữa chơi cả màn
+hình game với chơi phần game mà bàn phím chừa lại.
+
+J2ME Loader cho chỉnh những thứ này trong màn cấu hình từng game
+(`PREF_VK_ALPHA`, `pref_button_shape_title`, `PREF_VK_HIDE_DELAY`), nên đây là
+ba thứ đó, gọi bằng tiếng Việt:
+
+- **Độ rõ** — 20% đến 100%. Dưới một phần năm thì không còn tìm ra phím nữa, nên
+  đó là chỗ dừng chứ không phải một mức để chọn.
+- **Hình phím** — Bo góc, Vuông, Tròn. Không phải trang trí: mép phím tròn và
+  mép phím vuông cho ngón cái hai cảm giác nhắm khác nhau, và cái nào hợp thì
+  tùy bàn tay đang cầm máy.
+- **Tự mờ khi không dùng** — Luôn rõ, 5, 10 hoặc 30 giây.
+
+**Mờ đi chứ không biến mất.** Bàn phím biến hẳn thì để người chơi quờ tay trên
+một khoảng màn hình trống không có gì để tìm; nên nó tụt xuống còn một phần ba
+độ rõ — tránh đường cho game, vẫn nằm đúng chỗ ngón cái để lại, và chạm vào là
+rõ lại ngay.
+
+Chỗ dễ sai đã xử lý: **không thể làm mờ từng màu một khi vẽ.** Viền phím bo
+tròn được vẽ bằng hàng trăm điểm chồng lên nhau, và hàng trăm điểm mờ đè lên
+một điểm ảnh thì ra một điểm **đặc**. Kết quả là ruột phím mờ đi còn viền vẫn
+nguyên. Nên cả bàn phím được vẽ lên một lớp riêng rồi mới hạ độ rõ của cả lớp —
+`Modifier.alpha` bên Android, `.opacity` bên iOS, và một `Framebuffer` trong
+suốt ở bản xem trước. Ba nơi, cùng một cách.
+
+Một câu trả lời, một chỗ: `GameProfile.keypadOpacityAfter(idleMillis)` quyết
+định vẽ đậm bao nhiêu, `EmulatorSession` giữ đồng hồ và trả lời
+`keypadOpacity()`. Điện thoại và bản xem trước không thể vẽ cùng một bàn phím
+theo hai kiểu khác nhau.
+
+Cầu nối: `keypadJson`, `setKeypadOpacity`, `cycleKeypadShape`, `setKeypadShape`,
+`setKeypadFadeDelay`, `keypadDrawOpacity` (một con số, không phải JSON — hỏi
+mỗi khung hình thì không phải chỗ để phân tích văn bản) và `noteKeypadUse`.

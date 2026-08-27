@@ -34,6 +34,19 @@ public final class GameProfile {
     public static final int KEYPAD_NUMBERS = 2;
     public static final int KEYPAD_HIDDEN = 3;
 
+    /**
+     * The shape of a virtual key.
+     *
+     * <p>J2ME Loader offers the same three, and the reason is not decoration:
+     * a rounded key and a round key have different edges to aim at, and on a
+     * small screen the thumb finds one shape faster than another. Which one
+     * is a matter of the hand holding the phone, so it is asked rather than
+     * decided.</p>
+     */
+    public static final int KEY_SHAPE_ROUNDED = 0;
+    public static final int KEY_SHAPE_RECT = 1;
+    public static final int KEY_SHAPE_ROUND = 2;
+
     public static final int NETWORK_BLOCKED = 0;
     public static final int NETWORK_ASK = 1;
     public static final int NETWORK_ALLOWED = 2;
@@ -44,6 +57,26 @@ public final class GameProfile {
     private int scaleMode = SCALE_FIT;
     private int orientation = DeviceProfile.ORIENTATION_PORTRAIT;
     private int keypadLayout = KEYPAD_FULL;
+    /**
+     * How solid the virtual keypad is drawn, in percent.
+     *
+     * <p>The keypad sits over nothing on an upright screen, but sideways it
+     * sits over the game itself. A keypad that can be seen through is the
+     * difference between playing a wide game and playing the top half of
+     * one.</p>
+     */
+    private int keypadOpacity = 100;
+    private int keypadShape = KEY_SHAPE_ROUNDED;
+    /**
+     * Seconds of not being touched before the keypad fades back; 0 leaves it.
+     *
+     * <p>It fades rather than disappears. A keypad that vanishes leaves the
+     * player tapping at a screen with nothing on it to find, so what this
+     * does is drop it to a ghost of itself — out of the way of the game,
+     * still where the thumb left it, and back to full the moment it is
+     * touched.</p>
+     */
+    private int keypadFadeDelay;
     /**
      * Which MIDlet inside the suite to open, or empty for the first.
      *
@@ -215,6 +248,65 @@ public final class GameProfile {
     /** True when the 3x4 grid is drawn. */
     public boolean showsNumbers() {
         return keypadLayout == KEYPAD_FULL || keypadLayout == KEYPAD_NUMBERS;
+    }
+
+    /** How solid the keypad is drawn, 20–100 percent. */
+    public int keypadOpacity() {
+        return keypadOpacity;
+    }
+
+    public void setKeypadOpacity(int percent) {
+        // Below a fifth the keys stop being findable at all, which is not a
+        // setting so much as a way to lose the keypad without meaning to.
+        this.keypadOpacity = percent < 20 ? 20 : (percent > 100 ? 100 : percent);
+    }
+
+    public int keypadShape() {
+        return keypadShape;
+    }
+
+    public void setKeypadShape(int shape) {
+        this.keypadShape = shape < KEY_SHAPE_ROUNDED || shape > KEY_SHAPE_ROUND
+                ? KEY_SHAPE_ROUNDED : shape;
+    }
+
+    public String keypadShapeName() {
+        switch (keypadShape) {
+            case KEY_SHAPE_RECT: return "Vuông";
+            case KEY_SHAPE_ROUND: return "Tròn";
+            default: return "Bo góc";
+        }
+    }
+
+    /** Seconds of not being touched before the keypad fades; 0 means never. */
+    public int keypadFadeDelay() {
+        return keypadFadeDelay;
+    }
+
+    public void setKeypadFadeDelay(int seconds) {
+        // A minute is already long enough that nobody sees it happen; past
+        // that the setting is indistinguishable from off.
+        this.keypadFadeDelay = seconds < 0 ? 0 : (seconds > 60 ? 60 : seconds);
+    }
+
+    public String keypadFadeDelayName() {
+        return keypadFadeDelay == 0 ? "Luôn rõ" : ("Sau " + keypadFadeDelay + " giây");
+    }
+
+    /**
+     * How solid the keypad should be drawn, given how long since it was last
+     * touched.
+     *
+     * <p>One answer, in one place, so the phone and the preview cannot draw
+     * the same keypad two different ways.</p>
+     */
+    public int keypadOpacityAfter(long idleMillis) {
+        if (keypadFadeDelay == 0 || idleMillis < keypadFadeDelay * 1000L) {
+            return keypadOpacity;
+        }
+        // A third of what it was, and never past the point of being findable.
+        int faded = keypadOpacity / 3;
+        return faded < 20 ? 20 : faded;
     }
 
     public String midletClass() {
@@ -411,6 +503,9 @@ public final class GameProfile {
         json.put("scaleMode", Integer.valueOf(scaleMode));
         json.put("orientation", Integer.valueOf(orientation));
         json.put("keypadLayout", Integer.valueOf(keypadLayout));
+        json.put("keypadOpacity", Integer.valueOf(keypadOpacity));
+        json.put("keypadShape", Integer.valueOf(keypadShape));
+        json.put("keypadFadeDelay", Integer.valueOf(keypadFadeDelay));
         json.put("midletClass", midletClass);
         json.put("frameLimit", Integer.valueOf(frameLimit));
         json.put("volume", Integer.valueOf(volume));
@@ -440,6 +535,9 @@ public final class GameProfile {
         profile.scaleMode = Json.integer(json, "scaleMode", SCALE_FIT);
         profile.orientation = Json.integer(json, "orientation", DeviceProfile.ORIENTATION_PORTRAIT);
         profile.keypadLayout = Json.integer(json, "keypadLayout", KEYPAD_FULL);
+        profile.setKeypadOpacity(Json.integer(json, "keypadOpacity", 100));
+        profile.setKeypadShape(Json.integer(json, "keypadShape", KEY_SHAPE_ROUNDED));
+        profile.setKeypadFadeDelay(Json.integer(json, "keypadFadeDelay", 0));
         profile.midletClass = Json.string(json, "midletClass", "");
         profile.frameLimit = Json.integer(json, "frameLimit", 30);
         profile.volume = Json.integer(json, "volume", 70);

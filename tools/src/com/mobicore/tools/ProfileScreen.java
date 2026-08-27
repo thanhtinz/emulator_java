@@ -106,6 +106,21 @@ public final class ProfileScreen {
                 fieldWidth);
         y += deviceHeight + 14;
 
+        // The virtual keypad ---------------------------------------------
+        // Sideways it sits over the game, so how solid it is decides how much
+        // of the game is left to look at.
+        profile.setKeypadOpacity(70);
+        profile.setKeypadShape(com.mobicore.core.model.GameProfile.KEY_SHAPE_ROUND);
+        profile.setKeypadFadeDelay(10);
+        int keypadHeight = ui.sectionHeight(3);
+        row = ui.section(margin, y, width, keypadHeight, "BÀN PHÍM ẢO",
+                profile.keypadOpacity() + "%");
+        ui.field("Độ rõ", profile.keypadOpacity() + "%", fieldX, row, fieldWidth);
+        ui.field("Hình phím", profile.keypadShapeName(), fieldX, row + Ui.ROW, fieldWidth);
+        ui.field("Tự mờ khi không dùng", profile.keypadFadeDelayName(), fieldX,
+                row + Ui.ROW * 2, fieldWidth);
+        y += keypadHeight + 14;
+
         // Display and audio ----------------------------------------------
         int displayHeight = ui.sectionHeight(6);
         row = ui.section(margin, y, width, displayHeight, "HIỂN THỊ & ÂM THANH", null);

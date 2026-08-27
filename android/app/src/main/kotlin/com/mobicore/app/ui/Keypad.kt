@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -27,13 +28,18 @@ import androidx.compose.material.icons.filled.SouthWest
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -59,6 +65,25 @@ private const val SOFT_SCALE_X = 2.0f
 private const val SOFT_SCALE_Y = 0.75f
 /** A hair of daylight between keys; J2ME Loader snaps its keys together. */
 private val GAP = 4.dp
+
+/**
+ * The shape every key on this keypad is cut to.
+ *
+ * Carried down rather than passed key by key: eleven signatures would have to
+ * grow a parameter that none of them decides anything with, and one of them
+ * would eventually be missed.
+ */
+private val LocalKeyShape = compositionLocalOf { GameProfile.KEY_SHAPE_ROUNDED }
+
+/** A key's outline, at the given corner radius when it is a rounded one. */
+@Composable
+private fun keyShape(radius: Dp): Shape = when (LocalKeyShape.current) {
+    GameProfile.KEY_SHAPE_RECT -> RectangleShape
+    // On a square key a full-radius corner is a circle, which is what this
+    // setting is for; on the wide softkeys the same call gives a pill.
+    GameProfile.KEY_SHAPE_ROUND -> CircleShape
+    else -> RoundedCornerShape(radius)
+}
 
 @Composable
 private fun uprightKeySize(): Dp {
@@ -95,11 +120,21 @@ fun Keypad(
      * only way left to reach a command.
      */
     showSoftKeys: Boolean = true,
+    /** The key shape; see `GameProfile.KEY_SHAPE_*`. */
+    shape: Int = GameProfile.KEY_SHAPE_ROUNDED,
+    /**
+     * How solid to draw the keypad, in percent.
+     *
+     * Applied to the keypad as a whole rather than colour by colour, so the
+     * keys, their outlines and their lettering all step back together.
+     */
+    opacity: Int = 100,
 ) {
     val arrows = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_ARROWS
     val numbers = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_NUMBERS
     val key = uprightKeySize()
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(GAP * 3)) {
+    CompositionLocalProvider(LocalKeyShape provides shape) {
+    Column(modifier.alpha(opacity / 100f), verticalArrangement = Arrangement.spacedBy(GAP * 3)) {
         // Directly under the screen, so they line up with the labels the
         // system draws along its bottom edge, as they do on a handset.
         // The two softkeys and nothing else. The call, end and clear keys a
@@ -127,6 +162,7 @@ fun Keypad(
             }
         }
     }
+    }
 }
 
 /**
@@ -145,6 +181,10 @@ fun ControlColumn(
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** The key shape; see `GameProfile.KEY_SHAPE_*`. */
+    shape: Int = GameProfile.KEY_SHAPE_ROUNDED,
+    /** How solid to draw the column, in percent. */
+    opacity: Int = 100,
 ) {
     // Turned, J2ME Loader sizes its keys off the long edge. Its keypad floats
     // over the game, though, and this one has a column to itself, so the size
@@ -152,7 +192,8 @@ fun ControlColumn(
     val configuration = LocalConfiguration.current
     val turned = (maxOf(configuration.screenWidthDp, configuration.screenHeightDp)
         / KEY_DIVISOR_TURNED).dp
-    BoxWithConstraints(modifier.width(turned * 3 + GAP * 2 + 24.dp)) {
+    CompositionLocalProvider(LocalKeyShape provides shape) {
+    BoxWithConstraints(modifier.width(turned * 3 + GAP * 2 + 24.dp).alpha(opacity / 100f)) {
         val room = (maxHeight - GAP * 4) / (4 + SOFT_SCALE_Y)
         val key = minOf(turned, room)
         Column(
@@ -175,6 +216,7 @@ fun ControlColumn(
                 )
             }
         }
+    }
     }
 }
 
@@ -204,7 +246,7 @@ private fun SoftKey(
             // Two keys across, three quarters of a key tall: J2ME Loader's
             // own proportions for these two.
             .size(key * SOFT_SCALE_X, key * SOFT_SCALE_Y)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(keyShape(12.dp))
             .background(
                 when {
                     held -> MobiColors.AccentDim
@@ -212,8 +254,7 @@ private fun SoftKey(
                     else -> MobiColors.Background
                 }
             )
-            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border,
-                RoundedCornerShape(12.dp))
+            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, keyShape(12.dp))
             .holdable(button, onPress, onRelease) { held = it }
             .padding(horizontal = 12.dp),
     ) {
@@ -314,9 +355,9 @@ private fun NumberKey(
     Column(
         Modifier
             .size(key)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(keyShape(12.dp))
             .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
-            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, RoundedCornerShape(12.dp))
+            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, keyShape(12.dp))
             .holdable(button, onPress, onRelease) { held = it },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -339,9 +380,9 @@ private fun ArrowKey(
     Box(
         Modifier
             .size(key)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(keyShape(14.dp))
             .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
-            .border(1.dp, MobiColors.Accent, RoundedCornerShape(14.dp))
+            .border(1.dp, MobiColors.Accent, keyShape(14.dp))
             .holdable(button, onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {
@@ -358,9 +399,9 @@ private fun FireKey(onPress: (String) -> Unit, onRelease: (String) -> Unit, key:
     Box(
         Modifier
             .size(key)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(keyShape(14.dp))
             .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
-            .border(1.dp, MobiColors.Accent, RoundedCornerShape(14.dp))
+            .border(1.dp, MobiColors.Accent, keyShape(14.dp))
             .holdable("fire", onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {

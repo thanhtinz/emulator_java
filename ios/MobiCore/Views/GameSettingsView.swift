@@ -84,6 +84,53 @@ struct GameSettingsView: View {
                         }
                     }
 
+                    // Held sideways the keypad sits over the game itself, so
+                    // how solid it is decides how much of the game is left to
+                    // look at.
+                    SectionCard(title: "BÀN PHÍM ẢO", trailing: "\(current.keyOpacity)%") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            FieldRow(label: "Độ rõ", value: "\(current.keyOpacity)%")
+                            Slider(
+                                value: Binding(
+                                    get: { Double(current.keyOpacity) },
+                                    set: { current.keypadOpacity = Int($0) }
+                                ),
+                                in: 20...100,
+                                step: 5,
+                                onEditingChanged: { editing in
+                                    if !editing {
+                                        client.setKeypadOpacity(current.keyOpacity, for: suiteId)
+                                        reload()
+                                    }
+                                }
+                            )
+
+                            Picker("Hình phím", selection: Binding(
+                                get: { current.keyShape },
+                                set: { client.setKeypadShape($0, for: suiteId); reload() }
+                            )) {
+                                Text("Bo góc").tag(0)
+                                Text("Vuông").tag(1)
+                                Text("Tròn").tag(2)
+                            }
+                            .pickerStyle(.segmented)
+
+                            // It fades rather than disappears: a keypad that
+                            // vanishes leaves the thumb hunting a blank
+                            // screen.
+                            Picker("Tự mờ khi không dùng", selection: Binding(
+                                get: { current.keyFadeDelay },
+                                set: { client.setKeypadFadeDelay($0, for: suiteId); reload() }
+                            )) {
+                                Text("Luôn rõ").tag(0)
+                                Text("5 giây").tag(5)
+                                Text("10 giây").tag(10)
+                                Text("30 giây").tag(30)
+                            }
+                            .pickerStyle(.segmented)
+                        }
+                    }
+
                     SectionCard(title: "HIỂN THỊ") {
                         VStack(alignment: .leading, spacing: 10) {
                             Picker("Phóng ảnh", selection: Binding(

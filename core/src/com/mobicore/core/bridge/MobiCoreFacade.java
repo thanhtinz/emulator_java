@@ -404,6 +404,122 @@ public final class MobiCoreFacade {
         }
     }
 
+    /**
+     * How the virtual keypad looks: how solid, what shape, when it fades.
+     *
+     * <p>One call rather than three, because the screen that shows them shows
+     * all three together and the keypad it is drawing has to be redrawn for
+     * any of them.</p>
+     */
+    public String keypadJson(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("layout", Integer.valueOf(profile.keypadLayout()));
+            json.put("layoutName", profile.keypadLayoutName());
+            json.put("opacity", Integer.valueOf(profile.keypadOpacity()));
+            json.put("shape", Integer.valueOf(profile.keypadShape()));
+            json.put("shapeName", profile.keypadShapeName());
+            json.put("fadeDelay", Integer.valueOf(profile.keypadFadeDelay()));
+            json.put("fadeDelayName", profile.keypadFadeDelayName());
+            // What it should be drawn at this instant, which is the opacity
+            // above until the fade has had time to happen.
+            json.put("drawOpacity", Integer.valueOf(session != null
+                    && suiteId.equals(activeSuiteId)
+                    ? session.keypadOpacity() : profile.keypadOpacity()));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** How solid the keypad is drawn, 20-100 percent. */
+    public String setKeypadOpacity(String suiteId, int percent) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.setKeypadOpacity(percent);
+            library.saveProfile(profile);
+            return keypadJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Rounded, square or round; the next one along each time it is called. */
+    public String cycleKeypadShape(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.setKeypadShape((profile.keypadShape() + 1) % 3);
+            library.saveProfile(profile);
+            return keypadJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String setKeypadShape(String suiteId, int shape) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.setKeypadShape(shape);
+            library.saveProfile(profile);
+            return keypadJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Seconds of not being touched before the keypad fades; 0 never fades. */
+    public String setKeypadFadeDelay(String suiteId, int seconds) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.setKeypadFadeDelay(seconds);
+            library.saveProfile(profile);
+            return keypadJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * How solid the running game's keypad should be drawn right now.
+     *
+     * <p>A plain number rather than JSON: the front end asks this once per
+     * drawn frame, and a frame is not the place to parse a document.</p>
+     */
+    public int keypadDrawOpacity() {
+        return session == null ? 100 : session.keypadOpacity();
+    }
+
+    /**
+     * Tells the emulator the keypad was touched, which brings it back to full.
+     *
+     * <p>The front end knows where the keypad is on screen; the session keeps
+     * the clock. This is the one line between them.</p>
+     */
+    public String noteKeypadUse() {
+        if (session == null) {
+            return error("No game is running");
+        }
+        session.noteKeypadUse();
+        return ok("opacity", String.valueOf(session.keypadOpacity()));
+    }
+
     /** Portrait to landscape and back: what the rotate button calls. */
     public String toggleOrientation(String suiteId) {
         try {

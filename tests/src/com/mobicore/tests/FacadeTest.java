@@ -137,6 +137,9 @@ public final class FacadeTest extends Test {
         eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
                 "and round again");
 
+        // How the keypad looks --------------------------------------------
+        keypadLook(facade, suiteId);
+
         // How long a game has held someone ----------------------------------
         playTime(facade, suiteId);
 
@@ -387,6 +390,47 @@ public final class FacadeTest extends Test {
         eq(-1, Json.integer(Json.child(back, "mappings"), "up", 0),
                 "picking a preset puts every key back");
         eq("Nokia", Json.string(back, "preset", ""), "and names it again");
+    }
+
+    /**
+     * How solid the keypad is, what shape its keys are, and when it fades.
+     *
+     * <p>Sideways the keypad sits over the game, so these are not decoration:
+     * they are the difference between playing a wide game and playing the
+     * part of one the keypad leaves showing.</p>
+     */
+    private void keypadLook(MobiCoreFacade facade, String suiteId) throws Exception {
+        Map<String, Object> look = Json.readObject(facade.keypadJson(suiteId));
+        eq(100, Json.integer(look, "opacity", 0), "the keypad starts solid");
+        eq("Bo góc", Json.string(look, "shapeName", ""), "with rounded keys");
+        eq("Luôn rõ", Json.string(look, "fadeDelayName", ""), "and stays that way");
+
+        eq(60, Json.integer(Json.readObject(facade.setKeypadOpacity(suiteId, 60)), "opacity", 0),
+                "it can be made see-through");
+        eq(20, Json.integer(Json.readObject(facade.setKeypadOpacity(suiteId, 3)), "opacity", 0),
+                "but not so far that the keys cannot be found");
+        eq(100, Json.integer(Json.readObject(facade.setKeypadOpacity(suiteId, 400)), "opacity", 0),
+                "and no more solid than solid");
+        facade.setKeypadOpacity(suiteId, 60);
+
+        eq("Vuông", Json.string(Json.readObject(facade.cycleKeypadShape(suiteId)), "shapeName", ""),
+                "the keys go square");
+        eq("Tròn", Json.string(Json.readObject(facade.cycleKeypadShape(suiteId)), "shapeName", ""),
+                "then round");
+        eq("Bo góc", Json.string(Json.readObject(facade.cycleKeypadShape(suiteId)), "shapeName", ""),
+                "then back to where they started");
+
+        Map<String, Object> fading = Json.readObject(facade.setKeypadFadeDelay(suiteId, 5));
+        eq(5, Json.integer(fading, "fadeDelay", 0), "it can be told to step back when idle");
+        eq("Sau 5 giây", Json.string(fading, "fadeDelayName", ""), "and says so in words");
+        eq(60, Json.integer(Json.readObject(facade.setKeypadFadeDelay(suiteId, 999)),
+                "fadeDelay", 0), "a delay past a minute is the same as never");
+        facade.setKeypadFadeDelay(suiteId, 0);
+
+        // Settings survive a restart, because the keypad is not something a
+        // player wants to set up again every time they open a game.
+        eq(60, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadOpacity", 0),
+                "the profile carries it all");
     }
 
     /**

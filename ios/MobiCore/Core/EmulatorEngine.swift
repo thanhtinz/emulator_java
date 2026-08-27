@@ -25,6 +25,12 @@ final class EmulatorEngine: ObservableObject {
     /// True while the emulated screen draws the command bar itself, which on
     /// a touchscreen is the softkeys: tapping a label runs its command.
     @Published private(set) var showsSoftKeyBar = false
+
+    /// How solid the keypad should be drawn now, in percent.
+    ///
+    /// Read off the emulator on every presented frame rather than worked out
+    /// here: the session holds both the setting and the clock that fades it.
+    @Published private(set) var keypadOpacity = 100
     /// How fast the game is playing, as a percentage of a handset's pace.
     @Published private(set) var speed = 100
 
@@ -95,6 +101,10 @@ final class EmulatorEngine: ObservableObject {
             frame = image
         }
         refreshTextInput()
+        let solidity = Int(bridge.keypadDrawOpacity())
+        if solidity != keypadOpacity {
+            keypadOpacity = solidity
+        }
         framesThisSecond += 1
         let now = CACurrentMediaTime()
         if now - secondMark >= 1 {

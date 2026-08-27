@@ -245,6 +245,24 @@ public final class ProfileTest extends Test {
         check(profile.smoothing(), "smoothing is on by default so scaling does not look blocky");
         eq("Ask", profile.networkModeName(), "network access defaults to asking");
 
+        // The keypad's own look: how solid, what shape, when it steps back.
+        eq(100, profile.keypadOpacity(), "a new keypad is drawn solid");
+        profile.setKeypadOpacity(5);
+        eq(20, profile.keypadOpacity(), "a keypad cannot be faded past finding");
+        profile.setKeypadOpacity(60);
+        eq("Bo góc", profile.keypadShapeName(), "keys are rounded by default");
+        profile.setKeypadShape(GameProfile.KEY_SHAPE_ROUND);
+        eq("Tròn", profile.keypadShapeName(), "and can be made round");
+        profile.setKeypadShape(9);
+        eq("Bo góc", profile.keypadShapeName(), "a shape that does not exist falls back");
+
+        eq(60, profile.keypadOpacityAfter(30_000L),
+                "with no fade set, sitting idle changes nothing");
+        profile.setKeypadFadeDelay(5);
+        eq(60, profile.keypadOpacityAfter(4_999L), "the keypad holds until the delay is up");
+        eq(20, profile.keypadOpacityAfter(5_000L), "then steps back out of the way");
+        profile.setKeypadFadeDelay(0);
+
         profile.setVolume(150);
         eq(100, profile.volume(), "volume is clamped to 100");
         profile.setVolume(-4);

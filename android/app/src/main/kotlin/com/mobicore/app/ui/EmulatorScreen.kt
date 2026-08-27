@@ -169,6 +169,12 @@ fun EmulatorScreen(
         @Suppress("UNUSED_EXPRESSION")
         engine.commandRevision
         val wantsText = engine.isTextInputActive()
+        // Read off the frame counter so the keypad's fade is recomputed as
+        // the game runs; the session is what knows how long it has been since
+        // the keypad was last touched.
+        engine.frameCounter
+        val keyShape = profile?.keypadShape() ?: GameProfile.KEY_SHAPE_ROUNDED
+        val keyOpacity = engine.keypadOpacity()
 
         if (landscape && !wantsText) {
             // Held sideways, the game keeps the middle and each hand gets a
@@ -182,6 +188,8 @@ fun EmulatorScreen(
                     onPress = { engine.pressButton(it) },
                     onRelease = { engine.releaseButton(it) },
                     modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
+                    shape = keyShape,
+                    opacity = keyOpacity,
                 )
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
                     GameSurface(engine, library, suiteId)
@@ -193,6 +201,8 @@ fun EmulatorScreen(
                     onPress = { engine.pressButton(it) },
                     onRelease = { engine.releaseButton(it) },
                     modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
+                    shape = keyShape,
+                    opacity = keyOpacity,
                 )
             }
             val landscapeError = engine.lastError
@@ -236,6 +246,8 @@ fun EmulatorScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
                 layout = profile?.keypadLayout() ?: GameProfile.KEYPAD_FULL,
                 showSoftKeys = !engine.showsSoftKeyBar(),
+                shape = keyShape,
+                opacity = keyOpacity,
             )
         }
         Spacer(Modifier.height(6.dp))

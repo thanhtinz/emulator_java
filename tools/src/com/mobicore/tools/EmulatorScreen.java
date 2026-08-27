@@ -63,6 +63,8 @@ public final class EmulatorScreen {
     private final int gameWidth;
     private final int gameHeight;
     private int keypadLayout = com.mobicore.core.model.GameProfile.KEYPAD_FULL;
+    private int keypadShape = com.mobicore.core.model.GameProfile.KEY_SHAPE_ROUNDED;
+    private int keypadOpacity = 100;
     private boolean menuOpen;
 
     public EmulatorScreen(String fixtureDir) {
@@ -96,6 +98,18 @@ public final class EmulatorScreen {
     /** Which keys the keypad shows; see {@code GameProfile.KEYPAD_*}. */
     public EmulatorScreen withKeypad(int layout) {
         this.keypadLayout = layout;
+        return this;
+    }
+
+    /**
+     * How the keys are drawn: their shape, and how solid they are.
+     *
+     * @param shape one of {@code GameProfile.KEY_SHAPE_*}
+     * @param opacity how solid, in percent
+     */
+    public EmulatorScreen withKeyLook(int shape, int opacity) {
+        this.keypadShape = shape;
+        this.keypadOpacity = opacity;
         return this;
     }
 
@@ -274,6 +288,9 @@ public final class EmulatorScreen {
                 barHeight + (frame.height() - barHeight - shownHeight) / 2,
                 shownWidth, shownHeight);
 
+        // Sideways the keys go onto their own sheet too, so the fade works
+        // the same way whichever way the phone is held.
+        Ui pen = keyLayer(ui);
         int softHeight = session.showsSoftKeyBar() ? 0 : (int) (key * SOFT_SCALE_Y);
         int dpadX = (side - padWidth) / 2;
         int numX = frame.width() - side + (side - padWidth) / 2;
@@ -282,8 +299,8 @@ public final class EmulatorScreen {
         // the top of it.
         int stack = key * 4 + GAP * 3 + (softHeight == 0 ? 0 : softHeight + 14);
         int padY = barHeight + Math.max(12, (frame.height() - barHeight - stack) / 2);
-        directionalPad(ui, dpadX, padY, key, padKeyHeight(key));
-        numericPad(ui, numX, padY, key);
+        directionalPad(pen, dpadX, padY, key, padKeyHeight(key));
+        numericPad(pen, numX, padY, key);
 
         // The softkeys stay at the bottom outside corners: they are the two
         // keys the game labels, and both thumbs rest there when the phone is
@@ -291,11 +308,12 @@ public final class EmulatorScreen {
         if (!session.showsSoftKeyBar()) {
             int softWidth = (int) (key * SOFT_SCALE_X);
             int softY = frame.height() - softHeight - 14;
-            softKey(ui, (side - softWidth) / 2, softY, softWidth, softHeight,
+            softKey(pen, (side - softWidth) / 2, softY, softWidth, softHeight,
                     session.leftSoftKeyLabel(), "L");
-            softKey(ui, frame.width() - side + (side - softWidth) / 2, softY, softWidth,
+            softKey(pen, frame.width() - side + (side - softWidth) / 2, softY, softWidth,
                     softHeight, session.rightSoftKeyLabel(), "R");
         }
+        blitKeyLayer(ui, pen);
         return frame;
     }
 
@@ -343,6 +361,18 @@ public final class EmulatorScreen {
         frame.setColor(Theme.BORDER);
         frame.fillRect(0, top, frame.width(), 1);
 
+        // The keys go onto a sheet of their own so the whole keypad can be
+        // faded in one move. Fading each colour as it is drawn does not work:
+        // a rounded outline is drawn as hundreds of overlapping points, and
+        // hundreds of translucent points on one pixel come out opaque.
+        Ui pen = keyLayer(ui);
+        controlKeys(pen, top, key);
+        blitKeyLayer(ui, pen);
+    }
+
+    /** The keys themselves, drawn wherever {@code pen} points. */
+    private void controlKeys(Ui ui, int top, int key) {
+        Framebuffer frame = ui.frame();
         int y = top + 12;
         boolean both = showsArrows() && showsNumbers();
         int padWidth = key * 3 + GAP * 2;
@@ -382,6 +412,32 @@ public final class EmulatorScreen {
     }
 
     /**
+     * Where the keys should be drawn: straight onto the screen at full
+     * strength, or onto a clear sheet when they are to be faded.
+     */
+    private Ui keyLayer(Ui ui) {
+        if (keypadOpacity >= 100) {
+            return ui;
+        }
+        Framebuffer layer = new Framebuffer(ui.frame().width(), ui.frame().height());
+        layer.fill(0x00000000);
+        return new Ui(layer);
+    }
+
+    /** Puts the sheet of keys down over the screen at the chosen strength. */
+    private void blitKeyLayer(Ui ui, Ui pen) {
+        if (pen == ui) {
+            return;
+        }
+        int[] pixels = pen.frame().pixels();
+        for (int i = 0; i < pixels.length; i++) {
+            int alpha = (pixels[i] >>> 24) * keypadOpacity / 100;
+            pixels[i] = (alpha << 24) | (pixels[i] & 0x00FFFFFF);
+        }
+        ui.frame().drawFramebuffer(pen.frame(), 0, 0);
+    }
+
+    /**
      * What the keypad area says while the phone's keyboard is up.
      *
      * <p>No mock keyboard is drawn here: the real one belongs to the phone,
@@ -418,7 +474,7 @@ public final class EmulatorScreen {
      */
     private void softKey(Ui ui, int x, int y, int width, int height, String label, String mark) {
         boolean bound = label != null && label.length() > 0;
-        ui.panel(x, y, width, height, bound ? Theme.SURFACE_ALT : Theme.BG, Theme.BORDER);
+        keyPanel(ui, x, y, width, height, bound ? Theme.SURFACE_ALT : Theme.BG, Theme.BORDER);
         int textY = y + (height - ui.mediumBold().height()) / 2;
         if (!bound) {
             // Nothing to label it with, so the key is called what it is:
@@ -429,8 +485,39 @@ public final class EmulatorScreen {
         }
         ui.textCenter(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), label, width - 26),
                 x + width / 2, textY, Theme.TEXT);
-        ui.text(ui.small(), mark, x + 10, y + (height - ui.small().height()) / 2, Theme.ACCENT);
+        ui.text(ui.small(), mark, x + 10, y + (height - ui.small().height()) / 2,
+                Theme.ACCENT);
     }
+
+    // ------------------------------------------------------- how a key looks
+
+    /**
+     * One key's body, in the shape and at the strength the profile asks for.
+     *
+     * <p>Every key on the keypad goes through here — numbers, arrows, fire
+     * and the two softkeys — so a change of shape cannot reach some of them
+     * and miss the rest.</p>
+     */
+    private void keyPanel(Ui ui, int x, int y, int w, int h, int fill, int border) {
+        Framebuffer frame = ui.frame();
+        int shape = keypadShape;
+        if (shape == com.mobicore.core.model.GameProfile.KEY_SHAPE_RECT) {
+            frame.setColor(fill);
+            frame.fillRect(x, y, w, h);
+            frame.setColor(border);
+            frame.drawRect(x, y, w - 1, h - 1);
+            return;
+        }
+        // Round keys are the same call with the corner radius run all the way
+        // out: on a square key that is a circle, on the wide softkeys a pill.
+        int arc = shape == com.mobicore.core.model.GameProfile.KEY_SHAPE_ROUND
+                ? Math.min(w, h) : 18;
+        frame.setColor(fill);
+        frame.fillRoundRect(x, y, w, h, arc, arc);
+        frame.setColor(border);
+        frame.drawRoundRect(x, y, w - 1, h - 1, arc, arc);
+    }
+
 
     /**
      * The 3x4 grid, in the order a handset lays it out.
@@ -446,7 +533,7 @@ public final class EmulatorScreen {
         for (int i = 0; i < labels.length; i++) {
             int keyX = x + (i % 3) * (key + GAP);
             int keyY = y + (i / 3) * (key + GAP);
-            ui.panel(keyX, keyY, key, key, Theme.SURFACE_ALT, Theme.BORDER);
+            keyPanel(ui, keyX, keyY, key, key, Theme.SURFACE_ALT, Theme.BORDER);
             ui.textCenter(ui.large(), labels[i], keyX + key / 2,
                     keyY + (key - ui.large().height()) / 2, Theme.TEXT);
         }
@@ -477,7 +564,7 @@ public final class EmulatorScreen {
 
         // "F" is what J2ME Loader writes on the fire key, and fire is what
         // MIDP calls it; the pad's middle key has never been an "OK" button.
-        ui.panel(centreX, middleY, key, tall, Theme.ACCENT_DIM, Theme.ACCENT);
+        keyPanel(ui, centreX, middleY, key, tall, Theme.ACCENT_DIM, Theme.ACCENT);
         ui.textCenter(ui.largeBold(), "F", centreX + key / 2,
                 middleY + (tall - ui.largeBold().height()) / 2, Theme.ACCENT);
     }
@@ -493,7 +580,7 @@ public final class EmulatorScreen {
      * puts on the same key, so the two keypads cannot drift apart.
      */
     private void arrowKey(Ui ui, int x, int y, int key, int tall, int direction) {
-        ui.panel(x, y, key, tall, Theme.KEY, Theme.ACCENT);
+        keyPanel(ui, x, y, key, tall, Theme.KEY, Theme.ACCENT);
         // The corners are quieter than the four main directions: they are
         // there when a game needs them, not competing for the thumb.
         boolean corner = direction >= 4;

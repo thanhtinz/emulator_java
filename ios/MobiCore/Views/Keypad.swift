@@ -32,6 +32,33 @@ enum KeyMetrics {
 ///
 /// Buttons report press and release separately: a J2ME game reads held keys
 /// through `GameCanvas.getKeyStates`, and a press-only button reads as stuck.
+/// The shape every key on a keypad is cut to, carried down the view tree.
+///
+/// Eleven views would otherwise each grow a parameter none of them decides
+/// anything with, and one of them would eventually be missed.
+private struct KeyShapeKey: EnvironmentKey {
+    static let defaultValue = 0
+}
+
+extension EnvironmentValues {
+    var keyShape: Int {
+        get { self[KeyShapeKey.self] }
+        set { self[KeyShapeKey.self] = newValue }
+    }
+}
+
+/// The corner radius a key is cut with, for the chosen shape.
+///
+/// A square key and a round one are the same rectangle at two radii — none
+/// and half the key — so no key needs a shape type of its own.
+func keyRadius(_ shape: Int, size: CGFloat, rounded: CGFloat) -> CGFloat {
+    switch shape {
+    case 1: return 0
+    case 2: return size / 2
+    default: return rounded
+    }
+}
+
 struct Keypad: View {
 
     let onPress: (String) -> Void
@@ -48,6 +75,12 @@ struct Keypad: View {
     /// drawn with the game's own labels and a tap on it runs the command, so
     /// two more keys saying the same two words are two ways to do one thing.
     var showSoftKeys = true
+    /// The key shape; see `GameProfile.KEY_SHAPE_*` in the core.
+    var shape: Int = 0
+    /// How solid to draw the keypad, in percent. Applied to the keypad as a
+    /// whole rather than colour by colour, so keys, outlines and lettering
+    /// all step back together.
+    var opacity: Int = 100
 
     private var arrows: Bool { layout == 0 || layout == 1 }
     private var numbers: Bool { layout == 0 || layout == 2 }
@@ -79,6 +112,8 @@ struct Keypad: View {
                 }
             }
         }
+        .environment(\.keyShape, shape)
+        .opacity(Double(opacity) / 100.0)
     }
 
     /// The 3x4 grid, laid out the way a handset does.
@@ -171,6 +206,10 @@ struct ControlColumn: View {
     let showSoftKey: Bool
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
+    /// The key shape; see `GameProfile.KEY_SHAPE_*` in the core.
+    var shape: Int = 0
+    /// How solid to draw the column, in percent.
+    var opacity: Int = 100
 
     var body: some View {
         // Turned, J2ME Loader sizes its keys off the long edge. Its keypad
@@ -196,6 +235,8 @@ struct ControlColumn: View {
             .frame(maxWidth: .infinity)
         }
         .frame(width: KeyMetrics.turned * 3 + KeyMetrics.gap * 2 + 24)
+        .environment(\.keyShape, shape)
+        .opacity(Double(opacity) / 100.0)
     }
 }
 
@@ -206,16 +247,18 @@ private struct NumberKey: View {
     let onRelease: (String) -> Void
 
     @State private var held = false
+    @Environment(\.keyShape) private var shape
 
     var body: some View {
+        let radius = keyRadius(shape, size: size, rounded: 12)
         Text(entry.label)
             .font(.title3)
             .foregroundStyle(Palette.text)
         .frame(width: size, height: size)
         .background(held ? Palette.accentDim : Palette.surfaceAlt,
-                    in: RoundedRectangle(cornerRadius: 12))
+                    in: RoundedRectangle(cornerRadius: radius))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: radius)
                 .stroke(held ? Palette.accent : Palette.border, lineWidth: 1)
         )
         .gesture(holdGesture(button: entry.button, held: $held, onPress: onPress, onRelease: onRelease))
@@ -238,6 +281,7 @@ private struct SoftKey: View {
     let onRelease: (String) -> Void
 
     @State private var held = false
+    @Environment(\.keyShape) private var shape
 
     private var bound: Bool { !(label ?? "").isEmpty }
 
@@ -247,6 +291,8 @@ private struct SoftKey: View {
     private var mark: String { button == "softLeft" ? "L" : "R" }
 
     var body: some View {
+        // A wide key, so the round shape gives a pill rather than a circle.
+        let radius = keyRadius(shape, size: key * KeyMetrics.softScaleY, rounded: 12)
         // With no command on it, the key is simply called what it is: an "L"
         // in the middle rather than an "L" in the corner beside a dash
         // standing in for something that is not there.
@@ -266,9 +312,9 @@ private struct SoftKey: View {
             .padding(.horizontal, 12)
             .frame(height: key * KeyMetrics.softScaleY)
             .background(held ? Palette.accentDim : (bound ? Palette.surfaceAlt : Palette.background),
-                        in: RoundedRectangle(cornerRadius: 12))
+                        in: RoundedRectangle(cornerRadius: radius))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: radius)
                     .stroke(held ? Palette.accent : Palette.border, lineWidth: 1)
             )
             .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))
@@ -287,15 +333,17 @@ private struct ArrowKey: View {
     let onRelease: (String) -> Void
 
     @State private var held = false
+    @Environment(\.keyShape) private var shape
 
     var body: some View {
+        let radius = keyRadius(shape, size: size, rounded: 14)
         Image(systemName: symbol)
             .font(.system(size: corner ? size * 0.34 : size * 0.5, weight: .semibold))
             .foregroundStyle(Palette.accent)
             .frame(width: size, height: size)
             .background(Palette.accentDim.opacity(held ? 0.6 : 1),
-                        in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.accent, lineWidth: 1))
+                        in: RoundedRectangle(cornerRadius: radius))
+            .overlay(RoundedRectangle(cornerRadius: radius).stroke(Palette.accent, lineWidth: 1))
             .accessibilityLabel(label)
             .gesture(holdGesture(button: button, held: $held, onPress: onPress, onRelease: onRelease))
     }
@@ -307,8 +355,10 @@ private struct FireKey: View {
     let onRelease: (String) -> Void
 
     @State private var held = false
+    @Environment(\.keyShape) private var shape
 
     var body: some View {
+        let radius = keyRadius(shape, size: size, rounded: 14)
         // "F" is what J2ME Loader writes here, and fire is what MIDP calls
         // it; this key has never been an "OK" button.
         Text("F")
@@ -316,8 +366,8 @@ private struct FireKey: View {
             .foregroundStyle(Palette.accent)
             .frame(width: size, height: size)
             .background(Palette.accentDim.opacity(held ? 0.6 : 1),
-                        in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.accent, lineWidth: 1))
+                        in: RoundedRectangle(cornerRadius: radius))
+            .overlay(RoundedRectangle(cornerRadius: radius).stroke(Palette.accent, lineWidth: 1))
             .gesture(holdGesture(button: "fire", held: $held, onPress: onPress, onRelease: onRelease))
     }
 }

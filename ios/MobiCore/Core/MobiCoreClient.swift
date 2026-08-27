@@ -373,6 +373,26 @@ final class MobiCoreClient: ObservableObject {
         refresh()
     }
 
+    // ---------------------------------------------------- how the keypad looks
+
+    /// How solid the keypad is drawn, 20-100 percent.
+    func setKeypadOpacity(_ percent: Int, for suiteId: String) {
+        report(decode(bridge.setKeypadOpacity(percent, forSuite: suiteId)))
+        refresh()
+    }
+
+    /// Rounded, square or round; see `GameProfile.KEY_SHAPE_*` in the core.
+    func setKeypadShape(_ shape: Int, for suiteId: String) {
+        report(decode(bridge.setKeypadShape(shape, forSuite: suiteId)))
+        refresh()
+    }
+
+    /// Seconds of not being touched before the keypad fades; 0 never fades.
+    func setKeypadFadeDelay(_ seconds: Int, for suiteId: String) {
+        report(decode(bridge.setKeypadFadeDelay(seconds, forSuite: suiteId)))
+        refresh()
+    }
+
     func setInputPreset(_ preset: String, for suiteId: String) {
         report(decode(bridge.setInputPreset(preset, forSuite: suiteId)))
         refresh()

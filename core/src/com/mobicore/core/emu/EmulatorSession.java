@@ -75,6 +75,9 @@ public final class EmulatorSession {
     private SpeedClock clock;
     private final Rewind rewind = new Rewind();
 
+    /** When the virtual keypad was last touched; 0 until it first is. */
+    private long lastKeypadUse;
+
     /**
      * The last few seconds of play, kept so they can be taken back.
      *
@@ -337,6 +340,7 @@ public final class EmulatorSession {
      * @return true when the press ran one of the screen's commands
      */
     public boolean pressButton2(String button) {
+        noteKeypadUse();
         if ("softLeft".equals(button)) {
             return pressSoftKey(true);
         }
@@ -581,6 +585,36 @@ public final class EmulatorSession {
             return false;
         }
         return invokeCommand(command);
+    }
+
+    /**
+     * Marks the keypad as just used, which is what holds it at full strength.
+     *
+     * <p>Only the keypad's own keys count. A game played by tapping the
+     * screen would otherwise keep the keypad solid over itself forever, which
+     * is the case the fade exists for.</p>
+     */
+    public void noteKeypadUse() {
+        lastKeypadUse = vm.host().currentTimeMillis();
+    }
+
+    /** Milliseconds since the keypad was last touched. */
+    public long keypadIdleMillis() {
+        if (lastKeypadUse == 0) {
+            lastKeypadUse = vm.host().currentTimeMillis();
+        }
+        long idle = vm.host().currentTimeMillis() - lastKeypadUse;
+        return idle < 0 ? 0 : idle;
+    }
+
+    /**
+     * How solid the keypad should be drawn right now, in percent.
+     *
+     * <p>Asked of the session rather than worked out by each front end, so
+     * the phone and the preview always agree.</p>
+     */
+    public int keypadOpacity() {
+        return profile.keypadOpacityAfter(keypadIdleMillis());
     }
 
     /**

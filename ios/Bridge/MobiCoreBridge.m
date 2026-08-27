@@ -423,6 +423,30 @@
     return [_facade softKeysJson];
 }
 
+- (NSInteger)keypadDrawOpacity {
+    return [_facade keypadDrawOpacity];
+}
+
+- (NSString *)noteKeypadUse {
+    return [_facade noteKeypadUse];
+}
+
+- (NSString *)keypadJSONForSuite:(NSString *)suiteId {
+    return [_facade keypadJsonWithNSString:suiteId];
+}
+
+- (NSString *)setKeypadOpacity:(NSInteger)percent forSuite:(NSString *)suiteId {
+    return [_facade setKeypadOpacityWithNSString:suiteId withInt:(jint) percent];
+}
+
+- (NSString *)setKeypadShape:(NSInteger)shape forSuite:(NSString *)suiteId {
+    return [_facade setKeypadShapeWithNSString:suiteId withInt:(jint) shape];
+}
+
+- (NSString *)setKeypadFadeDelay:(NSInteger)seconds forSuite:(NSString *)suiteId {
+    return [_facade setKeypadFadeDelayWithNSString:suiteId withInt:(jint) seconds];
+}
+
 - (void)releaseButton:(NSString *)button {
     [_facade releaseButtonWithNSString:button];
 }

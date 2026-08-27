@@ -56,14 +56,18 @@ struct EmulatorView: View {
                     ControlColumn(directional: true, softKeyLabel: engine.leftSoftKeyLabel,
                                   showSoftKey: !engine.showsSoftKeyBar,
                                   onPress: { engine.press($0) },
-                                  onRelease: { engine.release($0) })
+                                  onRelease: { engine.release($0) },
+                                  shape: settings?.keyShape ?? 0,
+                                  opacity: engine.keypadOpacity)
                         .padding(.vertical, 8)
                     GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     ControlColumn(directional: false, softKeyLabel: engine.rightSoftKeyLabel,
                                   showSoftKey: !engine.showsSoftKeyBar,
                                   onPress: { engine.press($0) },
-                                  onRelease: { engine.release($0) })
+                                  onRelease: { engine.release($0) },
+                                  shape: settings?.keyShape ?? 0,
+                                  opacity: engine.keypadOpacity)
                         .padding(.vertical, 8)
                 }
                 if let error = engine.error {
@@ -98,7 +102,9 @@ struct EmulatorView: View {
                         leftSoftKey: engine.leftSoftKeyLabel,
                         rightSoftKey: engine.rightSoftKeyLabel,
                         layout: settings?.keypadLayout ?? 0,
-                        showSoftKeys: !engine.showsSoftKeyBar
+                        showSoftKeys: !engine.showsSoftKeyBar,
+                        shape: settings?.keyShape ?? 0,
+                        opacity: engine.keypadOpacity
                     )
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)

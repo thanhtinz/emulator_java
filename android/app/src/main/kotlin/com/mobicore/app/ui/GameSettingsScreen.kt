@@ -63,6 +63,9 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
     var vibration by remember { mutableStateOf(profile.vibration()) }
     var networkMode by remember { mutableIntStateOf(profile.networkMode()) }
     var preset by remember { mutableStateOf(profile.input().presetName()) }
+    var keyOpacity by remember { mutableIntStateOf(profile.keypadOpacity()) }
+    var keyShape by remember { mutableIntStateOf(profile.keypadShape()) }
+    var keyFade by remember { mutableIntStateOf(profile.keypadFadeDelay()) }
 
     // Everything below the automatic card is hidden until asked for: a
     // player who just wants to play should not have to scroll past a page of
@@ -160,6 +163,36 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                 Column {
                     FieldRow("Kích thước", profile.device().resolution())
                     FieldRow("Kiểu bàn phím", profile.device().keypadName())
+                }
+            }
+        }
+
+        item {
+            // Held sideways the keypad sits over the game itself, so how
+            // solid it is decides how much of the game is left to look at.
+            SectionCard(title = "BÀN PHÍM ẢO", trailing = "$keyOpacity%") {
+                Column {
+                    FieldRow("Độ rõ", "$keyOpacity%")
+                    Slider(
+                        value = keyOpacity.toFloat(),
+                        onValueChange = { keyOpacity = it.toInt() },
+                        onValueChangeFinished = { persist { it.setKeypadOpacity(keyOpacity) } },
+                        valueRange = 20f..100f,
+                    )
+                    OptionRow("Hình phím", listOf("Bo góc", "Vuông", "Tròn"), keyShape) {
+                        keyShape = it
+                        persist { profile -> profile.setKeypadShape(it) }
+                    }
+                    // It fades rather than disappears: a keypad that vanishes
+                    // leaves the thumb hunting a blank screen.
+                    OptionRow(
+                        "Tự mờ khi không dùng",
+                        listOf("Luôn rõ", "5 giây", "10 giây", "30 giây"),
+                        listOf(0, 5, 10, 30).indexOf(keyFade).coerceAtLeast(0),
+                    ) {
+                        keyFade = listOf(0, 5, 10, 30)[it]
+                        persist { profile -> profile.setKeypadFadeDelay(keyFade) }
+                    }
                 }
             }
         }
