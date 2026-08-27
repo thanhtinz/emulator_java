@@ -94,11 +94,17 @@ public final class LinkScreen {
         // a dead link and a login page are what people actually hit.
         String refused = Json.string(Json.readObject(
                 facade.installFromUrl("http://games.example/dang-nhap")), "error", "");
-        int errorHeight = 12 + ui.small().height() + 8 + ui.small().height() * 2 + 20;
+        // Wrapped rather than cut: the half of the sentence that says what to
+        // do about it is the half that gets lost to an ellipsis.
+        List<String> reason = ui.wrap(ui.small(), refused, fieldWidth - glyph - 10, 3);
+        int errorHeight = 12 + ui.small().height() + 8
+                + reason.size() * (ui.small().height() + 4) + 12;
         row = ui.section(margin, y, width, errorHeight, "KHI LIÊN KẾT HỎNG", null);
         Icons.draw(frame, Icons.CLOSE, fieldX, row, glyph, Theme.BAD);
-        ui.text(ui.small(), ui.ellipsize(ui.small(), refused, fieldWidth - glyph - 10),
-                fieldX + glyph + 10, row + 1, Theme.TEXT);
+        for (int i = 0; i < reason.size(); i++) {
+            ui.text(ui.small(), reason.get(i), fieldX + glyph + 10,
+                    row + 1 + i * (ui.small().height() + 4), Theme.TEXT);
+        }
         y += errorHeight + 16;
 
         int buttonWidth = (width - 12) / 2;

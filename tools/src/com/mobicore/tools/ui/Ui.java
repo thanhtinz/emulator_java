@@ -127,6 +127,54 @@ public final class Ui {
     }
 
     /**
+     * Breaks a sentence over as many lines as it needs, up to a limit.
+     *
+     * <p>A message that has to be read — why a link would not install, what a
+     * game is missing — should be read, and cutting it off at one line with
+     * an ellipsis hides the half that says what to do about it. Words are
+     * kept whole; only a single word longer than the line is cut.</p>
+     */
+    public java.util.List<String> wrap(UiFont font, String value, int maxWidth, int maxLines) {
+        java.util.List<String> lines = new java.util.ArrayList<String>();
+        String text = value == null ? "" : value.trim();
+        if (text.length() == 0 || maxWidth <= 0 || maxLines <= 0) {
+            return lines;
+        }
+        StringBuilder line = new StringBuilder();
+        String[] words = text.split(" ");
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i];
+            String candidate = line.length() == 0 ? word : line + " " + word;
+            if (font.stringWidth(candidate) <= maxWidth) {
+                line.setLength(0);
+                line.append(candidate);
+                continue;
+            }
+            if (line.length() > 0) {
+                lines.add(line.toString());
+                line.setLength(0);
+                if (lines.size() == maxLines) {
+                    break;
+                }
+            }
+            // A word that cannot fit a line of its own is the one case where
+            // there is nothing to do but cut it.
+            line.append(font.stringWidth(word) <= maxWidth ? word : ellipsize(font, word, maxWidth));
+        }
+        if (line.length() > 0 && lines.size() < maxLines) {
+            lines.add(line.toString());
+        }
+        // The last line carries the ellipsis when there was more to say.
+        if (lines.size() == maxLines) {
+            String joined = String.join(" ", lines);
+            if (joined.length() < text.length()) {
+                lines.set(maxLines - 1, ellipsize(font, lines.get(maxLines - 1) + " …", maxWidth));
+            }
+        }
+        return lines;
+    }
+
+    /**
      * A search field with what has been typed in it.
      *
      * <p>Drawn rather than described because a library of forty games is

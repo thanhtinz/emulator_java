@@ -161,7 +161,11 @@ public final class LibraryScreen {
             y += ROW_HEIGHT;
             if (i < games.size() - 1) {
                 frame.setColor(Theme.BORDER);
-                frame.fillRect(MARGIN + ICON + GAP, y, frame.width() - MARGIN - ICON - GAP, 1);
+                // Stops where the text does. A rule that runs to the edge of
+                // the screen while everything above it stops short reads as
+                // the row having been cut off.
+                frame.fillRect(MARGIN + ICON + GAP, y,
+                        frame.width() - (MARGIN + ICON + GAP) - MARGIN, 1);
             }
         }
 
@@ -199,21 +203,33 @@ public final class LibraryScreen {
         }
         Framebuffer frame = ui.frame();
         boolean resumes = library.readSaveState(latest.suiteId(), 0) != null;
-        int height = 76;
-        int x = 12;
-        int width = frame.width() - 24;
+
+        // Measured from the text rather than guessed at: three lines of type
+        // in a box of a round number is how a descender ends up sitting on a
+        // border.
+        int lineGap = 4;
+        int lines = ui.small().height() + ui.mediumBold().height() + ui.small().height()
+                + lineGap * 2;
+        int inset = 14;
+        int cover = 48;
+        int height = Math.max(lines, cover) + inset * 2;
+        int x = MARGIN;
+        int width = frame.width() - MARGIN * 2;
         int top = y + 8;
         ui.panel(x, top, width, height, Theme.SURFACE_ALT, Theme.BORDER);
-        drawArtwork(ui, library, latest, x + 12, top + 14, 48);
+        drawArtwork(ui, library, latest, x + inset, top + (height - cover) / 2, cover);
 
-        int textX = x + 12 + 48 + 14;
-        ui.text(ui.small(), resumes ? "Chơi tiếp" : "Chơi lại", textX, top + 12, Theme.ACCENT);
-        ui.text(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), latest.title(), width - 150),
-                textX, top + 12 + ui.small().height() + 2, Theme.TEXT);
+        int textX = x + inset + cover + GAP;
+        int textTop = top + (height - lines) / 2;
+        ui.text(ui.small(), resumes ? "Chơi tiếp" : "Chơi lại", textX, textTop, Theme.ACCENT);
+        ui.text(ui.mediumBold(),
+                ui.ellipsize(ui.mediumBold(), latest.title(), width - inset * 2 - cover - GAP - 40),
+                textX, textTop + ui.small().height() + lineGap, Theme.TEXT);
         ui.text(ui.small(), resumes ? "Tiếp tục từ chỗ đã lưu" : "Bắt đầu lại từ đầu",
-                textX, top + 12 + ui.small().height() + ui.mediumBold().height() + 6,
+                textX, textTop + ui.small().height() + ui.mediumBold().height() + lineGap * 2,
                 Theme.TEXT_DIM);
-        Icons.drawCentred(frame, Icons.PLAY, x + width - 30, top + height / 2, 26, Theme.ACCENT);
+        Icons.drawCentred(frame, Icons.PLAY, x + width - inset - 13, top + height / 2, 26,
+                Theme.ACCENT);
         return top + height + 8;
     }
 
