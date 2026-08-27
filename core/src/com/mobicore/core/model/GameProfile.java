@@ -81,6 +81,8 @@ public final class GameProfile {
     private KeypadArrangement keypadArrangement = new KeypadArrangement();
     /** What a real controller's buttons do, when one is connected. */
     private GamepadProfile gamepad = GamepadProfile.defaults();
+    /** Whether tilting the phone steers, and how far it has to lean. */
+    private TiltProfile tilt = new TiltProfile();
     /**
      * Which MIDlet inside the suite to open, or empty for the first.
      *
@@ -335,6 +337,17 @@ public final class GameProfile {
         return gamepad;
     }
 
+    /**
+     * Whether tilting the phone steers the game.
+     *
+     * <p>Handed out rather than copied, like the pad: changing the
+     * sensitivity is a small edit and a setter taking a whole profile would
+     * mean rebuilding one for each.</p>
+     */
+    public TiltProfile tilt() {
+        return tilt;
+    }
+
     /** Replaces the whole pad mapping, which is what "put it back" does. */
     public void setGamepad(GamepadProfile gamepad) {
         this.gamepad = gamepad == null ? GamepadProfile.defaults() : gamepad;
@@ -539,6 +552,7 @@ public final class GameProfile {
         json.put("keypadFadeDelay", Integer.valueOf(keypadFadeDelay));
         json.put("keypadArrangement", keypadArrangement.toJson());
         json.put("gamepad", gamepad.toJson());
+        json.put("tilt", tilt.toJson());
         json.put("midletClass", midletClass);
         json.put("frameLimit", Integer.valueOf(frameLimit));
         json.put("volume", Integer.valueOf(volume));
@@ -574,6 +588,7 @@ public final class GameProfile {
         profile.keypadArrangement = KeypadArrangement.fromJson(
                 Json.child(json, "keypadArrangement"));
         profile.gamepad = GamepadProfile.fromJson(Json.child(json, "gamepad"));
+        profile.tilt = TiltProfile.fromJson(Json.child(json, "tilt"));
         profile.midletClass = Json.string(json, "midletClass", "");
         profile.frameLimit = Json.integer(json, "frameLimit", 30);
         profile.volume = Json.integer(json, "volume", 70);

@@ -27,6 +27,7 @@ import com.mobicore.core.midp.MidpFiles;
 import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.model.KeypadArrangement;
 import com.mobicore.core.model.MidletEntry;
+import com.mobicore.core.model.TiltProfile;
 import com.mobicore.core.mod.ModManager;
 import com.mobicore.core.mod.ModPackage;
 import com.mobicore.core.model.MidletEntry;
@@ -722,6 +723,114 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
+    }
+
+    /**
+     * Whether tilting the phone steers this game, and how far it must lean.
+     *
+     * <p>No J2ME handset could do this, so it is not emulation but a way to
+     * play: it suits a racing game steered left and right, and suits nothing
+     * else, which is why it is off until it is asked for.</p>
+     */
+    public String tiltJson(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            TiltProfile tilt = profile.tilt();
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("enabled", Boolean.valueOf(tilt.isEnabled()));
+            json.put("sensitivity", Integer.valueOf(tilt.sensitivity()));
+            json.put("axes", Integer.valueOf(tilt.axes()));
+            json.put("axesName", tilt.axesName());
+            json.put("inverted", Boolean.valueOf(tilt.isInverted()));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Turns tilting on or off for one game. */
+    public String setTiltEnabled(String suiteId, boolean enabled) {
+        return withTilt(suiteId, enabled, -1, -1, -1);
+    }
+
+    /** How far the phone has to lean, 50-200 percent of the standard angle. */
+    public String setTiltSensitivity(String suiteId, int percent) {
+        return withTilt(suiteId, null, percent, -1, -1);
+    }
+
+    /** Which directions tilting may press; see {@link TiltProfile}. */
+    public String setTiltAxes(String suiteId, int axes) {
+        return withTilt(suiteId, null, -1, axes, -1);
+    }
+
+    /** Leaning left presses right, which some games were drawn the other way. */
+    public String setTiltInverted(String suiteId, boolean inverted) {
+        return withTilt(suiteId, null, -1, -1, inverted ? 1 : 0);
+    }
+
+    /**
+     * One way in for all four, because they change one object and save it.
+     *
+     * @param enabled null to leave it alone
+     * @param sensitivity a negative number to leave it alone
+     * @param axes a negative number to leave it alone
+     * @param inverted a negative number to leave it alone
+     */
+    private String withTilt(String suiteId, Boolean enabled, int sensitivity, int axes,
+                            int inverted) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            TiltProfile tilt = profile.tilt();
+            if (enabled != null) {
+                tilt.setEnabled(enabled.booleanValue());
+            }
+            if (sensitivity >= 0) {
+                tilt.setSensitivity(sensitivity);
+            }
+            if (axes >= 0) {
+                tilt.setAxes(axes);
+            }
+            if (inverted >= 0) {
+                tilt.setInverted(inverted == 1);
+            }
+            library.saveProfile(profile);
+            if (session != null && suiteId.equals(activeSuiteId)) {
+                // The running game takes it now: someone switching tilting on
+                // is switching it on for the race they are in.
+                TiltProfile live = session.profile().tilt();
+                live.setEnabled(tilt.isEnabled());
+                live.setSensitivity(tilt.sensitivity());
+                live.setAxes(tilt.axes());
+                live.setInverted(tilt.isInverted());
+                if (!tilt.isEnabled()) {
+                    session.releaseTilt();
+                }
+            }
+            return tiltJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * The phone was tilted.
+     *
+     * <p>Called from the sensor, many times a second, so it answers with the
+     * one number a front end has any use for: how many directions are held.</p>
+     */
+    public String tilted(int xMilli, int yMilli) {
+        if (session == null) {
+            return error("No game is running");
+        }
+        int held = session.tilted(xMilli / 1000f, yMilli / 1000f);
+        return ok("held", String.valueOf(held));
     }
 
     /**

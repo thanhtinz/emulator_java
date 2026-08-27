@@ -447,6 +447,30 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)tiltJSONForSuite:(NSString *)suiteId {
+    return [_facade tiltJsonWithNSString:suiteId];
+}
+
+- (NSString *)setTiltEnabled:(BOOL)enabled forSuite:(NSString *)suiteId {
+    return [_facade setTiltEnabledWithNSString:suiteId withBoolean:enabled];
+}
+
+- (NSString *)setTiltSensitivity:(NSInteger)percent forSuite:(NSString *)suiteId {
+    return [_facade setTiltSensitivityWithNSString:suiteId withInt:(jint) percent];
+}
+
+- (NSString *)setTiltAxes:(NSInteger)axes forSuite:(NSString *)suiteId {
+    return [_facade setTiltAxesWithNSString:suiteId withInt:(jint) axes];
+}
+
+- (NSString *)setTiltInverted:(BOOL)inverted forSuite:(NSString *)suiteId {
+    return [_facade setTiltInvertedWithNSString:suiteId withBoolean:inverted];
+}
+
+- (NSString *)tiltedX:(NSInteger)xMilli y:(NSInteger)yMilli {
+    return [_facade tiltedWithInt:(jint) xMilli withInt:(jint) yMilli];
+}
+
 - (NSString *)shareScreenshot:(NSString *)name forSuite:(NSString *)suiteId {
     return [_facade shareScreenshotWithNSString:suiteId withNSString:name];
 }

@@ -1,6 +1,7 @@
 import Combine
 import CoreGraphics
 import Foundation
+import CoreMotion
 import GameController
 import QuartzCore
 import SwiftUI
@@ -165,6 +166,41 @@ final class EmulatorEngine: ObservableObject {
         bridge.setTextInput(value)
     }
 
+    // ------------------------------------------------------------- tilting
+
+    /// The phone's own idea of which way it is being held.
+    private let motion = CMMotionManager()
+
+    /**
+     Starts reading how the phone is held.
+
+     What the emulator wants is "how far is this leaning", from -1 to 1, and
+     Core Motion's gravity vector is already in those units: a phone on its
+     side reads 1 on one axis. Held upright in portrait, gravity is along -y,
+     so leaning right tips it into x and leaning away tips it out of y.
+
+     Reading stops with the game. A sensor left running is a battery drained
+     for a screen nobody is looking at.
+     */
+    func startTilting() {
+        guard motion.isDeviceMotionAvailable, !motion.isDeviceMotionActive else { return }
+        // The game reads held keys at its own pace, so a faster rate would be
+        // readings nobody looks at.
+        motion.deviceMotionUpdateInterval = 1.0 / 30
+        motion.startDeviceMotionUpdates(to: .main) { [weak self] data, _ in
+            guard let gravity = data?.gravity else { return }
+            let x = max(-1, min(1, gravity.x))
+            let y = max(-1, min(1, -gravity.y - 1))
+            _ = self?.bridge.tiltedX(Int(x * 1000), y: Int(y * 1000))
+        }
+    }
+
+    func stopTilting() {
+        if motion.isDeviceMotionActive {
+            motion.stopDeviceMotionUpdates()
+        }
+    }
+
     // ---------------------------------------------------------- the controller
 
     /// True while a controller is connected, so the game can say so.
@@ -237,13 +273,25 @@ final class EmulatorEngine: ObservableObject {
         // read as a d-pad. The dead zone is wide on purpose: a worn stick
         // resting at 0.2 would otherwise walk the player into a wall for as
         // long as the game is open.
+        //
+        // A direction is taken at one angle and given up at a smaller one,
+        // the same way tilting works: with a single threshold, a stick
+        // resting right on it sends press, release, press, release many times
+        // a second, which the game reads as a player hammering the key.
         pad.leftThumbstick.valueChangedHandler = { [weak self] _, x, y in
-            var held: Set<String> = []
-            if x <= -0.5 { held.insert("padLeft") }
-            if x >= 0.5 { held.insert("padRight") }
-            if y >= 0.5 { held.insert("padUp") }
-            if y <= -0.5 { held.insert("padDown") }
-            Task { @MainActor in self?.stickMoved(held) }
+            Task { @MainActor in
+                guard let self else { return }
+                let was = self.stickHeld
+                func amount(_ button: String, _ pushed: Float) -> Bool {
+                    pushed >= (was.contains(button) ? 0.35 : 0.5)
+                }
+                var held: Set<String> = []
+                if amount("padLeft", -x) { held.insert("padLeft") }
+                if amount("padRight", x) { held.insert("padRight") }
+                if amount("padUp", y) { held.insert("padUp") }
+                if amount("padDown", -y) { held.insert("padDown") }
+                self.stickMoved(held)
+            }
         }
     }
 

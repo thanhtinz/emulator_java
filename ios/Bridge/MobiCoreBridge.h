@@ -213,6 +213,15 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.
 - (NSString *)noteKeypadUse;
+/// Steering a game by tilting the phone.
+- (NSString *)tiltJSONForSuite:(NSString *)suiteId;
+- (NSString *)setTiltEnabled:(BOOL)enabled forSuite:(NSString *)suiteId;
+- (NSString *)setTiltSensitivity:(NSInteger)percent forSuite:(NSString *)suiteId;
+- (NSString *)setTiltAxes:(NSInteger)axes forSuite:(NSString *)suiteId;
+- (NSString *)setTiltInverted:(BOOL)inverted forSuite:(NSString *)suiteId;
+/// A lean, in thousandths, from -1000 to 1000 on each axis.
+- (NSString *)tiltedX:(NSInteger)xMilli y:(NSInteger)yMilli;
+
 /// Gets one picture or clip ready to leave the app, under a readable name.
 - (NSString *)shareScreenshot:(NSString *)name forSuite:(NSString *)suiteId;
 

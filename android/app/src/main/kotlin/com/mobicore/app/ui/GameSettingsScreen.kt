@@ -74,6 +74,10 @@ fun GameSettingsScreen(
     var keyShape by remember { mutableIntStateOf(profile.keypadShape()) }
     var keyFade by remember { mutableIntStateOf(profile.keypadFadeDelay()) }
     var gamepadOn by remember { mutableStateOf(profile.gamepad().isEnabled) }
+    var tiltOn by remember { mutableStateOf(profile.tilt().isEnabled) }
+    var tiltSensitivity by remember { mutableIntStateOf(profile.tilt().sensitivity()) }
+    var tiltAxes by remember { mutableIntStateOf(profile.tilt().axes()) }
+    var tiltInverted by remember { mutableStateOf(profile.tilt().isInverted) }
     // Bumped when a control is remapped: the pad profile is a plain object,
     // and Compose has no way of knowing a string inside it changed.
     var padRevision by remember { mutableIntStateOf(0) }
@@ -328,6 +332,68 @@ fun GameSettingsScreen(
                         SecondaryButton(label = "Đặt lại tay cầm") {
                             library.resetGamepad(suiteId)
                             padRevision++
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            // No J2ME handset could do this, so it is not emulation but a way
+            // to play: it suits a racing game steered left and right, and
+            // suits nothing else — hence off until it is asked for.
+            SectionCard(
+                title = "NGHIÊNG MÁY",
+                trailing = if (tiltOn) "Đang bật" else "Đang tắt",
+            ) {
+                Column {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Nghiêng máy để lái", color = MobiColors.TextDim,
+                                fontSize = 14.sp)
+                            Text(
+                                "Hợp với game đua; game khác thì máy sẽ tự đi khi xe xóc",
+                                color = MobiColors.TextDim,
+                                fontSize = 11.sp,
+                            )
+                        }
+                        Switch(checked = tiltOn, onCheckedChange = {
+                            tiltOn = it
+                            persist { profile -> profile.tilt().setEnabled(it) }
+                        })
+                    }
+                    if (tiltOn) {
+                        FieldRow("Độ nhạy", "$tiltSensitivity%")
+                        Slider(
+                            value = tiltSensitivity.toFloat(),
+                            onValueChange = { tiltSensitivity = it.toInt() },
+                            onValueChangeFinished = {
+                                persist { it.tilt().setSensitivity(tiltSensitivity) }
+                            },
+                            valueRange = 50f..200f,
+                        )
+                        OptionRow(
+                            "Hướng",
+                            listOf("Bốn hướng", "Chỉ trái phải", "Chỉ lên xuống"),
+                            tiltAxes,
+                        ) {
+                            tiltAxes = it
+                            persist { profile -> profile.tilt().setAxes(it) }
+                        }
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("Đảo chiều", color = MobiColors.TextDim, fontSize = 14.sp)
+                            Switch(checked = tiltInverted, onCheckedChange = {
+                                tiltInverted = it
+                                persist { profile -> profile.tilt().setInverted(it) }
+                            })
                         }
                     }
                 }

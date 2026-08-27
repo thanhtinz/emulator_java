@@ -14,6 +14,9 @@ struct GameSettingsView: View {
     @State private var presetName = ""
     /// What a real controller's buttons do, read back after every change.
     @State private var gamepad: GamepadSettings?
+    /// Whether tilting steers this game, re-read after every change.
+    @State private var tilt: TiltSettings?
+    @State private var tiltSensitivity = 100
     @State private var keyChoices: [KeyChoice] = []
 
     var body: some View {
@@ -86,7 +89,69 @@ struct GameSettingsView: View {
                         }
                     }
 
-                    // A controller gives back the one thing glass cannot: an
+// No J2ME handset could do this, so it is not
+                    // emulation but a way to play: it suits a racing game
+                    // steered left and right, and suits nothing else.
+                    SectionCard(title: "NGHIÊNG MÁY",
+                                trailing: (tilt?.enabled ?? false) ? "Đang bật" : "Đang tắt") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Toggle(isOn: Binding(
+                                get: { tilt?.enabled ?? false },
+                                set: {
+                                    client.setTiltEnabled($0, for: suiteId)
+                                    tilt = client.tilt(suiteId)
+                                }
+                            )) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Nghiêng máy để lái")
+                                        .font(.footnote)
+                                        .foregroundStyle(Palette.text)
+                                    Text("Hợp với game đua; game khác thì máy sẽ tự đi khi xe xóc")
+                                        .font(.caption2)
+                                        .foregroundStyle(Palette.textDim)
+                                }
+                            }
+
+                            if tilt?.enabled == true {
+                                FieldRow(label: "Độ nhạy",
+                                         value: "\(tilt?.sensitivity ?? 100)%")
+                                Slider(
+                                    value: Binding(
+                                        get: { Double(tilt?.sensitivity ?? 100) },
+                                        set: { tiltSensitivity = Int($0) }
+                                    ),
+                                    in: 50...200,
+                                    step: 5,
+                                    onEditingChanged: { editing in
+                                        if !editing {
+                                            client.setTiltSensitivity(tiltSensitivity,
+                                                                      for: suiteId)
+                                            tilt = client.tilt(suiteId)
+                                        }
+                                    }
+                                )
+                                Picker("Hướng", selection: Binding(
+                                    get: { tilt?.axes ?? 1 },
+                                    set: { client.setTiltAxes($0, for: suiteId)
+                                           tilt = client.tilt(suiteId) }
+                                )) {
+                                    Text("Bốn hướng").tag(0)
+                                    Text("Chỉ trái phải").tag(1)
+                                    Text("Chỉ lên xuống").tag(2)
+                                }
+                                .pickerStyle(.segmented)
+
+                                Toggle("Đảo chiều", isOn: Binding(
+                                    get: { tilt?.inverted ?? false },
+                                    set: { client.setTiltInverted($0, for: suiteId)
+                                           tilt = client.tilt(suiteId) }
+                                ))
+                                .font(.footnote)
+                            }
+                        }
+                    }
+
+                                        // A controller gives back the one thing glass cannot: an
                     // edge to feel for, so the player looks at the game
                     // instead of at their thumbs.
                     SectionCard(title: "TAY CẦM",
@@ -97,6 +162,8 @@ struct GameSettingsView: View {
                                 set: {
                                     client.setGamepadEnabled($0, for: suiteId)
                                     gamepad = client.gamepad(suiteId)
+            tilt = client.tilt(suiteId)
+            tiltSensitivity = tilt?.sensitivity ?? 100
                                 }
                             )) {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -117,6 +184,8 @@ struct GameSettingsView: View {
                                             client.setPadMapping(mapping.pad, to: $0,
                                                                  for: suiteId)
                                             gamepad = client.gamepad(suiteId)
+            tilt = client.tilt(suiteId)
+            tiltSensitivity = tilt?.sensitivity ?? 100
                                         }
                                     )) {
                                         // "Không dùng" is on the list on
@@ -135,6 +204,8 @@ struct GameSettingsView: View {
                                 Button("Đặt lại tay cầm") {
                                     client.resetGamepad(suiteId)
                                     gamepad = client.gamepad(suiteId)
+            tilt = client.tilt(suiteId)
+            tiltSensitivity = tilt?.sensitivity ?? 100
                                 }
                                 .font(.subheadline)
                                 .foregroundStyle(Palette.accent)
@@ -393,6 +464,8 @@ struct GameSettingsView: View {
             reload()
             keyChoices = client.keyChoices()
             gamepad = client.gamepad(suiteId)
+            tilt = client.tilt(suiteId)
+            tiltSensitivity = tilt?.sensitivity ?? 100
         }
     }
 

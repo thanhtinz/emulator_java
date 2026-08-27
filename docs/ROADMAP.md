@@ -42,6 +42,7 @@
 | 38 | Cài game từ liên kết | Xong |
 | 39 | Bộ sưu tập trong thư viện | Xong |
 | 40 | Chia sẻ ảnh chụp và đoạn quay | Xong |
+| 41 | Nghiêng máy để lái | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1488,3 +1489,44 @@ bản sao đã chuẩn bị. Dữ liệu lưu của game, tệp riêng của gam
 
 Nút chia sẻ nằm **ngay trên tấm ảnh**, cạnh nút xoá: gửi đi là lý do tấm ảnh
 được chụp, nó không nên nằm sau một cú nhấn giữ mà không ai tìm ra.
+
+
+## Giai đoạn 41 — nghiêng máy để lái
+
+Không máy J2ME nào làm được chuyện này — cảm biến gia tốc đến sau mấy game này —
+nên **đây không phải giả lập, mà là một cách chơi**. Nó hợp với những game nó
+hợp: một game đua lái bằng trái phải, một mê cung nghiêng cho viên bi lăn. Và
+nó **tắt sẵn**, vì với mọi game khác thì đó là một cái máy tự đi khi xe xóc.
+
+### Hai ngưỡng, không phải một
+
+Thứ làm cho tính năng này dùng được không phải là cái ngưỡng, mà là **cặp
+ngưỡng**. Với một ngưỡng duy nhất, cái máy cầm đúng ngay ở mép sẽ gửi bấm, nhả,
+bấm, nhả — hàng chục lần mỗi giây — và game đọc ra đó là **một người đang đập
+phím**. Nên một hướng được **nhận ở góc lớn** và **trả lại ở góc nhỏ hơn**, và
+khoảng cách giữa hai góc chính là thứ giữ cho một bàn tay gần như đứng yên
+không bị đọc thành một bàn tay đang run.
+
+Bài kiểm tra làm đúng chuyện đó: cho máy rung quanh mép ngưỡng bốn mươi lần, và
+đòi kết quả là **một lần đổi trạng thái**, không phải hai mươi.
+
+Nhân tiện, **cần analog của tay cầm cũng có cùng bệnh** và cùng cách chữa: nó
+vốn chỉ có một vùng chết 0,5. Nay nhận ở 0,5 và trả lại ở 0,35, y như nghiêng
+máy — hai đường vào cùng một kiểu, cùng một lý do.
+
+### Còn lại
+
+- **Độ nhạy 50–200%**: nhạy hơn nghĩa là nghiêng ít hơn đã đủ, nên con số lên
+  thì góc xuống.
+- **Hướng**: bốn hướng, chỉ trái phải (mặc định), hoặc chỉ lên xuống. Phần lớn
+  game hợp với nghiêng máy chỉ cần lái.
+- **Đảo chiều**, cho game vẽ ngược lại.
+- Tắt giữa chừng thì **thả ngay những hướng đang giữ**, chứ không để game bị ép
+  vào tường.
+- Cảm biến chỉ chạy khi một game **đã bật tính năng này** đang mở: một cảm biến
+  bị bỏ quên là một cục pin cạn cho cái màn hình không ai nhìn.
+
+Cầu nối: `tiltJson`, `setTiltEnabled`, `setTiltSensitivity`, `setTiltAxes`,
+`setTiltInverted`, `tilted` (nghiêng tính bằng **phần nghìn**, vì cầu nối chỉ
+mang số nguyên). Android đọc `TYPE_GRAVITY`, iOS đọc `CMDeviceMotion.gravity` —
+cả hai đều đã ở đúng đơn vị: máy nằm nghiêng hẳn là 1.

@@ -76,7 +76,7 @@ public final class ProfileScreen {
         // This page is long: automatic setup, the screen, the keypad, display
         // and sound, presets, key mapping, the controller, saved data. On a
         // phone it scrolls; here it is drawn at full length.
-        Framebuffer frame = Preview.newScreen(1700);
+        Framebuffer frame = Preview.newScreen(1840);
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar(entry.title(), "Cài đặt");
@@ -186,6 +186,20 @@ public final class ProfileScreen {
             row += Ui.ROW;
         }
         y += mappingHeight + 14;
+
+        // Tilting --------------------------------------------------------
+        // No J2ME handset could do this, so it is not emulation but a way to
+        // play: it suits a racing game and suits nothing else.
+        profile.tilt().setEnabled(true);
+        profile.tilt().setSensitivity(120);
+        int tiltHeight = ui.sectionHeight(3);
+        row = ui.section(margin, y, width, tiltHeight, "NGHIÊNG MÁY",
+                profile.tilt().isEnabled() ? "Đang bật" : "Đang tắt");
+        ui.field("Độ nhạy", profile.tilt().sensitivity() + "%", fieldX, row, fieldWidth);
+        ui.field("Hướng", profile.tilt().axesName(), fieldX, row + Ui.ROW, fieldWidth);
+        ui.field("Đảo chiều", profile.tilt().isInverted() ? "Bật" : "Tắt", fieldX,
+                row + Ui.ROW * 2, fieldWidth);
+        y += tiltHeight + 14;
 
         // The controller -------------------------------------------------
         // Playing on glass is the one thing an emulator cannot fix: no edge

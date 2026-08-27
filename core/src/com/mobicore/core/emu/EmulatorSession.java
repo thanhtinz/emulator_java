@@ -384,6 +384,45 @@ public final class EmulatorSession {
         return false;
     }
 
+    /** Directions tilting is holding now, so a change can be told apart. */
+    private java.util.Set<String> tiltHeld = new java.util.LinkedHashSet<String>();
+
+    /**
+     * The phone was tilted.
+     *
+     * <p>A sensor reports a position many times a second, not a press. What
+     * the game needs is the change: what is newly leaned into gets pressed,
+     * what is no longer leaned into gets let go. Without that a game reading
+     * held keys would see one press and then nothing.</p>
+     *
+     * @param x how far the phone leans right, from -1 to 1
+     * @param y how far it leans away from the player, from -1 to 1
+     * @return how many directions are being held now
+     */
+    public int tilted(float x, float y) {
+        java.util.Set<String> wanted = profile.tilt().directions(x, y, tiltHeld);
+        for (String gone : new java.util.ArrayList<String>(tiltHeld)) {
+            if (!wanted.contains(gone)) {
+                releaseButton(gone);
+            }
+        }
+        for (String fresh : wanted) {
+            if (!tiltHeld.contains(fresh)) {
+                pressButton2(fresh);
+            }
+        }
+        tiltHeld = wanted;
+        return wanted.size();
+    }
+
+    /** Lets go of everything tilting was holding, for a game being left. */
+    public void releaseTilt() {
+        for (String held : new java.util.ArrayList<String>(tiltHeld)) {
+            releaseButton(held);
+        }
+        tiltHeld.clear();
+    }
+
     /**
      * A control on a real pad was pressed.
      *

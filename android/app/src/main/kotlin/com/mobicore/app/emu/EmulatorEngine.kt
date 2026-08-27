@@ -251,7 +251,8 @@ class EmulatorEngine(
     }
 
     /** Directions a stick is pushing, so a change can be told from a repeat. */
-    private var stickHeld = emptySet<String>()
+    var stickHeld = emptySet<String>()
+        private set
 
     /**
      * A stick moved.
@@ -272,6 +273,21 @@ class EmulatorEngine(
             pressPad(fresh)
         }
         stickHeld = directions
+    }
+
+    /**
+     * The phone was tilted.
+     *
+     * A sensor reports a position many times a second, not a press; the
+     * session works out the change and holds or lets go of the directions.
+     */
+    fun tilted(x: Float, y: Float) {
+        session?.tilted(x, y)
+    }
+
+    /** Lets go of whatever tilting was holding, for a game being left. */
+    fun releaseTilt() {
+        session?.releaseTilt()
     }
 
     // ------------------------------------------------------------ recording

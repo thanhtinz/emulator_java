@@ -131,6 +131,10 @@ struct EmulatorView: View {
             // A controller belongs to whatever is on screen, and while a game
             // is on screen that is the game.
             engine.watchForControllers()
+            // The sensor runs only while a game that asked for it is open.
+            if client.tilt(suiteId)?.enabled == true {
+                engine.startTilting()
+            }
             // Where the player dragged the keys. Read once: an arrangement
             // only changes on the screen that edits it, which this is not.
             placement = keyPlacement()
@@ -138,6 +142,7 @@ struct EmulatorView: View {
         }
         .onChange(of: landscape) { turnDevice(to: $0) }
         .onDisappear {
+            engine.stopTilting()
             engine.stop()
             // The rest of the app is a list of games, and a list reads
             // upright.

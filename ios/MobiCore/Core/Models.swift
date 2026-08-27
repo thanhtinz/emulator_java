@@ -241,6 +241,15 @@ struct Screenshot: Codable, Identifiable, Hashable {
     var isClip: Bool { clip ?? false }
 }
 
+/// Whether tilting the phone steers one game, and how far it must lean.
+struct TiltSettings: Codable {
+    let enabled: Bool
+    let sensitivity: Int
+    let axes: Int
+    let axesName: String
+    let inverted: Bool
+}
+
 /// A picture or clip made ready to leave the app.
 struct SharedFile: Codable {
     let path: String

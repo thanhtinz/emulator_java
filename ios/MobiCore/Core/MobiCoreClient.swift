@@ -479,6 +479,33 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.deleteGameFile(path, forSuite: suiteId)))
     }
 
+    // -------------------------------------------------------------- tilting
+
+    /// Whether tilting the phone steers this game.
+    ///
+    /// No J2ME handset could do this, so it is not emulation but a way to
+    /// play: it suits a racing game steered left and right and suits nothing
+    /// else, which is why it stays off until it is asked for.
+    func tilt(_ suiteId: String) -> TiltSettings? {
+        decode(bridge.tiltJSON(forSuite: suiteId))
+    }
+
+    func setTiltEnabled(_ enabled: Bool, for suiteId: String) {
+        report(decode(bridge.setTiltEnabled(enabled, forSuite: suiteId)))
+    }
+
+    func setTiltSensitivity(_ percent: Int, for suiteId: String) {
+        report(decode(bridge.setTiltSensitivity(percent, forSuite: suiteId)))
+    }
+
+    func setTiltAxes(_ axes: Int, for suiteId: String) {
+        report(decode(bridge.setTiltAxes(axes, forSuite: suiteId)))
+    }
+
+    func setTiltInverted(_ inverted: Bool, for suiteId: String) {
+        report(decode(bridge.setTiltInverted(inverted, forSuite: suiteId)))
+    }
+
     // --------------------------------------------------------- the controller
 
     /// What a real controller's buttons do for one game.

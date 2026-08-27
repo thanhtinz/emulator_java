@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         val engine = GamepadRouter.engine
         if (engine != null && event.action == MotionEvent.ACTION_MOVE) {
-            engine.stickMoved(Gamepad.directionsFrom(event))
+            engine.stickMoved(Gamepad.directionsFrom(event, engine.stickHeld))
             return true
         }
         return super.dispatchGenericMotionEvent(event)

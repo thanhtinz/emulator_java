@@ -61,8 +61,10 @@ object Gamepad {
             source and InputDevice.SOURCE_KEYBOARD == InputDevice.SOURCE_KEYBOARD
     }
 
-    /** How far a stick must be pushed before it counts as a direction. */
-    private const val DEAD_ZONE = 0.5f
+    /** How far a stick must be pushed before a direction is taken. */
+    private const val PRESS_AT = 0.5f
+    /** And how far back before it is given up, which is deliberately less. */
+    private const val RELEASE_AT = 0.35f
 
     /**
      * The directions an analogue stick is currently pushing.
@@ -71,16 +73,28 @@ object Gamepad {
      * a d-pad rather than as an axis. The dead zone is wide on purpose: a worn
      * stick that rests at 0.2 would otherwise walk the player into a wall for
      * as long as the game is open.
+     *
+     * A direction is taken at one angle and given up at a smaller one, the
+     * same way tilting works. With a single threshold a stick resting right on
+     * it sends press, release, press, release many times a second, and the
+     * game reads that as a player hammering the key.
+     *
+     * @param held what the stick is already holding
      */
-    fun directionsFrom(event: MotionEvent): Set<String> {
+    fun directionsFrom(event: MotionEvent, held: Set<String>): Set<String> {
         val x = axis(event, MotionEvent.AXIS_X, MotionEvent.AXIS_HAT_X)
         val y = axis(event, MotionEvent.AXIS_Y, MotionEvent.AXIS_HAT_Y)
-        val held = mutableSetOf<String>()
-        if (x <= -DEAD_ZONE) held += "padLeft"
-        if (x >= DEAD_ZONE) held += "padRight"
-        if (y <= -DEAD_ZONE) held += "padUp"
-        if (y >= DEAD_ZONE) held += "padDown"
-        return held
+        val pushed = mutableSetOf<String>()
+        fun add(button: String, amount: Float) {
+            if (amount >= if (held.contains(button)) RELEASE_AT else PRESS_AT) {
+                pushed += button
+            }
+        }
+        add("padLeft", -x)
+        add("padRight", x)
+        add("padUp", -y)
+        add("padDown", y)
+        return pushed
     }
 
     /** Whichever of the stick and the hat is pushed further. */

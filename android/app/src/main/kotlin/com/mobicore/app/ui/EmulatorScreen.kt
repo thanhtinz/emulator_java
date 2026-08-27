@@ -61,6 +61,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.mobicore.app.data.LibraryRepository
 import com.mobicore.app.emu.EmulatorEngine
 import com.mobicore.app.emu.GamepadRouter
+import com.mobicore.app.emu.TiltSensor
 import com.mobicore.core.model.DeviceProfile
 import com.mobicore.core.model.GameProfile
 
@@ -118,6 +119,21 @@ fun EmulatorScreen(
     DisposableEffect(engine) {
         GamepadRouter.engine = engine
         onDispose { GamepadRouter.engine = null }
+    }
+
+    // The sensor runs only while a game that asked for it is on screen: one
+    // left running is a battery drained for a screen nobody is looking at.
+    DisposableEffect(engine, profile?.tilt()?.isEnabled) {
+        val wanted = profile?.tilt()?.isEnabled == true
+        val sensor = if (wanted) {
+            TiltSensor(context) { x, y -> engine.tilted(x, y) }.also { it.start() }
+        } else {
+            null
+        }
+        onDispose {
+            sensor?.stop()
+            engine.releaseTilt()
+        }
     }
 
     // Immersive while playing, restored on the way out.
