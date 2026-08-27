@@ -30,7 +30,7 @@ public final class NokiaTest extends Test {
 
     @Override
     public String name() {
-        return "Nokia UI API";
+        return "Vendor APIs (Nokia, Siemens, Samsung, Motorola)";
     }
 
     @Override
@@ -92,9 +92,11 @@ public final class NokiaTest extends Test {
      * request for one was answered with "no".
      */
     private void vibration(VibrationLog buzzes, SuiteLoader suite) throws Exception {
-        eq(2, buzzes.buzzes().size(),
-                "both ways of asking reach the device: Nokia's and MIDP's own");
-        eq(320, buzzes.totalMs(), "for as long as the game asked");
+        eq(5, buzzes.buzzes().size(),
+                "every maker's way of asking reaches the device: Nokia's, MIDP's, "
+                        + "Siemens', Samsung's and Motorola's");
+        // 200 + 120 Nokia and MIDP, 200 Siemens (two tenths), 80 Samsung, 60 Motorola.
+        eq(660, buzzes.totalMs(), "for as long as the game asked, in each one's own units");
         check(buzzes.cancels() >= 1, "and stopVibra calls it off");
 
         // The player's switch is the last word.
@@ -104,7 +106,13 @@ public final class NokiaTest extends Test {
         VibrationLog none = new VibrationLog();
         silent.setVibration(none);
         silent.start("demo.NokiaDemo");
-        eq(0, none.buzzes().size(), "a game told not to buzz does not buzz");
+        eq(0, none.buzzes().size(), "a game told not to buzz does not buzz, whoever asked");
+
+        // Siemens states tones in hertz where MIDP states note numbers.
+        eq(69, com.mobicore.core.midp.VendorApis.noteForFrequency(440),
+                "440 hertz is concert A, not note 440");
+        eq(81, com.mobicore.core.midp.VendorApis.noteForFrequency(880),
+                "and an octave up is twelve notes up");
 
         // And a game told no is told no, so it can draw something instead.
         check(!silent.context().vibrate(100),

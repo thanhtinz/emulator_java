@@ -97,9 +97,9 @@ public final class Compatibility {
             {"javax/microedition/sensor/", "cảm biến"},
             {"javax/microedition/xml/", "bộ đọc XML"},
             {"javax/bluetooth/", "Bluetooth"},
-            {"com/siemens/mp/", "API riêng của Siemens"},
-            {"com/samsung/util/", "API riêng của Samsung"},
-            {"com/motorola/", "API riêng của Motorola"},
+            // Siemens' colour-game package is a library of its own, not a
+            // handful of static methods, so it is still missing outright.
+            {"com/siemens/mp/color_game/", "API game màu của Siemens"},
     };
 
     /** Things that run, but not the way the hardware did. */
@@ -111,6 +111,9 @@ public final class Compatibility {
             // reaching for those finds them missing at the moment it does.
             {"com/nokia/mid/ui/",
                     "API Nokia: có FullCanvas, DirectGraphics và DeviceControl"},
+            {"com/siemens/mp/", "API Siemens: có rung, đèn, tiếng và ExtendedImage"},
+            {"com/samsung/util/", "API Samsung: có rung và AudioClip"},
+            {"com/motorola/", "API Motorola: có rung"},
     };
 
     private Compatibility() {

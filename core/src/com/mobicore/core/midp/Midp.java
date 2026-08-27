@@ -18,5 +18,9 @@ public final class Midp {
         // own additions — and one that extends FullCanvas does not load at
         // all without them.
         NokiaUi.install(vm, context);
+        // The other makers had additions of their own, and a game built for
+        // one fails the same way: the class loader gives up before anything
+        // is drawn.
+        VendorApis.install(vm, context);
     }
 }

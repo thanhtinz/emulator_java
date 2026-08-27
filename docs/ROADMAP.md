@@ -32,6 +32,7 @@
 | 28 | Phát nhạc MIDI | Xong |
 | 29 | API riêng của Nokia | Xong |
 | 30 | Rung thật | Xong |
+| 31 | API Siemens, Samsung, Motorola | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1061,3 +1062,33 @@ rung hệ thống, nên yêu cầu dài hơn được đổi thành **mạnh hơ
 lâu hơn — gần nhất mà nền tảng cho phép, và gần hơn là không có gì.
 
 Ảnh: `build/screenshots/04-game-settings.png` (dòng "Rung").
+
+## Ba hãng còn lại
+
+Nokia không phải hãng duy nhất có lớp riêng, và game viết cho Siemens hay
+Samsung hỏng đúng kiểu game Nokia đã hỏng: trình nạp lớp bỏ cuộc trước khi vẽ
+được gì. Thứ mấy game đó gọi đến thì nhỏ và lặp đi lặp lại — rung máy, bật đèn
+phím, kêu một tiếng — nên lớp cũng nhỏ theo.
+
+`core/midp/VendorApis.java`:
+
+- **Siemens**: `game.Vibrator` (đơn vị là **phần mười giây**, chỗ dễ sai nhất),
+  `game.Light`, `game.Sound.playTone` và `game.ExtendedImage` (ảnh vẽ vào rồi
+  blit ra — thứ Siemens đưa thay cho Image ghi được).
+- **Samsung**: `util.Vibration` (mili giây rồi cường độ) và `util.AudioClip`.
+- **Motorola**: `multimedia.Vibrator`.
+
+Mỗi lớp nối vào thứ bộ giả lập **đã làm thật**: rung đi cùng đường với
+`Display.vibrate`, tiếng đi qua đúng bộ tổng hợp mà `Manager.playTone` dùng,
+còn đèn phím thì nhận rồi bỏ qua vì không có cách nào trung thực để làm.
+
+Một chỗ dễ sai đã xử lý: **Siemens nói tần số Hz, MIDP nói số hiệu nốt**. Truyền
+thẳng thì 440 Hz thành nốt 127 — đỉnh thang âm, cho mọi tiếng game phát ra. Nay
+đổi sang nốt gần nhất (440 Hz → nốt 69, đúng nốt La chuẩn).
+
+Vẫn **cố tình thiếu**: `com.siemens.mp.color_game` — đó là cả một thư viện chứ
+không phải vài hàm tĩnh, và một lớp giả vờ là nó sẽ hỏng muộn hơn và khó hiểu
+hơn là không có.
+
+Fixture `NokiaDemo` nay gọi cả năm đường yêu cầu rung của bốn hãng; bài kiểm tra
+đếm đúng 660ms tổng cộng, mỗi hãng theo đơn vị của mình.

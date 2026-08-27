@@ -32,6 +32,13 @@ public final class NokiaDemo extends MIDlet {
         DeviceControl.stopVibra();
         // MIDP's own way of asking, which most games use.
         Display.getDisplay(this).vibrate(120);
+        // And the other makers' ways, because a collection has games built
+        // for every handset that was sold.
+        com.siemens.mp.game.Light.setLightOn();
+        com.siemens.mp.game.Vibrator.triggerVibrator(2);
+        com.siemens.mp.game.Sound.playTone(440, 40);
+        com.samsung.util.Vibration.start(80, 100);
+        com.motorola.multimedia.Vibrator.vibrateFor(60);
         scene.repaint();
     }
 

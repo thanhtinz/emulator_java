@@ -67,10 +67,21 @@ public final class CompatibilityTest extends Test {
                 "a Nokia game runs, and says which parts are emulated");
         check(nokia.playable(), "which is the whole point: most of these games are Nokia games");
 
+        // The other makers' own classes are emulated too, so those games run.
         Compatibility.Report siemens = Compatibility.scan(suiteReferencing(
-                "com/siemens/mp/game/Sound"));
-        eq(Compatibility.LEVEL_BROKEN, siemens.level(),
-                "another vendor's own API is still missing");
+                "com/siemens/mp/game/Vibrator"));
+        eq(Compatibility.LEVEL_PARTIAL, siemens.level(),
+                "a Siemens game runs, with a note about what is emulated");
+        Compatibility.Report samsung = Compatibility.scan(suiteReferencing(
+                "com/samsung/util/Vibration"));
+        check(samsung.playable(), "so does a Samsung one");
+
+        // What is a library of its own rather than a few static methods is
+        // still missing, and still said so plainly.
+        Compatibility.Report colourGame = Compatibility.scan(suiteReferencing(
+                "com/siemens/mp/color_game/GameCanvas"));
+        eq(Compatibility.LEVEL_BROKEN, colourGame.level(),
+                "Siemens' own game library is not pretended at");
 
         Compatibility.Report plain = Compatibility.scan(suiteReferencing(
                 "javax/microedition/lcdui/Canvas"));
