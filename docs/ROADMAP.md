@@ -27,6 +27,7 @@
 | 23 | Đổi gán phím từng nút | Xong |
 | 24 | Sao lưu toàn bộ thư viện | Xong |
 | 25 | Tua lại vài giây | Xong |
+| 26 | Chọn MIDlet trong gói | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -927,3 +928,22 @@ Vài chi tiết:
   không dùng thì đúng ngược ý họ.
 
 Ảnh: `build/screenshots/20-game-menu.png`.
+
+## Một gói, nhiều ứng dụng
+
+Một tệp `.jar` thường chứa **nhiều MIDlet**: game, màn hình trợ giúp, màn hình
+cài đặt, đôi khi cả một game thứ hai. Trước đây chỉ chạy được cái đầu tiên
+trong manifest — phần còn lại của gói coi như không tồn tại.
+
+- Trang chi tiết game hiện mục **TRONG GÓI NÀY** liệt kê mọi MIDlet, chạm để
+  chọn cái sẽ mở. Chỉ hiện khi gói thật sự có nhiều hơn một: một danh sách chọn
+  chỉ có một lựa chọn là một câu hỏi chỉ có một đáp án.
+- Lựa chọn được **nhớ theo game** (`GameProfile.midletClass`), nên nút Chơi mở
+  đúng cái người ta coi là "game", không phải cái manifest tình cờ xếp trước.
+- Tên lớp lưu lại mà **không còn trong gói** (cài lại từ bản build khác) thì
+  quay về MIDlet đầu tiên và quên tên cũ đi — chứ không để game thành không mở
+  được vì một cái tên cũ.
+
+Facade: `midletsJson(suiteId)` và `startGame(suiteId, midletClass)`.
+
+Ảnh: `build/screenshots/06-game-detail.png`.

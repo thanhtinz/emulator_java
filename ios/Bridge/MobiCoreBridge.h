@@ -123,6 +123,10 @@ NS_ASSUME_NONNULL_BEGIN
 /** Saves a picture of what the running game is showing. */
 - (NSString *)takeScreenshot;
 
+/** Every MIDlet inside one suite, and which one the play button opens. */
+- (NSString *)midletsJSONForSuite:(NSString *)suiteId;
+- (NSString *)startGame:(NSString *)suiteId midlet:(NSString *)midletClass;
+
 /** The whole library as one file, and back again. */
 - (nullable NSData *)exportLibrary;
 - (NSString *)importLibrary:(NSData *)archive;

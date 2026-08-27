@@ -10,6 +10,7 @@ import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
 import com.mobicore.core.model.DeviceProfile
 import com.mobicore.core.model.GameProfile
+import com.mobicore.core.model.MidletEntry
 import com.mobicore.core.rms.RecordStoreManager
 import com.mobicore.core.storage.Json
 import com.mobicore.core.storage.LocalVfs
@@ -429,6 +430,25 @@ class LibraryRepository(filesDir: String) {
         refresh()
         refreshPresets()
         return report
+    }
+
+    /**
+     * Every MIDlet inside one suite.
+     *
+     * A JAR often holds more than one — the game, a help screen, sometimes a
+     * second game — and the play button should open the one the player thinks
+     * of as the game.
+     */
+    fun midlets(suiteId: String): List<MidletEntry> =
+        runCatching { load(suiteId).info().midlets() }.getOrDefault(emptyList())
+
+    fun chosenMidlet(suiteId: String): String = library.profile(suiteId)?.midletClass() ?: ""
+
+    fun setMidlet(suiteId: String, className: String) {
+        val profile = library.profile(suiteId) ?: return
+        profile.setMidletClass(className)
+        library.saveProfile(profile)
+        refresh()
     }
 
     fun setKeyMapping(suiteId: String, button: String, keyCode: Int) {

@@ -14,6 +14,7 @@ struct GameDetailView: View {
     @State private var newTitle = ""
     @State private var coverPick: PhotosPickerItem?
     @State private var coverError: String?
+    @State private var midlets: [MidletChoice] = []
 
     private var game: Game? { client.game(suiteId) }
 
@@ -154,6 +155,31 @@ struct GameDetailView: View {
                     }
                     .buttonStyle(.plain)
 
+                    if midlets.count > 1 {
+                        // Only when there is more than one: a picker over a
+                        // list of one is a question with a single answer.
+                        SectionCard(title: "TRONG GÓI NÀY",
+                                    trailing: "\(midlets.count) ứng dụng") {
+                            VStack(alignment: .leading, spacing: 6) {
+                                ForEach(midlets) { midlet in
+                                    Button {
+                                        client.chooseMidlet(midlet.className, for: suiteId)
+                                        midlets = client.midlets(suiteId)
+                                    } label: {
+                                        Text(midlet.name)
+                                            .font(midlet.chosen
+                                                  ? .subheadline.weight(.semibold)
+                                                  : .subheadline)
+                                            .foregroundStyle(midlet.chosen
+                                                             ? Palette.accent : Palette.text)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+
                     NavigationLink {
                         SaveSlotsView(suiteId: suiteId)
                     } label: {
@@ -202,6 +228,7 @@ struct GameDetailView: View {
             }
         }
         .background(Palette.background)
+        .onAppear { midlets = client.midlets(suiteId) }
         .navigationTitle(game?.title ?? "Trò chơi")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

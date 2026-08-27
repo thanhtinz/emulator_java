@@ -44,6 +44,15 @@ public final class GameProfile {
     private int scaleMode = SCALE_FIT;
     private int orientation = DeviceProfile.ORIENTATION_PORTRAIT;
     private int keypadLayout = KEYPAD_FULL;
+    /**
+     * Which MIDlet inside the suite to open, or empty for the first.
+     *
+     * <p>A JAR often holds more than one: the game, a help screen, a settings
+     * screen, sometimes a second game. Remembering the one that was played
+     * means the play button reopens what the player thinks of as the game
+     * rather than whatever the manifest happened to list first.</p>
+     */
+    private String midletClass = "";
     private int frameLimit = 30;
     private int volume = 70;
     private boolean muted;
@@ -188,6 +197,14 @@ public final class GameProfile {
     /** True when the 3x4 grid is drawn. */
     public boolean showsNumbers() {
         return keypadLayout == KEYPAD_FULL || keypadLayout == KEYPAD_NUMBERS;
+    }
+
+    public String midletClass() {
+        return midletClass;
+    }
+
+    public void setMidletClass(String midletClass) {
+        this.midletClass = midletClass == null ? "" : midletClass;
     }
 
     public int frameLimit() {
@@ -336,6 +353,7 @@ public final class GameProfile {
         json.put("scaleMode", Integer.valueOf(scaleMode));
         json.put("orientation", Integer.valueOf(orientation));
         json.put("keypadLayout", Integer.valueOf(keypadLayout));
+        json.put("midletClass", midletClass);
         json.put("frameLimit", Integer.valueOf(frameLimit));
         json.put("volume", Integer.valueOf(volume));
         json.put("muted", Boolean.valueOf(muted));
@@ -361,6 +379,7 @@ public final class GameProfile {
         profile.scaleMode = Json.integer(json, "scaleMode", SCALE_FIT);
         profile.orientation = Json.integer(json, "orientation", DeviceProfile.ORIENTATION_PORTRAIT);
         profile.keypadLayout = Json.integer(json, "keypadLayout", KEYPAD_FULL);
+        profile.midletClass = Json.string(json, "midletClass", "");
         profile.frameLimit = Json.integer(json, "frameLimit", 30);
         profile.volume = Json.integer(json, "volume", 70);
         profile.muted = Json.bool(json, "muted", false);

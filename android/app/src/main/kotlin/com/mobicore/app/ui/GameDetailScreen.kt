@@ -267,6 +267,33 @@ fun GameDetailScreen(
         }
 
         item {
+            // Only when there is more than one: a picker over a list of one
+            // is a question with a single answer.
+            val midlets = remember(suiteId) { library.midlets(suiteId) }
+            if (midlets.size > 1) {
+                val chosen = remember(suiteId, midlets) { library.chosenMidlet(suiteId) }
+                SectionCard(title = "TRONG GÓI NÀY", trailing = "${midlets.size} ứng dụng") {
+                    Column {
+                        midlets.forEachIndexed { index, midlet ->
+                            val active = if (chosen.isEmpty()) index == 0
+                                else chosen == midlet.className()
+                            Text(
+                                text = midlet.name(),
+                                color = if (active) MobiColors.Accent else MobiColors.Text,
+                                fontSize = 14.sp,
+                                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { library.setMidlet(suiteId, midlet.className()) }
+                                    .padding(vertical = 6.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
             val slots = remember(suiteId) { library.saveSlots(suiteId) }
             SectionCard(
                 title = "Ô LƯU TRẠNG THÁI",

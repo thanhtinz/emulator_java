@@ -137,6 +137,9 @@ public final class FacadeTest extends Test {
         eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
                 "and round again");
 
+        // Picking which MIDlet in the suite to open --------------------------
+        midlets(facade, suiteId);
+
         // Pointing a button at a different key ------------------------------
         keyMapping(facade, suiteId);
 
@@ -282,6 +285,47 @@ public final class FacadeTest extends Test {
         eq(0, Json.array(Json.readObject(facade.libraryJson()), "games").size(),
                 "the library is empty again");
     }
+    /**
+     * A JAR often holds more than one MIDlet — the game, a help screen, a
+     * settings screen, sometimes a second game — and only the first could
+     * ever run.
+     */
+    private void midlets(MobiCoreFacade facade, String suiteId) throws Exception {
+        Map<String, Object> listed = Json.readObject(facade.midletsJson(suiteId));
+        List<Object> midlets = Json.array(listed, "midlets");
+        check(midlets.size() > 1, "the sample suite holds several MIDlets");
+        Map<String, Object> first = (Map<String, Object>) midlets.get(0);
+        check(Json.bool(first, "chosen", false),
+                "with the manifest's first marked until someone chooses");
+
+        Map<String, Object> second = (Map<String, Object>) midlets.get(2);
+        String other = Json.string(second, "className", "");
+        check(Json.bool(Json.readObject(facade.startGame(suiteId, other)), "ok", false),
+                "another one in the suite can be started: " + other);
+        facade.stopGame();
+
+        eq(other, Json.string(Json.readObject(facade.profileJson(suiteId)), "midletClass", ""),
+                "and the choice is remembered with the game");
+        check(Json.bool((Map<String, Object>) Json.array(
+                        Json.readObject(facade.midletsJson(suiteId)), "midlets").get(2),
+                "chosen", false), "which the list then shows");
+
+        check(Json.bool(Json.readObject(facade.startGame(suiteId)), "ok", false),
+                "playing again opens what was played last");
+        facade.stopGame();
+
+        // A name that is no longer in the suite starts the game anyway: a
+        // reinstall from a different build must not leave it unopenable.
+        Map<String, Object> profile = Json.readObject(facade.profileJson(suiteId));
+        profile.put("midletClass", "demo.LongGone");
+        facade.updateProfile(Json.write(profile));
+        check(Json.bool(Json.readObject(facade.startGame(suiteId)), "ok", false),
+                "a stale name falls back to the first MIDlet rather than failing");
+        eq("", Json.string(Json.readObject(facade.profileJson(suiteId)), "midletClass", "x"),
+                "and stops remembering something that is not there");
+        facade.stopGame();
+    }
+
     /**
      * Remapping: the presets are a guess, and a wrong guess looks like a
      * broken emulator rather than a wrong key.

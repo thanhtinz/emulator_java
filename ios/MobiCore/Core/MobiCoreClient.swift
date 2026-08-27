@@ -323,6 +323,20 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.deleteScreenshot(forSuite: suiteId, named: name)))
     }
 
+    /// Every MIDlet inside one suite. Shown only when there is more than one:
+    /// a picker over a list of one is a question with a single answer.
+    func midlets(_ suiteId: String) -> [MidletChoice] {
+        let payload: MidletsResponse? = decode(bridge.midletsJSON(forSuite: suiteId))
+        return payload?.midlets ?? []
+    }
+
+    /// Remembers which one the play button should open.
+    func chooseMidlet(_ className: String, for suiteId: String) {
+        guard var settings = settings(suiteId) else { return }
+        settings.midletClass = className
+        update(settings)
+    }
+
     // MARK: - Whole-library backup
 
     /// One file with everything in it, to carry to the next phone. Per-game

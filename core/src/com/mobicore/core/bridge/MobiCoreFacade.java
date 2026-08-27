@@ -19,6 +19,7 @@ import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.model.InputProfile;
+import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.mod.ModManager;
 import com.mobicore.core.mod.ModPackage;
 import com.mobicore.core.model.MidletEntry;
@@ -814,6 +815,21 @@ public final class MobiCoreFacade {
     // ------------------------------------------------------------ emulator
 
     public String startGame(String suiteId) {
+        return startGame(suiteId, null);
+    }
+
+    /**
+     * Starts one MIDlet out of a suite.
+     *
+     * <p>A JAR often holds more than one — the game, a help screen, a
+     * settings screen, sometimes a second game — and until now only the one
+     * the manifest listed first could ever run. Which one was chosen is
+     * remembered with the game, so the play button reopens what the player
+     * thinks of as the game.</p>
+     *
+     * @param midletClass the class to start, or null for the remembered one
+     */
+    public String startGame(String suiteId, String midletClass) {
         stopGame();
         if (library == null) {
             return error("The library is not open");
@@ -828,7 +844,20 @@ public final class MobiCoreFacade {
             if (audioSink != null) {
                 session.setAudio(audioSink);
             }
-            session.start();
+            String wanted = midletClass != null && midletClass.length() > 0
+                    ? midletClass
+                    : profile.midletClass();
+            if (wanted.length() > 0 && hasMidlet(suite, wanted)) {
+                session.start(wanted);
+                profile.setMidletClass(wanted);
+            } else {
+                // Either nothing was asked for, or the suite no longer holds
+                // what was remembered — a game reinstalled from a different
+                // build, say. Falling back to the first one starts something
+                // rather than failing on a stale name.
+                session.start();
+                profile.setMidletClass("");
+            }
             activeSuiteId = suiteId;
             profile.markPlayed(now());
             library.saveProfile(profile);
@@ -850,6 +879,53 @@ public final class MobiCoreFacade {
 
     public boolean isRunning() {
         return session != null && session.state() == EmulatorSession.STATE_ACTIVE;
+    }
+
+    /** True when the suite really holds that MIDlet. */
+    private static boolean hasMidlet(SuiteLoader suite, String className) {
+        List<MidletEntry> midlets = suite.info().midlets();
+        for (int i = 0; i < midlets.size(); i++) {
+            if (className.equals(midlets.get(i).className())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Every MIDlet inside one suite.
+     *
+     * <p>Shown only when there is more than one: a picker over a list of one
+     * is a question with a single answer.</p>
+     */
+    public String midletsJson(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            SuiteLoader suite = library.load(suiteId);
+            GameProfile profile = library.profile(suiteId);
+            String chosen = profile == null ? "" : profile.midletClass();
+            List<Object> list = new ArrayList<Object>();
+            List<MidletEntry> midlets = suite.info().midlets();
+            for (int i = 0; i < midlets.size(); i++) {
+                MidletEntry midlet = midlets.get(i);
+                Map<String, Object> entry = Json.object();
+                entry.put("name", midlet.name());
+                entry.put("className", midlet.className());
+                entry.put("icon", midlet.iconPath() == null ? "" : midlet.iconPath());
+                entry.put("chosen", Boolean.valueOf(chosen.length() == 0
+                        ? i == 0
+                        : chosen.equals(midlet.className())));
+                list.add(entry);
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("midlets", list);
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
     }
 
     public String activeSuiteId() {

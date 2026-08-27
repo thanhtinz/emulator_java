@@ -91,9 +91,20 @@ class EmulatorEngine(
         }
     }
 
+    private fun suiteHolds(session: EmulatorSession, className: String): Boolean =
+        session.info().midlets().any { it.className() == className }
+
     private fun runLoop(active: EmulatorSession, profile: GameProfile) {
         try {
-            active.start()
+            // The MIDlet the player chose, when the suite still holds it: a
+            // JAR often carries a help screen and a settings screen beside
+            // the game, and a stale name must not leave the game unopenable.
+            val wanted = profile.midletClass()
+            if (wanted.isNotEmpty() && suiteHolds(active, wanted)) {
+                active.start(wanted)
+            } else {
+                active.start()
+            }
             val limit = profile.frameLimit()
             var framesThisSecond = 0
             var secondMark = System.nanoTime()

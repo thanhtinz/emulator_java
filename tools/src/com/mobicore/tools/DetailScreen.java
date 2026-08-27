@@ -166,6 +166,26 @@ public final class DetailScreen {
         }
         y += savesHeight + 14;
 
+        // What else is in the JAR ----------------------------------------
+        // Only drawn when the suite really holds more than one MIDlet: a
+        // picker over a list of one is a question with a single answer.
+        java.util.List<Object> midlets = Json.array(
+                Json.readObject(facade.midletsJson(suiteId)), "midlets");
+        if (midlets.size() > 1) {
+            int midletHeight = ui.sectionHeight(midlets.size());
+            row = ui.section(margin, y, width, midletHeight, "TRONG GÓI NÀY",
+                    midlets.size() + " ứng dụng");
+            for (int i = 0; i < midlets.size(); i++) {
+                Map<String, Object> midlet = (Map<String, Object>) midlets.get(i);
+                boolean chosen = Json.bool(midlet, "chosen", false);
+                ui.text(chosen ? ui.mediumBold() : ui.medium(),
+                        Json.string(midlet, "name", ""), fieldX, row,
+                        chosen ? Theme.ACCENT : Theme.TEXT);
+                row += Ui.ROW;
+            }
+            y += midletHeight + 14;
+        }
+
         // Contents -------------------------------------------------------
         int contentsHeight = ui.sectionHeight(3);
         row = ui.section(margin, y, width, contentsHeight, "NỘI DUNG BỘ CÀI", null);

@@ -30,6 +30,8 @@ struct GameSettings: Codable, Hashable {
     var scaleMode: Int
     var orientation: Int
     var keypadLayout: Int
+    /// Which MIDlet inside the suite the play button opens; empty for the first.
+    var midletClass: String
     var frameLimit: Int
     var volume: Int
     var muted: Bool
@@ -253,4 +255,18 @@ struct LibraryRestoreResponse: Codable {
     let files: Int?
     let games: Int?
     let summary: String?
+}
+
+/// One MIDlet inside a suite: a JAR often holds the game plus a help screen.
+struct MidletChoice: Codable, Identifiable, Hashable {
+    let name: String
+    let className: String
+    let icon: String
+    let chosen: Bool
+
+    var id: String { className }
+}
+
+struct MidletsResponse: Codable {
+    let midlets: [MidletChoice]
 }

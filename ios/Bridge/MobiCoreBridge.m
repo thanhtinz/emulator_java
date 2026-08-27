@@ -203,6 +203,14 @@
     return [_facade takeScreenshot];
 }
 
+- (NSString *)midletsJSONForSuite:(NSString *)suiteId {
+    return [_facade midletsJsonWithNSString:suiteId];
+}
+
+- (NSString *)startGame:(NSString *)suiteId midlet:(NSString *)midletClass {
+    return [_facade startGameWithNSString:suiteId withNSString:midletClass];
+}
+
 - (NSData *)exportLibrary {
     IOSByteArray *bytes = [_facade exportLibrary];
     if (bytes == nil || bytes->size_ == 0) {
