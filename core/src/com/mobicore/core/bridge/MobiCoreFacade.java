@@ -1339,6 +1339,55 @@ public final class MobiCoreFacade {
         return library != null && library.hasSaveState(suiteId, slot);
     }
 
+    // ---------------------------------------------------------------- rewind
+
+    /**
+     * Takes back the last second or so of play.
+     *
+     * <p>What it is for: a game that restarts a level on one mistake, which
+     * was fair on a bus and is not fair now. Each step lands a second further
+     * back, so holding the control walks backwards through the mistake.</p>
+     */
+    public String rewindStep() {
+        if (session == null) {
+            return error("Không có trò chơi nào đang chạy");
+        }
+        boolean moved = session.rewind().stepBack(session);
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.valueOf(moved));
+        json.put("seconds", Integer.valueOf(session.rewind().depth()));
+        if (!moved) {
+            json.put("error", session.rewind().isEnabled()
+                    ? "Chưa có gì để tua lại"
+                    : "Tua lại đang tắt");
+        }
+        return Json.write(json);
+    }
+
+    /** How much history there is, and whether it is being kept at all. */
+    public String rewindJson() {
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        json.put("enabled", Boolean.valueOf(session == null || session.rewind().isEnabled()));
+        json.put("seconds", Integer.valueOf(session == null ? 0 : session.rewind().depth()));
+        return Json.write(json);
+    }
+
+    /**
+     * Keeps history, or stops and throws away what was kept.
+     *
+     * <p>Off means off: leaving several megabytes of heap captures around
+     * after someone has said they do not want the feature is the opposite of
+     * what they asked for.</p>
+     */
+    public String setRewindEnabled(boolean enabled) {
+        if (session == null) {
+            return error("Không có trò chơi nào đang chạy");
+        }
+        session.rewind().setEnabled(enabled);
+        return rewindJson();
+    }
+
     // ----------------------------------------------------------------- speed
 
     /**

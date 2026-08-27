@@ -136,6 +136,11 @@ NS_ASSUME_NONNULL_BEGIN
 /** Auto-repeat for one button, in ms between presses; 0 switches it off. */
 - (NSString *)setTurbo:(int32_t)intervalMs forButton:(NSString *)button suite:(NSString *)suiteId;
 
+/** Takes back the last second or so of play. */
+- (NSString *)rewindStep;
+- (NSString *)rewindJSON;
+- (NSString *)setRewindEnabled:(BOOL)enabled;
+
 /** How fast the running game plays; steps through half, normal, 2x, 3x. */
 - (NSString *)cycleSpeed;
 - (NSString *)speedJSON;

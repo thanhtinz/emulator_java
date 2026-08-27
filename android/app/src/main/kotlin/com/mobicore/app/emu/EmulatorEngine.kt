@@ -279,6 +279,17 @@ class EmulatorEngine(
         speed = session?.cycleSpeed() ?: 100
     }
 
+    /**
+     * Takes back the last second or so of play.
+     *
+     * These games restart a level on one mistake, because a handset had
+     * nowhere to keep anything else. This one does.
+     */
+    fun rewind(): Boolean = session?.let { it.rewind().stepBack(it) } ?: false
+
+    /** How many seconds can still be taken back. */
+    fun rewindDepth(): Int = session?.rewind()?.depth() ?: 0
+
     fun leftSoftKeyLabel(): String? = session?.leftSoftKeyLabel()
 
     fun rightSoftKeyLabel(): String? = session?.rightSoftKeyLabel()

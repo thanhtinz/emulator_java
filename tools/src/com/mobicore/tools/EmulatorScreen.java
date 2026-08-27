@@ -179,6 +179,7 @@ public final class EmulatorScreen {
                 {Icons.CAMERA, "Chụp màn hình", ""},
                 {Icons.TUNE, "Bàn phím", "Đầy đủ"},
                 {Icons.ROTATE, "Màn hình", "Dọc"},
+                {Icons.UNDO, "Tua lại 1 giây", "12s"},
                 {Icons.SPEED, "Tốc độ", "1×"},
                 {Icons.SAVE, "Lưu vào ô…", "2 ô đã dùng"},
                 {Icons.EXIT, "Thoát", ""},

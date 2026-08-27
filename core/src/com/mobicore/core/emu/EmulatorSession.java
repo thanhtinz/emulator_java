@@ -73,6 +73,17 @@ public final class EmulatorSession {
     private String midletClass;
 
     private SpeedClock clock;
+    private final Rewind rewind = new Rewind();
+
+    /**
+     * The last few seconds of play, kept so they can be taken back.
+     *
+     * <p>These games restart a level on one mistake, because a handset had
+     * nowhere to keep anything else. This one does.</p>
+     */
+    public Rewind rewind() {
+        return rewind;
+    }
 
     private EmulatorSession(Vm vm, MidpContext context, MidletSuiteInfo info,
                             JarClassSource source, EmulatorLog log,
@@ -498,6 +509,9 @@ public final class EmulatorSession {
         // its tick to have happened before the frame it paints.
         pumpTimers();
         pumpTurbo();
+        // History is kept off the game's own clock, so rewinding covers the
+        // same amount of play whatever speed it is running at.
+        rewind.tick(this, vm.host().currentTimeMillis());
         context.drainCallbacks();
         VmObject current = context.current();
         if (current == null) {

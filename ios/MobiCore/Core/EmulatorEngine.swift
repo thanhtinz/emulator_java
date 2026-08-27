@@ -201,6 +201,34 @@ final class EmulatorEngine: ObservableObject {
         let speed: Int
     }
 
+    /// How many seconds of play can still be taken back.
+    @Published private(set) var rewindDepth = 0
+
+    /// Takes back the last second or so. These games restart a level on one
+    /// mistake, because a handset had nowhere to keep anything else.
+    @discardableResult
+    func rewind() -> Bool {
+        guard let data = bridge.rewindStep().data(using: .utf8),
+              let payload = try? JSONDecoder().decode(RewindResponse.self, from: data) else {
+            return false
+        }
+        rewindDepth = payload.seconds
+        return payload.ok
+    }
+
+    func refreshRewind() {
+        guard let data = bridge.rewindJSON().data(using: .utf8),
+              let payload = try? JSONDecoder().decode(RewindResponse.self, from: data) else {
+            return
+        }
+        rewindDepth = payload.seconds
+    }
+
+    private struct RewindResponse: Decodable {
+        let ok: Bool
+        let seconds: Int
+    }
+
     func release(_ button: String) {
         bridge.release(button)
     }

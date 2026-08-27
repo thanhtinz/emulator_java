@@ -26,6 +26,7 @@
 | 22 | Liên thanh (turbo) | Xong |
 | 23 | Đổi gán phím từng nút | Xong |
 | 24 | Sao lưu toàn bộ thư viện | Xong |
+| 25 | Tua lại vài giây | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -897,3 +898,32 @@ Trong Cài đặt: **Xuất tệp** / **Khôi phục** (Android dùng SAF, iOS d
 Bài kiểm tra chuyển hẳn một thư viện sang "máy thứ hai" rỗng rồi kiểm từng thứ
 ở đầu bên kia — tên game, màn hình đã đặt, ô lưu, ảnh chụp, bộ cấu hình, giao
 diện — và cuối cùng mở game lên chơi tiếp từ ô lưu.
+
+## Tua lại: lấy lại vài giây vừa rồi
+
+Game thời đó khó theo kiểu **công bằng trên xe buýt nhưng không công bằng bây
+giờ**: sai một nhịp là chơi lại cả màn, vì máy thật không có chỗ nào để giữ gì
+khác. Máy bây giờ thì có.
+
+`core/emu/Rewind.java` giữ **một ảnh chụp trạng thái mỗi giây, sâu mười hai
+giây**. Menu trong game có **Tua lại 1 giây**; mỗi lần bấm lùi thêm một giây,
+nên bấm liên tục là đi ngược qua chỗ vừa hỏng.
+
+Vì sao nông và thưa như vậy: mỗi ảnh chụp là **toàn bộ heap** — đúng thứ mà ô
+lưu trạng thái ghi — nên chụp mỗi khung hình thì tốn thời gian lưu nhiều hơn
+chạy game, còn giữ cả tiếng đồng hồ thì tốn bộ nhớ hơn chính cái game. Một giây
+một ảnh, mười hai ảnh, tốn vài megabyte và phủ đúng cái lỗi vừa mắc — cũng là
+cái lỗi duy nhất người ta muốn lấy lại.
+
+Vài chi tiết:
+- Lịch sử tính theo **đồng hồ của game**, nên chạy 2× thì mười hai giây lịch sử
+  vẫn là mười hai giây *chơi*.
+- Lùi xong thì **bỏ luôn ảnh đó**: không bỏ thì bấm tiếp lại rơi về đúng chỗ
+  cũ, không đi ngược được.
+- Game không chụp được (đang mở kết nối chẳng hạn) thì đơn giản là không có
+  lịch sử, chứ không ngắt ván chơi để báo — người chơi biết khi họ thử tua,
+  đúng lúc điều đó mới có nghĩa với họ.
+- Tắt là **bỏ luôn phần đã giữ**: để lại vài megabyte sau khi người ta bảo
+  không dùng thì đúng ngược ý họ.
+
+Ảnh: `build/screenshots/20-game-menu.png`.

@@ -145,6 +145,11 @@ private extension EmulatorView {
                       systemImage: "slider.horizontal.3")
             }
             Button {
+                engine.rewind()
+            } label: {
+                Label("Tua lại 1 giây (\(engine.rewindDepth)s)", systemImage: "arrow.uturn.backward")
+            }
+            Button {
                 engine.cycleSpeed()
             } label: {
                 Label("Tốc độ: \(speedLabel(engine.speed))", systemImage: "speedometer")

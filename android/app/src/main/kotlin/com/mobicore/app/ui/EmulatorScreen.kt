@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -291,6 +292,21 @@ private fun GameMenu(
                 },
                 leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
                 onClick = { library.cycleKeypadLayout(suiteId) },
+            )
+            DropdownMenuItem(
+                text = { Text("Tua lại 1 giây") },
+                trailingIcon = {
+                    Text(
+                        "${engine.rewindDepth()}s",
+                        color = MobiColors.TextDim,
+                        fontSize = 13.sp,
+                    )
+                },
+                leadingIcon = { Icon(Icons.Filled.Undo, contentDescription = null) },
+                onClick = {
+                    note = if (engine.rewind()) "Đã tua lại" else "Chưa có gì để tua lại"
+                    open = false
+                },
             )
             DropdownMenuItem(
                 text = { Text("Tốc độ") },

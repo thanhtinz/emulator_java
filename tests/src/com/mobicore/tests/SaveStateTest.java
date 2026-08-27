@@ -45,6 +45,7 @@ public final class SaveStateTest extends Test {
         }
         roundTrip();
         refusals();
+        rewinding();
         throughTheBridge();
     }
 
@@ -117,6 +118,112 @@ public final class SaveStateTest extends Test {
     }
 
     // ------------------------------------------------------------ refusals
+
+    /**
+     * Rewind: the last few seconds, taken back.
+     *
+     * <p>What has to be true is that stepping back really puts the game where
+     * it was — the same pixels it had a second ago — and that each step
+     * lands further back rather than on the same moment again.</p>
+     */
+    private void rewinding() throws Exception {
+        SuiteLoader suite = SuiteLoader.load(SampleSuite.jar(fixtureDir), SampleSuite.jad());
+        Ticking clock = new Ticking();
+        EmulatorSession session = EmulatorSession.create(suite, 240, 320, clock);
+        session.start();
+        eq(0, session.rewind().depth(), "a game that has just started has no history");
+
+        // A second of play per snapshot, on the game's own clock.
+        Framebuffer early = null;
+        for (int second = 0; second < 4; second++) {
+            for (int i = 0; i < 10; i++) {
+                step(session);
+            }
+            if (second == 1) {
+                early = session.screen().copy();
+            }
+            clock.advance(1100);
+            session.renderFrame();
+        }
+        check(session.rewind().depth() > 0, "playing on builds up history");
+        int deep = session.rewind().depth();
+
+        for (int i = 0; i < 20; i++) {
+            step(session);
+        }
+        Framebuffer late = session.screen().copy();
+        check(!same(early, late), "and the game has moved on since then");
+
+        check(session.rewind().stepBack(session), "the last second can be taken back");
+        eq(deep - 1, session.rewind().depth(),
+                "and it is spent: the next step lands further back, not here again");
+        session.renderFrame();
+        check(!same(late, session.screen()), "the screen is not where it was a moment ago");
+
+        // Down to nothing, then it says so rather than pretending.
+        while (session.rewind().stepBack(session)) {
+            // walk it back
+        }
+        eq(0, session.rewind().depth(), "history runs out");
+        check(!session.rewind().stepBack(session), "and then rewinding does nothing");
+
+        // Off means off, including what was already kept.
+        clock.advance(1100);
+        session.renderFrame();
+        check(session.rewind().depth() > 0, "history builds up again");
+        session.rewind().setEnabled(false);
+        eq(0, session.rewind().depth(), "switching it off throws away what was kept");
+        clock.advance(1100);
+        session.renderFrame();
+        eq(0, session.rewind().depth(), "and nothing more is kept");
+    }
+
+    /** True when two frames hold the same pixels. */
+    private boolean same(Framebuffer a, Framebuffer b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        int[] left = a.pixels();
+        int[] right = b.pixels();
+        if (left.length != right.length) {
+            return false;
+        }
+        for (int i = 0; i < left.length; i++) {
+            if (left[i] != right[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** A clock the test moves by hand, so "a second of play" is exact. */
+    private static final class Ticking implements VmHost {
+
+        private long now = 1_700_000_000_000L;
+
+        void advance(long millis) {
+            now += millis;
+        }
+
+        public long currentTimeMillis() {
+            now += 1;
+            return now;
+        }
+
+        public void print(boolean error, String text) {
+        }
+
+        public void exit(int code) {
+        }
+
+        public String property(String name) {
+            return null;
+        }
+
+        public void sleep(long millis) {
+            now += millis;
+        }
+    }
 
     private void refusals() throws Exception {
         EmulatorSession session = boot();
