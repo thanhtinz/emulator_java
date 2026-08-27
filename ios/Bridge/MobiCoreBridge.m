@@ -203,6 +203,20 @@
     return [_facade takeScreenshot];
 }
 
+- (NSData *)exportLibrary {
+    IOSByteArray *bytes = [_facade exportLibrary];
+    if (bytes == nil || bytes->size_ == 0) {
+        return nil;
+    }
+    return [NSData dataWithBytes:bytes->buffer_ length:(NSUInteger)bytes->size_];
+}
+
+- (NSString *)importLibrary:(NSData *)archive {
+    IOSByteArray *bytes = [IOSByteArray arrayWithBytes:(const jbyte *)archive.bytes
+                                                 count:(jint)archive.length];
+    return [_facade importLibraryWithByteArray:bytes];
+}
+
 - (NSString *)setKeyMapping:(int32_t)keyCode forButton:(NSString *)button suite:(NSString *)suiteId {
     return [_facade setKeyMappingWithNSString:suiteId withNSString:button withInt:keyCode];
 }

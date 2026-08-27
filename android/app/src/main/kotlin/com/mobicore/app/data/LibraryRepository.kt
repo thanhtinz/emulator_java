@@ -3,6 +3,7 @@ package com.mobicore.app.data
 import com.mobicore.core.jar.SuiteLoader
 import com.mobicore.core.library.BatchImport
 import com.mobicore.core.library.GameLibrary
+import com.mobicore.core.library.LibraryArchive
 import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.library.PresetStore
 import com.mobicore.core.model.AppSettings
@@ -412,6 +413,24 @@ class LibraryRepository(filesDir: String) {
      * The presets are a guess; when the guess is wrong the game simply does
      * not respond, which reads as a broken emulator rather than a wrong key.
      */
+    /**
+     * The whole library as one file, and back again.
+     *
+     * Per-game backups are the wrong shape for changing phones: eighty games
+     * means eighty transfers, and whoever is doing that at eleven at night
+     * gets to game sixty and gives up.
+     */
+    fun exportLibrary(): ByteArray = LibraryArchive.export(vfs, layout)
+
+    fun importLibrary(archive: ByteArray): LibraryArchive.Report {
+        val report = LibraryArchive.restore(vfs, layout, archive)
+        // Everything held in memory came from the files just written over.
+        library.open()
+        refresh()
+        refreshPresets()
+        return report
+    }
+
     fun setKeyMapping(suiteId: String, button: String, keyCode: Int) {
         val profile = library.profile(suiteId) ?: return
         profile.input().setMapping(button, keyCode)

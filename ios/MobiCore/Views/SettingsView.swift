@@ -1,9 +1,32 @@
 import SwiftUI
+import UniformTypeIdentifiers
+
+/// The library archive as a document, which is all a file exporter needs.
+struct LibraryBackupFile: FileDocument {
+    static var readableContentTypes: [UTType] { [.data] }
+
+    let data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
 
 /// Thông tin chung: bộ giả lập hỗ trợ gì, dữ liệu nằm ở đâu, vùng cách ly ra sao.
 struct SettingsView: View {
 
     @EnvironmentObject private var client: MobiCoreClient
+    @State private var exporting = false
+    @State private var importing = false
+    @State private var backupNote: String?
 
     private var totalBytes: Int64 {
         client.games.reduce(0) { $0 + $1.jarSize }
@@ -22,6 +45,25 @@ struct SettingsView: View {
                         Text("Theo hệ thống").tag(ThemeChoice.system)
                     }
                     .pickerStyle(.segmented)
+                }
+
+                SectionCard(title: "SAO LƯU TOÀN BỘ") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Một tệp gồm trò chơi, cấu hình, dữ liệu lưu, ảnh chụp và bộ "
+                             + "cấu hình — để mang sang máy khác.")
+                            .font(.footnote)
+                            .foregroundStyle(Palette.textDim)
+                        HStack(spacing: 20) {
+                            Button("Xuất tệp") { exporting = true }
+                            Button("Khôi phục") { importing = true }
+                        }
+                        .font(.subheadline)
+                        if let note = backupNote {
+                            Text(note)
+                                .font(.caption)
+                                .foregroundStyle(Palette.textDim)
+                        }
+                    }
                 }
 
                 SectionCard(title: "BỘ CẤU HÌNH MẶC ĐỊNH") {
@@ -89,6 +131,31 @@ struct SettingsView: View {
             .padding(16)
         }
         .background(Palette.background)
+        .fileExporter(
+            isPresented: $exporting,
+            document: LibraryBackupFile(data: client.exportLibrary() ?? Data()),
+            contentType: .data,
+            defaultFilename: "mobicore-library"
+        ) { result in
+            backupNote = (try? result.get()) != nil
+                ? "Đã lưu bản sao lưu"
+                : "Lưu thất bại"
+        }
+        .fileImporter(
+            isPresented: $importing,
+            allowedContentTypes: [.data],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            // A file picked from another app is read inside a security scope.
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            guard let data = try? Data(contentsOf: url) else {
+                backupNote = "Không đọc được tệp"
+                return
+            }
+            backupNote = client.importLibrary(data)
+        }
         .navigationTitle("Cài đặt")
     }
 }

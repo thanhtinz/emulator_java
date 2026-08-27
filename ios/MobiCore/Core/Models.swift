@@ -245,3 +245,12 @@ struct KeyChoice: Codable, Identifiable, Hashable {
 struct KeyChoicesResponse: Codable {
     let keys: [KeyChoice]
 }
+
+/// What restoring a whole-library backup reports.
+struct LibraryRestoreResponse: Codable {
+    let ok: Bool
+    let error: String?
+    let files: Int?
+    let games: Int?
+    let summary: String?
+}

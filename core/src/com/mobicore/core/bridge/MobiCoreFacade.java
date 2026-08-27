@@ -10,6 +10,7 @@ import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.library.BatchImport;
 import com.mobicore.core.library.GameLibrary;
+import com.mobicore.core.library.LibraryArchive;
 import com.mobicore.core.library.PresetStore;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
@@ -676,6 +677,49 @@ public final class MobiCoreFacade {
         }
     }
 
+    /**
+     * The whole library as one file, to carry to the next phone.
+     *
+     * <p>Per-game backups are the wrong shape for that: eighty games means
+     * eighty transfers, and whoever is doing that at eleven at night gets to
+     * game sixty and gives up.</p>
+     */
+    public byte[] exportLibrary() {
+        if (library == null) {
+            return new byte[0];
+        }
+        try {
+            return LibraryArchive.export(vfs, layout);
+        } catch (IOException e) {
+            return new byte[0];
+        }
+    }
+
+    /** Puts such a file back, then reopens the library over it. */
+    public String importLibrary(byte[] archive) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        if (archive == null || archive.length == 0) {
+            return error("Tệp rỗng");
+        }
+        try {
+            LibraryArchive.Report report = LibraryArchive.restore(vfs, layout, archive);
+            // Everything the library holds in memory came from the files that
+            // were just written over, so it is read again from scratch.
+            library.open();
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("files", Integer.valueOf(report.files()));
+            json.put("games", Integer.valueOf(library.size()));
+            json.put("bytes", Long.valueOf(report.bytes()));
+            json.put("summary", report.summary());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
     public String backup(String suiteId) {
         try {
             library.setClock(now());
@@ -1288,7 +1332,11 @@ public final class MobiCoreFacade {
     }
 
     public boolean hasSaveState(String suiteId) {
-        return library != null && library.hasSaveState(suiteId);
+        return hasSaveState(suiteId, StorageLayout.SLOT_AUTO);
+    }
+
+    public boolean hasSaveState(String suiteId, int slot) {
+        return library != null && library.hasSaveState(suiteId, slot);
     }
 
     // ----------------------------------------------------------------- speed

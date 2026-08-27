@@ -323,6 +323,23 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.deleteScreenshot(forSuite: suiteId, named: name)))
     }
 
+    // MARK: - Whole-library backup
+
+    /// One file with everything in it, to carry to the next phone. Per-game
+    /// backups are the wrong shape for that: eighty games would mean eighty
+    /// transfers.
+    func exportLibrary() -> Data? {
+        bridge.exportLibrary()
+    }
+
+    @discardableResult
+    func importLibrary(_ archive: Data) -> String {
+        let response: LibraryRestoreResponse? = decode(bridge.importLibrary(archive))
+        refresh()
+        refreshPresets()
+        return response?.summary ?? response?.error ?? "Khôi phục thất bại"
+    }
+
     /// Points one virtual button at a different key code. The presets are a
     /// guess; when the guess is wrong the game simply does not respond, which
     /// reads as a broken emulator rather than a wrong key.

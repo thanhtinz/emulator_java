@@ -25,6 +25,7 @@
 | 21 | Chỉnh tốc độ chạy game | Xong |
 | 22 | Liên thanh (turbo) | Xong |
 | 23 | Đổi gán phím từng nút | Xong |
+| 24 | Sao lưu toàn bộ thư viện | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -868,3 +869,31 @@ hỏng chứ không phải như gán sai phím.
 `keyChoicesJson`.
 
 Ảnh: `build/screenshots/04-game-settings.png` (dòng "Lên → 2").
+
+## Sao lưu toàn bộ: đổi máy trong một tệp
+
+Sao lưu từng game đã có từ lâu, nhưng sai hình dạng cho đúng việc người ta thật
+sự làm: **đổi điện thoại**. Tám mươi game là tám mươi lần sao lưu, tám mươi lần
+chuyển, tám mươi lần khôi phục — ai làm việc đó lúc mười một giờ đêm thì đến
+game thứ sáu mươi là bỏ.
+
+`core/library/LibraryArchive.java` gói **một tệp** gồm mọi thứ thuộc về người
+dùng: bản cài game, tên họ đặt, ảnh bìa họ chọn, mọi cấu hình, dữ liệu game tự
+lưu (RMS), các ô lưu trạng thái, ảnh chụp, bộ cấu hình, và cả cài đặt của app.
+Không gói cái có thể tạo lại: `cache/` và `backups/` — sao lưu của sao lưu chỉ
+làm tệp to gấp đôi mà không thêm gì.
+
+- Khôi phục thì **ghi đè, không xoá trước**: người khôi phục lên máy đã có game
+  là muốn lấy lại game cũ, chứ không phải muốn game mới biến mất.
+- Đường dẫn trong tệp là dữ liệu từ bên ngoài nên bị kiểm tra: `../` hay đường
+  dẫn tuyệt đối bị bỏ qua, không cho ghi ra ngoài thư mục của app.
+- Định dạng dùng đúng khung chứa đơn giản của bản sao lưu từng game, không dùng
+  zip: nó phải đọc được bằng **cùng một đoạn mã** trên hai nền tảng, mà một
+  định dạng chỉ có một bản cài đặt thì không thể tự mâu thuẫn với chính nó.
+
+Trong Cài đặt: **Xuất tệp** / **Khôi phục** (Android dùng SAF, iOS dùng
+`fileExporter`/`fileImporter`).
+
+Bài kiểm tra chuyển hẳn một thư viện sang "máy thứ hai" rỗng rồi kiểm từng thứ
+ở đầu bên kia — tên game, màn hình đã đặt, ô lưu, ảnh chụp, bộ cấu hình, giao
+diện — và cuối cùng mở game lên chơi tiếp từ ô lưu.
