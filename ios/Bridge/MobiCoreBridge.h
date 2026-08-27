@@ -110,7 +110,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *)profileJSONForSuite:(NSString *)suiteId;
 - (NSString *)updateProfileJSON:(NSString *)json;
-- (NSString *)setDeviceProfile:(NSString *)deviceId forSuite:(NSString *)suiteId;
 - (NSString *)setInputPreset:(NSString *)preset forSuite:(NSString *)suiteId;
 - (NSString *)toggleFavouriteForSuite:(NSString *)suiteId;
 

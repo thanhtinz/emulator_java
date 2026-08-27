@@ -49,7 +49,7 @@ public final class ArchiveTest extends Test {
         String suiteId = Json.string(Json.child(imported, "game"), "suiteId", "");
 
         old.renameGame(suiteId, "Người Chạy Trên Mây");
-        old.setDeviceProfile(suiteId, "s40-128x128");
+        old.setInputPreset(suiteId, "Sony Ericsson");
         old.savePreset("Điện thoại cũ", suiteId);
         old.setTheme(1);
         old.startGame(suiteId);
@@ -81,8 +81,8 @@ public final class ArchiveTest extends Test {
                 "the name the player gave it comes with it");
 
         Map<String, Object> profile = Json.readObject(fresh.profileJson(suiteId));
-        eq("s40-128x128", Json.string(Json.child(profile, "device"), "id", ""),
-                "and the screen they set");
+        eq("Sony Ericsson", Json.string(Json.child(profile, "input"), "preset", ""),
+                "and the keypad they set");
 
         check(fresh.hasSaveState(suiteId, 2), "what they saved is there");
         check(fresh.saveStateThumbnail(suiteId, 2).length > 0,

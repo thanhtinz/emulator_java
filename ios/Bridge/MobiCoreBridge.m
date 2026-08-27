@@ -187,10 +187,6 @@
     return [_facade updateProfileWithNSString:json];
 }
 
-- (NSString *)setDeviceProfile:(NSString *)deviceId forSuite:(NSString *)suiteId {
-    return [_facade setDeviceProfileWithNSString:suiteId withNSString:deviceId];
-}
-
 - (NSString *)setInputPreset:(NSString *)preset forSuite:(NSString *)suiteId {
     return [_facade setInputPresetWithNSString:suiteId withNSString:preset];
 }

@@ -8,12 +8,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A simulated handset: screen size, keypad layout and the capabilities a MIDlet
- * can ask about.
+ * The screen a game is given: its size, the keypad layout and the capabilities
+ * a MIDlet can ask about.
  *
- * <p>Games written for a 128x128 Nokia lay their HUD out for that screen and
- * will look wrong stretched to a modern display, so the profile is chosen per
- * game at import time and stored with it.</p>
+ * <p>There is one screen now, and it is 240x320 — the size most J2ME games
+ * were written for and the one every later handset could show. The catalog of
+ * seven handsets that used to be here was a question nobody could answer:
+ * picking the wrong one made a game look wrong, and picking the right one was
+ * guesswork about hardware the player never owned. A game that reads
+ * {@code getWidth} adapts, which is what nearly all of them do, and one that
+ * assumes a smaller screen is scaled up to fill this one.</p>
+ *
+ * <p>The landscape size is the same screen turned, not a second device.</p>
  */
 public final class DeviceProfile {
 
@@ -121,39 +127,35 @@ public final class DeviceProfile {
 
     // ------------------------------------------------------------- catalog
 
-    public static final DeviceProfile S40_128 =
-            new DeviceProfile("s40-128x128", "Nokia Series 40", 128, 128, KEYPAD_NOKIA, 16, false);
-    public static final DeviceProfile S40_128x160 =
-            new DeviceProfile("s40-128x160", "Nokia 128x160", 128, 160, KEYPAD_NOKIA, 16, false);
-    public static final DeviceProfile S60_176x208 =
-            new DeviceProfile("s60-176x208", "Nokia Series 60", 176, 208, KEYPAD_NOKIA, 16, false);
-    public static final DeviceProfile SE_176x220 =
-            new DeviceProfile("se-176x220", "Sony Ericsson 176x220", 176, 220,
-                    KEYPAD_SONY_ERICSSON, 16, false);
+    /**
+     * The one screen: 240x320, what most of these games were written for.
+     */
     public static final DeviceProfile QVGA_240x320 =
-            new DeviceProfile("qvga-240x320", "QVGA 240x320", 240, 320, KEYPAD_NOKIA, 24, false);
+            new DeviceProfile("qvga-240x320", "Màn hình chuẩn 240x320", 240, 320,
+                    KEYPAD_NOKIA, 24, true);
+
+    /** The same screen turned, for a game written to be played sideways. */
     public static final DeviceProfile QVGA_LANDSCAPE =
-            new DeviceProfile("qvga-320x240", "QVGA landscape", 320, 240, KEYPAD_NOKIA, 24, false);
-    public static final DeviceProfile TOUCH_240x400 =
-            new DeviceProfile("touch-240x400", "Touch 240x400", 240, 400, KEYPAD_SAMSUNG, 24, true);
+            new DeviceProfile("qvga-320x240", "Màn hình ngang 320x240", 320, 240,
+                    KEYPAD_NOKIA, 24, true);
 
     private static final List<DeviceProfile> CATALOG = Collections.unmodifiableList(
-            new ArrayList<DeviceProfile>(java.util.Arrays.asList(
-                    S40_128, S40_128x160, S60_176x208, SE_176x220,
-                    QVGA_240x320, QVGA_LANDSCAPE, TOUCH_240x400)));
+            new ArrayList<DeviceProfile>(java.util.Arrays.asList(QVGA_240x320)));
 
-    /** The profiles offered at import time, in the order they are shown. */
+    /**
+     * The screen, as a list of one.
+     *
+     * <p>Still a list because the JSON the apps read has always carried one,
+     * and a screen a game declares for itself still has to be describable —
+     * but nothing offers a choice any more.</p>
+     */
     public static List<DeviceProfile> catalog() {
         return CATALOG;
     }
 
+    /** Landscape asks for the turned screen; everything else gets the one. */
     public static DeviceProfile byId(String id) {
-        for (DeviceProfile profile : CATALOG) {
-            if (profile.id().equals(id)) {
-                return profile;
-            }
-        }
-        return QVGA_240x320;
+        return QVGA_LANDSCAPE.id().equals(id) ? QVGA_LANDSCAPE : QVGA_240x320;
     }
 
     public static DeviceProfile custom(int width, int height) {
@@ -164,6 +166,13 @@ public final class DeviceProfile {
     /**
      * Best profile for a suite whose descriptor names a canvas size, falling
      * back to QVGA — the most common target for late J2ME games.
+     */
+    /**
+     * The screen a suite gets.
+     *
+     * <p>One screen, with one exception that is not a choice: a suite that
+     * declares itself to be a landscape game is given the turned screen. That
+     * is the game stating how it is held, not the player picking hardware.</p>
      */
     public static DeviceProfile suggestFor(MidletSuiteInfo info) {
         String declared = info.attributes().get("Nokia-MIDlet-Original-Display-Size");
@@ -176,12 +185,7 @@ public final class DeviceProfile {
                 try {
                     int width = Integer.parseInt(parts[0].trim());
                     int height = Integer.parseInt(parts[1].trim());
-                    for (DeviceProfile profile : CATALOG) {
-                        if (profile.width() == width && profile.height() == height) {
-                            return profile;
-                        }
-                    }
-                    return custom(width, height);
+                    return width > height ? QVGA_LANDSCAPE : QVGA_240x320;
                 } catch (NumberFormatException e) {
                     return QVGA_240x320;
                 }

@@ -261,20 +261,10 @@ public final class MobiCoreFacade {
             if (profile == null) {
                 return error("No profile for " + suiteId);
             }
-            Map<String, Object> json = profile.toJson();
-            json.put("devices", deviceCatalog());
-            return Json.write(json);
+            return Json.write(profile.toJson());
         } catch (IOException e) {
             return error(e.getMessage());
         }
-    }
-
-    private List<Object> deviceCatalog() {
-        List<Object> devices = new ArrayList<Object>();
-        for (DeviceProfile device : DeviceProfile.catalog()) {
-            devices.add(device.toJson());
-        }
-        return devices;
     }
 
     /** Applies a profile edited by the UI; the JSON is what profileJson returns. */
@@ -325,21 +315,6 @@ public final class MobiCoreFacade {
             json.put("device", fresh.device().resolution());
             json.put("notes", new ArrayList<Object>(result.notes()));
             return Json.write(json);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
-
-    /** Switches a game to one of the catalog profiles by id. */
-    public String setDeviceProfile(String suiteId, String deviceId) {
-        try {
-            GameProfile profile = library.profile(suiteId);
-            if (profile == null) {
-                return error("No profile for " + suiteId);
-            }
-            profile.setDevice(DeviceProfile.byId(deviceId));
-            library.saveProfile(profile);
-            return ok("device", profile.device().resolution());
         } catch (IOException e) {
             return error(e.getMessage());
         }

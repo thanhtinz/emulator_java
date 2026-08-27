@@ -97,8 +97,8 @@ public final class FacadeTest extends Test {
         check(Json.array(imported0, "setupNotes").size() >= 4,
                 "and says in words what it decided");
 
-        check(Json.bool(Json.readObject(facade.setDeviceProfile(suiteId, "s40-128x128")), "ok", false),
-                "the device can still be set by hand");
+        check(Json.bool(Json.readObject(facade.setInputPreset(suiteId, "Sony Ericsson")), "ok", false),
+                "a setting can still be changed by hand");
         check(!Json.bool(Json.readObject(facade.profileJson(suiteId)), "auto", true),
                 "which stops the emulator claiming it measured that");
 
@@ -182,15 +182,11 @@ public final class FacadeTest extends Test {
                 "a theme that does not exist falls back to light rather than breaking");
 
         Map<String, Object> profile = Json.readObject(facade.profileJson(suiteId));
-        eq(7, Json.array(profile, "devices").size(), "the device catalog rides along");
+        // There is one screen now, so the profile carries it and offers no
+        // catalog to pick a different one from.
         eq("qvga-240x320", Json.string(Json.child(profile, "device"), "id", ""),
-                "the default device is QVGA");
-
-        check(Json.bool(Json.readObject(facade.setDeviceProfile(suiteId, "s60-176x208")), "ok", false),
-                "the device profile can be switched by id");
-        eq("s60-176x208", Json.string(Json.child(
-                        Json.readObject(facade.profileJson(suiteId)), "device"), "id", ""),
-                "the switch persisted");
+                "every game runs on the one 240x320 screen");
+        check(!profile.containsKey("devices"), "and there is no catalog to choose from");
 
         check(Json.bool(Json.readObject(facade.setInputPreset(suiteId, "Sony Ericsson")), "ok", false),
                 "the input preset can be switched");
@@ -214,8 +210,6 @@ public final class FacadeTest extends Test {
             return;
         }
 
-        // Put the device back before running, so the screen size is known.
-        facade.setDeviceProfile(suiteId, "qvga-240x320");
         Map<String, Object> started = Json.readObject(facade.startGame(suiteId));
         check(Json.bool(started, "ok", false), "the game starts: " + Json.string(started, "error", ""));
         eq(240, Json.integer(started, "width", 0), "the screen width crosses the bridge");
@@ -401,7 +395,6 @@ public final class FacadeTest extends Test {
      */
     private void presets(MobiCoreFacade facade, String suiteId) throws Exception {
         // Set the game up by hand first, so the preset carries something.
-        facade.setDeviceProfile(suiteId, "s40-128x128");
         Map<String, Object> tuned = Json.readObject(facade.profileJson(suiteId));
         tuned.put("volume", Integer.valueOf(35));
         tuned.put("frameLimit", Integer.valueOf(24));
@@ -430,8 +423,8 @@ public final class FacadeTest extends Test {
         Map<String, Object> after = Json.readObject(facade.profileJson(other));
         eq(35, Json.integer(after, "volume", 0), "which takes the saved volume");
         eq(24, Json.integer(after, "frameLimit", 0), "and the saved frame cap");
-        eq("s40-128x128", Json.string(Json.child(after, "device"), "id", ""),
-                "and the saved screen");
+        eq("qvga-240x320", Json.string(Json.child(after, "device"), "id", ""),
+                "and the one screen every game runs on");
         eq(other, Json.string(after, "suiteId", ""), "but stays the game it is");
         check(!Json.bool(after, "auto", true),
                 "and no longer claims the emulator measured all that");

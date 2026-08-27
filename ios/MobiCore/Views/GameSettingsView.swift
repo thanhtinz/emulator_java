@@ -59,26 +59,27 @@ struct GameSettingsView: View {
                         .font(.caption)
                         .foregroundStyle(Palette.textDim)
 
-                    SectionCard(title: "MÁY GIẢ LẬP", trailing: current.device.keypadName) {
+                    // One screen for every game, so this states it rather
+                    // than offering a choice nobody has a reason to make.
+                    SectionCard(title: "MÀN HÌNH", trailing: current.device.keypadName) {
                         VStack(alignment: .leading, spacing: 8) {
-                            ForEach(current.devices ?? []) { device in
-                                Button {
-                                    client.setDevice(device.id, for: suiteId)
-                                    reload()
-                                } label: {
-                                    HStack {
-                                        Text(device.name)
-                                            .font(.footnote)
-                                            .foregroundStyle(
-                                                device.id == current.device.id
-                                                    ? Palette.accent : Palette.text
-                                            )
-                                        Spacer()
-                                        Text(device.resolution)
-                                            .font(.footnote)
-                                            .foregroundStyle(Palette.textDim)
-                                    }
-                                }
+                            HStack {
+                                Text("Kích thước")
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.text)
+                                Spacer()
+                                Text(current.device.resolution)
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.textDim)
+                            }
+                            HStack {
+                                Text("Chiều màn hình")
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.text)
+                                Spacer()
+                                Text(current.device.name)
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.textDim)
                             }
                         }
                     }
@@ -286,11 +287,7 @@ struct GameSettingsView: View {
     }
 
     private func save(_ updated: GameSettings) {
-        var copy = updated
-        // The device catalog is read-only decoration; it must not be written
-        // back into the stored profile.
-        copy.devices = nil
-        client.update(copy)
+        client.update(updated)
         settings = client.settings(suiteId)
     }
 }

@@ -5,7 +5,6 @@ import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.midp.MidpContext;
-import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.rms.RecordStoreManager;
@@ -98,25 +97,12 @@ public final class ProfileScreen {
                 Theme.TEXT_DIM);
         y += ui.small().height() + 12;
 
-        // Device profile -------------------------------------------------
-        int chipRow = ui.chipHeight() + 8;
-        int deviceHeight = 12 + ui.small().height() + 8 + chipRow * 2 + Ui.ROW + 6;
-        row = ui.section(margin, y, width, deviceHeight, "MÁY GIẢ LẬP", null);
-        int chipX = fieldX;
-        int chipY = row;
-        for (DeviceProfile candidate : DeviceProfile.catalog()) {
-            boolean selected = candidate.id().equals(profile.device().id());
-            int chipWidth = ui.small().stringWidth(candidate.resolution()) + 18;
-            if (chipX + chipWidth > margin + width - Ui.PAD) {
-                chipX = fieldX;
-                chipY += chipRow;
-            }
-            ui.chip(candidate.resolution(), chipX, chipY,
-                    selected ? Theme.ACCENT : Theme.TEXT_DIM,
-                    selected ? Theme.ACCENT_DIM : Theme.SURFACE_ALT);
-            chipX += chipWidth + 8;
-        }
-        ui.field("Kiểu bàn phím", profile.device().keypadName(), fieldX, chipY + chipRow + 2,
+        // Screen ---------------------------------------------------------
+        // One screen, so this states it rather than offering a choice.
+        int deviceHeight = ui.sectionHeight(2);
+        row = ui.section(margin, y, width, deviceHeight, "MÀN HÌNH", null);
+        ui.field("Kích thước", profile.device().resolution(), fieldX, row, fieldWidth);
+        ui.field("Kiểu bàn phím", profile.device().keypadName(), fieldX, row + Ui.ROW,
                 fieldWidth);
         y += deviceHeight + 14;
 
@@ -141,7 +127,7 @@ public final class ProfileScreen {
         com.mobicore.core.library.PresetStore presets =
                 new com.mobicore.core.library.PresetStore(vfs, layout);
         presets.save("Điện thoại của tôi", profile);
-        presets.save("Màn hình nhỏ", profile);
+        presets.save("Chơi ban đêm", profile);
         java.util.List<String> names = presets.names();
         int presetHeight = ui.sectionHeight(names.size() + 1);
         row = ui.section(margin, y, width, presetHeight, "BỘ CẤU HÌNH",

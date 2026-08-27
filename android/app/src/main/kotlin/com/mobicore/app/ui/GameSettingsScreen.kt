@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobicore.app.data.LibraryRepository
 import com.mobicore.core.midp.MidpContext
-import com.mobicore.core.model.DeviceProfile
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.model.InputProfile
 
@@ -57,7 +55,6 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
         return
     }
 
-    var deviceId by remember { mutableStateOf(profile.device().id()) }
     var scaleMode by remember { mutableIntStateOf(profile.scaleMode()) }
     var frameLimit by remember { mutableIntStateOf(profile.frameLimit()) }
     var volume by remember { mutableIntStateOf(profile.volume()) }
@@ -127,7 +124,6 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                             if (fresh != null) {
                                 notes = fresh.setupNotes().toList()
                                 auto = true
-                                deviceId = fresh.device().id()
                                 preset = fresh.input().presetName()
                                 scaleMode = fresh.scaleMode()
                                 frameLimit = fresh.frameLimit()
@@ -158,22 +154,12 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
         }
 
         item {
-            SectionCard(title = "MÁY GIẢ LẬP", trailing = profile.device().keypadName()) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    DeviceProfile.catalog().forEach { candidate ->
-                        val selected = candidate.id() == deviceId
-                        Text(
-                            text = candidate.resolution(),
-                            color = if (selected) MobiColors.Accent else MobiColors.TextDim,
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .padding(vertical = 3.dp)
-                                .clickable {
-                                    deviceId = candidate.id()
-                                    persist { it.setDevice(candidate) }
-                                },
-                        )
-                    }
+            // One screen for every game, so this states it rather than
+            // offering a choice nobody has a reason to make.
+            SectionCard(title = "MÀN HÌNH", trailing = profile.device().keypadName()) {
+                Column {
+                    FieldRow("Kích thước", profile.device().resolution())
+                    FieldRow("Kiểu bàn phím", profile.device().keypadName())
                 }
             }
         }

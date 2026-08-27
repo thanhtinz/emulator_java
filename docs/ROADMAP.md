@@ -33,6 +33,7 @@
 | 29 | API riêng của Nokia | Xong |
 | 30 | Rung thật | Xong |
 | 31 | API Siemens, Samsung, Motorola | Xong |
+| 32 | Một loại màn hình duy nhất | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -98,9 +99,8 @@
 
 - `Json`: bộ đọc/ghi JSON tự viết (giữ thứ tự khóa để file dễ đọc và dễ so
   sánh), dùng cho profile và library index.
-- `DeviceProfile`: catalog 128×128, 128×160, 176×208, 176×220, 240×320,
-  320×240, 240×400 cảm ứng, cộng độ phân giải tùy chỉnh; tự đoán profile từ
-  thuộc tính JAD nếu suite có khai báo.
+- `DeviceProfile`: một màn hình 240×320 duy nhất, cùng chính nó xoay ngang
+  320×240; chiều màn hình lấy theo khai báo trong JAD nếu game có nói.
 - `InputProfile`: remap từng phím, preset Nokia/Sony Ericsson/Samsung,
   turbo (auto-repeat) và macro theo từng game.
 - `GameProfile`: scale (fit/integer/stretch/original), orientation, giới hạn
@@ -1092,3 +1092,32 @@ hơn là không có.
 
 Fixture `NokiaDemo` nay gọi cả năm đường yêu cầu rung của bốn hãng; bài kiểm tra
 đếm đúng 660ms tổng cộng, mỗi hãng theo đơn vị của mình.
+
+
+## Giai đoạn 32 — một loại màn hình duy nhất
+
+Trước đây màn hình cài đặt bày ra bảy cỡ máy: 128×128, 128×160, 176×208,
+176×220, 240×320, 320×240 và 240×400 cảm ứng. Nghe thì rộng rãi, nhưng nó là
+một câu hỏi người chơi **không có cách nào trả lời đúng**: muốn chọn được thì
+phải biết game gốc viết cho máy nào, mà nếu biết thì đã không cần hỏi. Chọn sai
+một lần là game chạy trên màn hình nó chưa bao giờ được vẽ cho — chữ tràn, nút
+lệch, và chẳng có gì chỉ ra nguyên nhân.
+
+Nay chỉ còn **240×320** — cỡ QVGA, cỡ phổ biến nhất của thời J2ME và cỡ mà gần
+như mọi game đời đó chạy được. Thứ duy nhất còn tự đoán là **chiều màn hình**:
+game nào khai báo `Nokia-MIDlet-Original-Display-Size` rộng hơn cao thì mở ra
+đã xoay ngang sẵn, còn lại mở dọc.
+
+Những gì đã bỏ đi cùng với nó:
+
+- `DeviceProfile.catalog()` còn đúng một mục; `byId` trả về màn hình ngang chỉ
+  khi hỏi đúng id của nó, mọi id lạ đều rơi về màn hình dọc.
+- `AutoSetup` **không còn đo ảnh trong JAR** để đoán cỡ máy. Đo ảnh lớn nhất là
+  một phỏng đoán: ảnh nền 176×208 trong một game vẽ 240×320 là chuyện thường,
+  và nó đã từng đẩy game xuống màn hình nhỏ hơn game cần.
+- Cầu nối bỏ `setDeviceProfile` và bỏ luôn danh sách `devices` gửi kèm
+  `profileJson`; giao diện Android, iOS và bản xem trước bỏ hàng chip chọn máy,
+  thay bằng hai dòng nói thẳng màn hình đang dùng là cỡ nào, bàn phím kiểu gì.
+
+Cài đặt mất một lựa chọn, nhưng là lựa chọn mà mọi câu trả lời trừ một đều làm
+game chạy tệ hơn.

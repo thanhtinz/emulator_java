@@ -101,27 +101,14 @@ public final class ImportScreen {
         }
         y += sandboxHeight + 14;
 
-        // Device profile -------------------------------------------------
+        // Screen ---------------------------------------------------------
         DeviceProfile suggested = DeviceProfile.suggestFor(info);
-        int chipRowHeight = ui.chipHeight() + 8;
-        int deviceHeight = 12 + ui.small().height() + 8 + chipRowHeight * 2 + Ui.ROW + 6;
-        row = ui.section(margin, y, width, deviceHeight, "MÁY GIẢ LẬP", suggested.keypadName());
-        int deviceX = margin + Ui.PAD;
-        int deviceY = row;
-        for (DeviceProfile candidate : DeviceProfile.catalog()) {
-            boolean selected = candidate.id().equals(suggested.id());
-            int chipWidth = ui.small().stringWidth(candidate.resolution()) + 18;
-            if (deviceX + chipWidth > margin + width - Ui.PAD) {
-                deviceX = margin + Ui.PAD;
-                deviceY += chipRowHeight;
-            }
-            ui.chip(candidate.resolution(), deviceX, deviceY,
-                    selected ? Theme.ACCENT : Theme.TEXT_DIM,
-                    selected ? Theme.ACCENT_DIM : Theme.SURFACE_ALT);
-            deviceX += chipWidth + 8;
-        }
-        ui.field("Đề xuất cho bộ cài này", suggested.name(), margin + Ui.PAD,
-                deviceY + chipRowHeight + 2, width - Ui.PAD * 2);
+        int deviceHeight = ui.sectionHeight(2);
+        row = ui.section(margin, y, width, deviceHeight, "MÀN HÌNH", suggested.keypadName());
+        ui.field("Kích thước", suggested.resolution(), margin + Ui.PAD, row,
+                width - Ui.PAD * 2);
+        ui.field("Chiều màn hình", suggested.name(), margin + Ui.PAD, row + Ui.ROW,
+                width - Ui.PAD * 2);
         y += deviceHeight + 16;
 
         // Actions --------------------------------------------------------

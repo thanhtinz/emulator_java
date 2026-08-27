@@ -246,10 +246,6 @@ final class MobiCoreClient: ObservableObject {
         decode(bridge.profileJSON(forSuite: suiteId))
     }
 
-    func setDevice(_ deviceId: String, for suiteId: String) {
-        report(decode(bridge.setDeviceProfile(deviceId, forSuite: suiteId)))
-        refresh()
-    }
 
     /// Turns a game's screen and remembers it. Auto-setup already turns a
     /// game written for a wide screen; this is for the ones that drew

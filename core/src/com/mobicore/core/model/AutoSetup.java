@@ -110,130 +110,27 @@ public final class AutoSetup {
 
     // -------------------------------------------------------------- screen
 
+    /**
+     * The screen a game gets.
+     *
+     * <p>There is one screen now — 240x320, what most of these games were
+     * written for — so there is nothing to detect except which way round it
+     * is held. A suite that declares a wide screen is stating that it is a
+     * landscape game, and gets the same screen turned.</p>
+     *
+     * <p>What used to be here measured the largest picture in the JAR and
+     * guessed a handset from it. It was clever and it was a guess, and a
+     * wrong guess laid a game's HUD out for a screen the player never had.</p>
+     */
     private static DeviceProfile detectDevice(SuiteLoader suite, JarArchive archive,
                                               List<String> notes) {
-        // What the suite declares about itself, when it declares anything.
-        String declared = suite.info().attributes().get("Nokia-MIDlet-Original-Display-Size");
-        if (declared == null) {
-            declared = suite.info().attributes().get("MIDlet-Screen-Size");
+        DeviceProfile device = DeviceProfile.suggestFor(suite.info());
+        if (device.orientation() == DeviceProfile.ORIENTATION_LANDSCAPE) {
+            notes.add("Màn hình " + device.resolution() + " — game khai báo màn hình ngang");
+        } else {
+            notes.add("Màn hình " + device.resolution() + " — cỡ chuẩn cho mọi game");
         }
-        DeviceProfile fromAttributes = parse(declared);
-        if (fromAttributes != null) {
-            notes.add("Màn hình " + fromAttributes.resolution() + " — theo khai báo của game");
-            return fromAttributes;
-        }
-
-        // Otherwise the pictures give it away: a game's background or splash
-        // is drawn for one screen and is usually exactly that size.
-        DeviceProfile fromArt = fromLargestImage(archive);
-        if (fromArt != null) {
-            notes.add("Màn hình " + fromArt.resolution() + " — suy từ ảnh trong game");
-            return fromArt;
-        }
-
-        notes.add("Màn hình " + DeviceProfile.QVGA_240x320.resolution() + " — cỡ phổ biến nhất");
-        return DeviceProfile.QVGA_240x320;
-    }
-
-    private static DeviceProfile parse(String declared) {
-        if (declared == null) {
-            return null;
-        }
-        String[] parts = declared.replace('x', ',').split(",");
-        if (parts.length != 2) {
-            return null;
-        }
-        try {
-            return match(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    /**
-     * The largest PNG in the suite that looks like a screen.
-     *
-     * <p>Two passes, because size alone is not evidence. An image whose
-     * dimensions match a handset the emulator knows about is almost certainly
-     * a background drawn for that handset; any other large image is weaker
-     * evidence and is only used when nothing matched. Files named like icons
-     * are skipped outright — a 192 square icon is not a 192 square screen,
-     * and treating it as one gets the game a screen no handset ever had.</p>
-     *
-     * <p>Only the PNG header is read, so this stays cheap on a JAR full of
-     * artwork.</p>
-     */
-    private static DeviceProfile fromLargestImage(JarArchive archive) {
-        DeviceProfile bestKnown = null;
-        long bestKnownArea = 0;
-        int bestWidth = 0;
-        int bestHeight = 0;
-        long bestArea = 0;
-
-        List<String> names = archive.names();
-        for (int i = 0; i < names.size(); i++) {
-            String name = names.get(i);
-            String lower = name.toLowerCase();
-            if (!lower.endsWith(".png") || isIconName(lower)) {
-                continue;
-            }
-            byte[] data = archive.read(name);
-            if (data == null || data.length < 24) {
-                continue;
-            }
-            int width = readInt(data, 16);
-            int height = readInt(data, 20);
-            if (width < 96 || height < 96 || width > 640 || height > 640) {
-                // Too small to be a screen — a sprite or a tile — or too
-                // large to be a handset's.
-                continue;
-            }
-            long area = (long) width * height;
-            DeviceProfile known = catalogDevice(width, height);
-            if (known != null && area > bestKnownArea) {
-                bestKnownArea = area;
-                bestKnown = known;
-            }
-            if (area > bestArea) {
-                bestArea = area;
-                bestWidth = width;
-                bestHeight = height;
-            }
-        }
-
-        if (bestKnown != null) {
-            return bestKnown;
-        }
-        return bestArea == 0 ? null : DeviceProfile.custom(bestWidth, bestHeight);
-    }
-
-    /** Icons are named as icons, and every J2ME suite has one. */
-    private static boolean isIconName(String lower) {
-        return lower.indexOf("icon") >= 0 || lower.indexOf("logo") >= 0
-                || lower.indexOf("thumb") >= 0;
-    }
-
-    /** The catalog entry of exactly this size, or null. */
-    private static DeviceProfile catalogDevice(int width, int height) {
-        List<DeviceProfile> catalog = DeviceProfile.catalog();
-        for (int i = 0; i < catalog.size(); i++) {
-            DeviceProfile candidate = catalog.get(i);
-            if (candidate.width() == width && candidate.height() == height) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    private static int readInt(byte[] data, int at) {
-        return ((data[at] & 0xFF) << 24) | ((data[at + 1] & 0xFF) << 16)
-                | ((data[at + 2] & 0xFF) << 8) | (data[at + 3] & 0xFF);
-    }
-
-    /** A catalog device of that size, or a custom one when nothing matches. */
-    private static DeviceProfile match(int width, int height) {
-        DeviceProfile known = catalogDevice(width, height);
-        return known == null ? DeviceProfile.custom(width, height) : known;
+        return device;
     }
 
     // -------------------------------------------------------------- keypad

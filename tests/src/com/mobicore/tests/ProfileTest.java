@@ -40,8 +40,8 @@ public final class ProfileTest extends Test {
 
         AutoSetup.Result result = AutoSetup.configure(plain);
         GameProfile profile = result.profile();
-        eq(176, profile.device().width(), "the screen is read off the largest picture");
-        eq(208, profile.device().height(), "and so is its height");
+        eq(240, profile.device().width(), "every game gets the one screen");
+        eq(320, profile.device().height(), "at its one size");
         check(profile.isAuto(), "a detected profile says it was detected");
         check(!result.notes().isEmpty(), "and says why, in words the user can read");
         eq(GameProfile.NETWORK_BLOCKED, profile.networkMode(),
@@ -62,7 +62,7 @@ public final class ProfileTest extends Test {
         declared.put("splash.png", png(128, 128));
         GameProfile racer = AutoSetup.configure(
                 SuiteLoader.load(SampleSuite.zip(declared), null)).profile();
-        eq(240, racer.device().width(), "a declared display size wins over the artwork");
+        eq(240, racer.device().width(), "a game that declares a tall screen keeps it upright");
         eq("Sony Ericsson", racer.input().presetName(),
                 "the vendor says which keypad the game was written for");
         eq(GameProfile.NETWORK_ASK, racer.networkMode(),
@@ -92,7 +92,7 @@ public final class ProfileTest extends Test {
         check(said, "and says so among its reasons");
 
         // Changing a detected value stops the emulator claiming it measured it.
-        racer.setDevice(DeviceProfile.S40_128);
+        racer.setInput(InputProfile.sonyEricsson());
         check(!racer.isAuto(), "a hand-set profile is no longer an automatic one");
 
         GameProfile restored = GameProfile.fromJson(
@@ -163,30 +163,39 @@ public final class ProfileTest extends Test {
     }
 
     private void devices() {
-        eq(7, DeviceProfile.catalog().size(), "the catalog covers the documented resolutions");
+        // One screen for every game. A catalog of handsets was a decision
+        // the player had no way to make well, and every entry in it was a
+        // way for a game to end up on a screen it was never sized for.
+        eq(1, DeviceProfile.catalog().size(), "there is one screen, not a catalog");
         eq("240x320", DeviceProfile.QVGA_240x320.resolution(), "resolution is formatted");
         eq(DeviceProfile.ORIENTATION_LANDSCAPE, DeviceProfile.QVGA_LANDSCAPE.orientation(),
-                "a wide profile is landscape");
-        eq("Nokia", DeviceProfile.S40_128.keypadName(), "keypad layouts are named");
+                "the same screen turned is landscape");
+        eq("Nokia", DeviceProfile.QVGA_240x320.keypadName(), "keypad layouts are named");
         eq(DeviceProfile.QVGA_240x320.id(), DeviceProfile.byId("qvga-240x320").id(), "lookup by id");
-        eq(DeviceProfile.QVGA_240x320.id(), DeviceProfile.byId("nonsense").id(), "unknown ids fall back");
+        eq(DeviceProfile.QVGA_LANDSCAPE.id(), DeviceProfile.byId("qvga-320x240").id(),
+                "the turned screen has its own id");
+        eq(DeviceProfile.QVGA_240x320.id(), DeviceProfile.byId("nonsense").id(),
+                "unknown ids fall back");
 
-        DeviceProfile rotated = DeviceProfile.S60_176x208.rotated();
-        eq(208, rotated.width(), "rotation swaps width");
-        eq(176, rotated.height(), "rotation swaps height");
+        DeviceProfile rotated = DeviceProfile.QVGA_240x320.rotated();
+        eq(320, rotated.width(), "rotation swaps width");
+        eq(240, rotated.height(), "rotation swaps height");
 
-        DeviceProfile restored = DeviceProfile.fromJson(DeviceProfile.SE_176x220.toJson());
-        eq(176, restored.width(), "device profiles round-trip through JSON");
-        eq(DeviceProfile.KEYPAD_SONY_ERICSSON, restored.keypad(), "keypad survives the round trip");
+        DeviceProfile restored = DeviceProfile.fromJson(DeviceProfile.QVGA_240x320.toJson());
+        eq(240, restored.width(), "device profiles round-trip through JSON");
+        eq(DeviceProfile.KEYPAD_NOKIA, restored.keypad(), "keypad survives the round trip");
 
+        // A game that says it is a wide game gets the screen turned; that is
+        // the only thing left for the descriptor to decide.
         AttributeSet attributes = AttributeSet.parse("MIDlet-1: Demo,,demo.Main\n"
-                + "Nokia-MIDlet-Original-Display-Size: 176,208\n");
+                + "Nokia-MIDlet-Original-Display-Size: 320,240\n");
         MidletSuiteInfo declared = MidletSuiteInfo.merge(attributes, null);
-        eq("s60-176x208", DeviceProfile.suggestFor(declared).id(), "a declared screen size is honoured");
+        eq("qvga-320x240", DeviceProfile.suggestFor(declared).id(),
+                "a game that declares a wide screen is turned");
 
         MidletSuiteInfo silent = MidletSuiteInfo.merge(
                 AttributeSet.parse("MIDlet-1: Demo,,demo.Main\n"), null);
-        eq("qvga-240x320", DeviceProfile.suggestFor(silent).id(), "QVGA is the fallback");
+        eq("qvga-240x320", DeviceProfile.suggestFor(silent).id(), "upright is the default");
     }
 
     private void input() {

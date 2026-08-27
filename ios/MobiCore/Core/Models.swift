@@ -55,8 +55,6 @@ struct GameSettings: Codable, Hashable {
     var lastPlayed: Int64
     var playCount: Int
 
-    /// Catalog of selectable devices; present only in `profileJSON`.
-    var devices: [DeviceProfile]?
 
     static let scaleModeNames = ["Vừa khung", "Bội số nguyên", "Kéo đầy", "Nguyên cỡ"]
     static let networkModeNames = ["Chặn", "Hỏi trước", "Cho phép"]
