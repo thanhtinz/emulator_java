@@ -37,8 +37,13 @@ struct EmulatorView: View {
                 // Deliberately not the game's title: the MIDlet has its own
                 // title bar inside the screen, and repeating it invites
                 // confusion with the game's own commands.
-                Text("\(Int(engine.screenSize.width))×\(Int(engine.screenSize.height))"
-                     + "  ·  \(engine.measuredFps) hình/giây")
+                // The frame counter is behind its own switch: a number for
+                // someone working out why a game runs badly, and a
+                // distraction for everyone else.
+                Text((settings?.showFps ?? false)
+                     ? "\(Int(engine.screenSize.width))×\(Int(engine.screenSize.height))"
+                        + "  ·  \(engine.measuredFps) hình/giây"
+                     : "\(Int(engine.screenSize.width))×\(Int(engine.screenSize.height))")
                     .font(.caption)
                     .foregroundStyle(Palette.textDim)
                 Spacer()

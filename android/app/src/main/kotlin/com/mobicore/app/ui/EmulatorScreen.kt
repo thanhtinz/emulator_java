@@ -158,9 +158,16 @@ fun EmulatorScreen(
             // Deliberately not the game's title: the MIDlet has its own title
             // bar inside the screen, and repeating it invites confusion with
             // the game's own commands.
+            // The frame counter is behind its own switch: it is a number for
+            // someone working out why a game runs badly, and a number that
+            // changes ten times a second is a distraction for everyone else.
             Text(
-                text = "${engine.screenWidth()}×${engine.screenHeight()}  ·  " +
-                    "${engine.measuredFps} hình/giây",
+                text = if (profile?.showFps() == true) {
+                    "${engine.screenWidth()}×${engine.screenHeight()}  ·  " +
+                        "${engine.measuredFps} hình/giây"
+                } else {
+                    "${engine.screenWidth()}×${engine.screenHeight()}"
+                },
                 color = MobiColors.TextDim,
                 fontSize = 12.sp,
             )
