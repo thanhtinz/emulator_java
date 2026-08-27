@@ -23,6 +23,15 @@ public final class NetworkPolicy {
     public static final int DENY = 1;
     public static final int ASK = 2;
 
+    /**
+     * Stands in for the far end when a game opens a port on this device.
+     *
+     * <p>Listening has no host to name, but it is still a decision worth
+     * remembering: the player is allowing this game to accept connections,
+     * and they should be asked once rather than every time it listens.</p>
+     */
+    public static final String THIS_DEVICE = "this-device";
+
     private final List<String> allowed = new ArrayList<String>();
     private final List<String> denied = new ArrayList<String>();
     private int mode = GameProfile.NETWORK_ASK;
@@ -88,7 +97,13 @@ public final class NetworkPolicy {
      * @return {@link #ALLOW}, {@link #DENY} or {@link #ASK} for a URL
      */
     public int decide(String url) {
-        String host = hostOf(url);
+        return decideHost(hostOf(url));
+    }
+
+    /**
+     * @return {@link #ALLOW}, {@link #DENY} or {@link #ASK} for a named host
+     */
+    public int decideHost(String host) {
         if (host == null) {
             return DENY;
         }

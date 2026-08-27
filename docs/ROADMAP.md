@@ -44,6 +44,11 @@
 | 40 | Chia sẻ ảnh chụp và đoạn quay | Xong |
 | 41 | Nghiêng máy để lái | Xong |
 | 42 | Chơi tiếp ngay ở màn hình chính | Xong |
+| 43 | Game hỏng thì nói vì sao | Xong |
+| 44 | Máy ảo khai nó là máy gì | Xong |
+| 45 | Game treo thì vẫn thoát được | Xong |
+| 46 | Đọc được ảnh JPEG | Xong |
+| 47 | Nối thẳng bằng socket | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -168,9 +173,14 @@ Xem `docs/IOS.md`.
   Android lẫn iOS sau khi dịch), `BlockedTransport` (mặc định),
   `LoopbackTransport` (local server testing và là nửa đầu của server bridge —
   game có backend đã chết vẫn chơi được).
+- `SocketTransport`: `RealSockets` (dùng `java.net`, chạy được cả Android lẫn
+  iOS sau khi dịch), `BlockedSockets` (mặc định), `LoopbackSockets` (cả một
+  cuộc trò chuyện chạy trong bộ nhớ — nửa sau của server bridge).
 - `javax.microedition.io`: `Connector`, `HttpConnection`, `ContentConnection`.
   Request được gửi trễ, đúng lúc game cần câu trả lời — vừa đúng đặc tả MIDP
   vừa cho phép lớp policy nhìn thấy trọn vẹn request trước khi nó rời máy.
+  Từ giai đoạn 47 còn có `SocketConnection`, `ServerSocketConnection` và
+  `UDPDatagramConnection` cho những kết nối mở suốt.
 
 **Modding.**
 
@@ -1767,3 +1777,63 @@ dải, ba kênh bằng nhau ở ảnh xám, và góc xa nhất của ảnh lấy
 Bộ cài mẫu nay mang theo `res/photo.jpg`, và `demo.PhotoDemo` vẽ nó ra: ảnh
 trong ảnh chụp màn hình là ảnh thật, do bộ đọc này giải mã, vẽ bởi một MIDlet
 thật.
+
+## Giai đoạn 47 — nối thẳng bằng socket
+
+Lớp mạng cho tới giờ chỉ biết **hỏi một câu rồi nghe một câu trả lời**: đúng
+hình dạng của `http`, và sai hình dạng của gần như mọi thứ còn lại. Game nhiều
+người chơi đời ấy không nói chuyện kiểu đó. Hai máy giữ một đường dây mở rồi
+thay nhau nói trên đó; phòng chờ giữ một đường tới máy chủ suốt lúc người chơi
+còn trong phòng; vài game bắn thẳng từng gói nhỏ vì mất một gói còn đỡ hơn ngồi
+đợi nó. Game nào mở `socket://` thì trước đây nhận về "MobiCore chỉ hỗ trợ
+http" rồi tắt ngay ở màn chọn phòng.
+
+Nay có ba thứ, vì game dùng cả ba:
+
+- **`socket://máy:cổng`** — một đường dây mở tới máy khác.
+- **`socket://:cổng`** — chính máy này mở một cổng cho người khác gọi vào.
+  Địa chỉ không có phần tên máy không phải là địa chỉ hỏng: đó là cách game
+  nói "tôi đợi, đừng gọi đi đâu cả".
+- **`datagram://`** — từng gói một, gửi đi không đợi hồi âm.
+
+Vài chỗ đáng nói:
+
+- **Vẫn đi qua đúng cái cửa cũ.** Chính sách theo từng máy chủ và network
+  monitor đứng trước socket y như đứng trước `http`: một game hai mươi năm
+  tuổi mở đường tới một địa chỉ người chơi chưa nghe bao giờ chính là lúc đáng
+  hỏi nhất. Việc mở cổng trên máy mình thì không có tên máy nào để hỏi, nên nó
+  được nhớ dưới tên chính chiếc máy này — hỏi một lần, không hỏi lại mỗi lần
+  game mở cổng.
+- **Đếm byte thì phải cộng dồn.** Một socket không có "thân yêu cầu" duy nhất
+  để đo: nó chở bất cứ thứ gì game gõ vào, suốt đời đường dây ấy. Nên bộ đếm
+  cộng lên, còn phần xem trước chỉ giữ đoạn mở đầu — đúng đoạn nói cho biết
+  đây là giao thức gì.
+- **Dừng game phải cắt được đường dây.** Cách thoát khỏi một game treo là đếm
+  lệnh nó chạy; nhưng một luồng đang chờ đọc socket thì có chạy lệnh nào đâu
+  mà đếm. Thứ đánh thức nó là đóng đường truyền bên dưới, nên `requestStop`
+  đóng mọi kết nối game còn để ngỏ. Không có chỗ này thì nút thoát ngồi đợi
+  một máy chủ có thể không bao giờ trả lời.
+- **Gói gửi vào chỗ không ai nghe thì rơi**, đúng như UDP vẫn làm. Báo lỗi ở
+  đây là dạy game một điều sai.
+- **Nói thẳng khi không chở được.** `comm://`, hồng ngoại và phần còn lại vẫn
+  bị từ chối, kèm tên giao thức — giả vờ mở được sẽ để game ngồi đọc từ hư
+  không.
+
+Một lỗi cũ lộ ra khi làm phần này: **game chưa bao giờ thật sự ra được mạng**.
+Máy ảo dựng lớp mạng nhưng không ai gắn đường truyền thật vào, nên đặt "cho
+phép game vào mạng" trong hồ sơ game không có tác dụng gì. Nay `startGame` gắn
+sẵn, và chính sách phía trước vẫn là thứ quyết định.
+
+`LoopbackSockets` là nửa sau của cầu nối máy chủ nội bộ mà `LoopbackTransport`
+mở đầu: một game có phòng chờ đã đóng cửa từ lâu nay được trả lời ngay trên
+máy. Ống dẫn là luồng thật, đọc chặn thật, nên mã được kiểm chính là mã chạy
+với socket thật; mọi chỗ chờ đều có hạn giờ, vì một mạng trong bộ nhớ mà kẹt
+được thì còn tệ hơn không có — một bài kiểm tra treo thì chẳng nói lên điều gì.
+
+Bản mẫu `demo.SocketDemo` là MIDlet thật: nó gửi một chữ tới máy chủ rồi đọc
+câu trả lời, mở một cổng rồi nhận người gọi vào, bắn một gói đi rồi bắt lại
+chính gói ấy. Cái được kiểm là **những gì nó đọc được**, không phải "gọi hàm
+không nổ": một lớp socket mở rỗng rồi trả về chuỗi trống cũng qua được bài
+kiểm tra chỉ soi ngoại lệ.
+
+Cầu nối: `setGameNetwork`.

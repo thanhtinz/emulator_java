@@ -425,7 +425,8 @@ public final class SaveState {
 
         private String describe(VmObject object) {
             String name = object.type().binaryName();
-            if (name.indexOf("Connection") >= 0 || name.indexOf("Connector") >= 0) {
+            if (name.indexOf("Connection") >= 0 || name.indexOf("Connector") >= 0
+                    || name.indexOf("Datagram") >= 0) {
                 return "một kết nối mạng";
             }
             if (name.indexOf("RecordStore") >= 0) {

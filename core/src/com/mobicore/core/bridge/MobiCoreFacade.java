@@ -36,6 +36,8 @@ import com.mobicore.core.net.NetworkMonitor;
 import com.mobicore.core.net.NetworkPolicy;
 import com.mobicore.core.net.NetworkStack;
 import com.mobicore.core.net.NetworkTransport;
+import com.mobicore.core.net.RealSockets;
+import com.mobicore.core.net.SocketTransport;
 import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.emu.CrashDiagnosis;
 import com.mobicore.core.emu.SystemProperties;
@@ -74,6 +76,9 @@ public final class MobiCoreFacade {
     private GameLibrary library;
     /** Where downloads go through; built the first time one is asked for. */
     private NetworkStack installerNetwork;
+    /** What a running game reaches the network through; real unless replaced. */
+    private NetworkTransport gameTransport = new HttpTransport();
+    private SocketTransport gameSockets = new RealSockets();
     /** The player's shelves; read the first time they are asked for. */
     private CollectionStore collectionStore;
     private StorageLayout layout;
@@ -466,6 +471,27 @@ public final class MobiCoreFacade {
      */
     public void setInstallerTransport(NetworkTransport transport) {
         installerNetwork().setTransport(transport);
+    }
+
+    /**
+     * Points a running game at a different network.
+     *
+     * <p>The local server bridge, from the game's side: a multiplayer title
+     * whose lobby shut down years ago can be answered from the device. Tests
+     * use the same door to play a whole conversation without a network card.
+     * Either argument may be null to keep the real one.</p>
+     */
+    public void setGameNetwork(NetworkTransport transport, SocketTransport sockets) {
+        if (transport != null) {
+            gameTransport = transport;
+        }
+        if (sockets != null) {
+            gameSockets = sockets;
+        }
+        if (session != null) {
+            session.network().setTransport(gameTransport);
+            session.network().setSocketTransport(gameSockets);
+        }
     }
 
     /** What the installer fetched, so the player can see where it came from. */
@@ -1720,6 +1746,12 @@ public final class MobiCoreFacade {
             }
             SuiteLoader suite = library.load(suiteId);
             session = EmulatorSession.create(suite, profile, vfs, layout, host);
+            // A game's own connections, kept apart from the installer's. The
+            // policy in front still decides: handing the session a working
+            // transport is what makes "allow this game online" mean something,
+            // not a licence to connect.
+            session.network().setTransport(gameTransport);
+            session.network().setSocketTransport(gameSockets);
             if (audioSink != null) {
                 session.setAudio(audioSink);
             }

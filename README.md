@@ -79,11 +79,12 @@ trên — theo cách cầm một chiếc điện thoại J2ME.
 - Thư viện MIDP: `Canvas`, `GameCanvas`, `Graphics`, `Image`, `Font`,
   `Sprite`, `TiledLayer`, `LayerManager`, vòng đời MIDlet.
 - Thư viện game, profile theo từng game, RMS lưu vĩnh viễn, backup/restore.
-- Lớp mạng có policy theo host và network monitor.
+- Lớp mạng có policy theo host và network monitor: `http`, `socket` và
+  `datagram`, kể cả cổng do chính game mở ra.
 - Modding không đụng tới file gốc; JAD editor, RMS editor, crash report.
 - Ứng dụng Android và iOS dựng trên cùng một core.
 
-Bộ test: **368 checks**, trong đó phần thông dịch được kiểm tra vi sai với
+Bộ test: **1480 checks**, trong đó phần thông dịch được kiểm tra vi sai với
 chính JVM thật.
 
 ## Trạng thái
