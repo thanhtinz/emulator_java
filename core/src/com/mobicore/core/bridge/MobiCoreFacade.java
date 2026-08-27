@@ -9,6 +9,7 @@ import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.library.BatchImport;
 import com.mobicore.core.library.GameLibrary;
+import com.mobicore.core.library.PresetStore;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.AppSettings;
@@ -172,6 +173,7 @@ public final class MobiCoreFacade {
             library.setClock(now());
             GameLibrary.InstallResult result = library.install(jar, jad == null || jad.length == 0
                     ? null : jad);
+            applyDefaultPreset(result.entry().suiteId());
             Map<String, Object> json = Json.object();
             json.put("ok", Boolean.TRUE);
             json.put("replaced", Boolean.valueOf(result.replaced()));
@@ -938,6 +940,7 @@ public final class MobiCoreFacade {
             return error("The library is not open");
         }
         BatchImport.Report report = BatchImport.run(library, names, payloads);
+        applyDefaultPresetToAll();
         List<Object> files = new ArrayList<Object>();
         for (int i = 0; i < report.outcomes().size(); i++) {
             BatchImport.Outcome outcome = report.outcomes().get(i);
@@ -955,6 +958,136 @@ public final class MobiCoreFacade {
         json.put("summary", report.summary());
         json.put("files", files);
         return Json.write(json);
+    }
+
+    // --------------------------------------------------------------- presets
+
+    private PresetStore presets() {
+        return new PresetStore(vfs, layout);
+    }
+
+    /**
+     * Every preset, and which one new games start from.
+     */
+    public String presetsJson() {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("presets", new ArrayList<Object>(presets().names()));
+            json.put("defaultPreset", appSettings().defaultPreset());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Saves one game's settings under a name, to apply to others later. */
+    public String savePreset(String name, String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            GameProfile profile = library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            presets().save(name, profile);
+            return ok("preset", name);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Puts a saved preset's settings onto a game. */
+    public String applyPreset(String name, String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            GameProfile profile = library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            GameProfile applied = presets().apply(name, profile);
+            if (applied == null) {
+                return error("No preset named " + name);
+            }
+            library.saveProfile(applied);
+            return ok("preset", name);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String deletePreset(String name) {
+        try {
+            return presets().delete(name) ? ok("deleted", name) : error("No preset named " + name);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Which preset a newly imported game starts from; empty for none. */
+    public String setDefaultPreset(String name) {
+        if (name != null && name.length() > 0 && !presets().exists(name)) {
+            return error("No preset named " + name);
+        }
+        AppSettings settings = appSettings();
+        settings.setDefaultPreset(name);
+        String result = writeAppSettings(settings);
+        return Json.bool(Json.readObject(result), "ok", false)
+                ? ok("defaultPreset", settings.defaultPreset())
+                : result;
+    }
+
+    /**
+     * Puts the default preset on a freshly imported game.
+     *
+     * <p>Silent by design: a preset that cannot be read must not turn an
+     * import into a failure. The game keeps what auto-setup worked out, which
+     * is a working configuration either way.</p>
+     */
+    private void applyDefaultPreset(String suiteId) {
+        String name = appSettings().defaultPreset();
+        if (name == null || name.length() == 0) {
+            return;
+        }
+        try {
+            GameProfile profile = library.profile(suiteId);
+            GameProfile applied = profile == null ? null : presets().apply(name, profile);
+            if (applied != null) {
+                library.saveProfile(applied);
+            }
+        } catch (IOException e) {
+            // Nothing to do about it here; the import itself succeeded.
+        }
+    }
+
+    private void applyDefaultPresetToAll() {
+        String name = appSettings().defaultPreset();
+        if (name == null || name.length() == 0) {
+            return;
+        }
+        try {
+            List<LibraryEntry> all = library.all();
+            for (int i = 0; i < all.size(); i++) {
+                GameProfile profile = library.profile(all.get(i).suiteId());
+                if (profile != null && profile.isAuto()) {
+                    // Only the ones nobody has configured by hand: a preset
+                    // applied on import must not undo a setting someone
+                    // deliberately changed on a game they already had.
+                    GameProfile applied = presets().apply(name, profile);
+                    if (applied != null) {
+                        library.saveProfile(applied);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            // As above: the import stands.
+        }
     }
 
     // ----------------------------------------------------------- text entry

@@ -45,6 +45,35 @@ fun SettingsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
         }
 
         item {
+            val presets by library.presets.collectAsState()
+            val defaultPreset by library.defaultPreset.collectAsState()
+            SectionCard(title = "BỘ CẤU HÌNH MẶC ĐỊNH") {
+                Column {
+                    if (presets.isEmpty()) {
+                        Text(
+                            "Lưu một bộ cấu hình trong phần cài đặt của game, rồi chọn ở đây "
+                                + "để mọi game nhập vào sau đều dùng bộ đó.",
+                            color = MobiColors.TextDim,
+                            fontSize = 13.sp,
+                        )
+                    } else {
+                        // "Không dùng" is first and is the default: with
+                        // nothing chosen, a new game is configured from what
+                        // is inside it, which is right until someone has
+                        // decided otherwise for their own phone.
+                        OptionRow(
+                            label = "Game mới sẽ dùng",
+                            options = listOf("Không dùng") + presets,
+                            selected = (presets.indexOf(defaultPreset) + 1).coerceAtLeast(0),
+                        ) { index ->
+                            library.setDefaultPreset(if (index == 0) "" else presets[index - 1])
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
             SectionCard(title = "BỘ GIẢ LẬP") {
                 Column {
                     FieldRow("Cấu hình", "CLDC 1.0 / 1.1")

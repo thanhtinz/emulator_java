@@ -29,11 +29,13 @@ public final class StorageLayout {
     public static final String MODS = "mods";
     public static final String BACKUPS = "backups";
     public static final String SCREENSHOTS = "screenshots";
+    /** Named settings, saved once and applied to any game. */
+    public static final String PRESETS = "presets";
     public static final String LOGS = "logs";
     public static final String CACHE = "cache";
 
     public static final String[] TOP_LEVEL = {
-            GAMES, PROFILES, RMS, SAVES, SKINS, MODS, BACKUPS, SCREENSHOTS, LOGS, CACHE
+            GAMES, PROFILES, RMS, SAVES, SKINS, MODS, BACKUPS, SCREENSHOTS, PRESETS, LOGS, CACHE
     };
 
     private final String root;

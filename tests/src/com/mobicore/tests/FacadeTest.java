@@ -137,6 +137,9 @@ public final class FacadeTest extends Test {
         eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
                 "and round again");
 
+        // Settings worked out once, applied to the rest --------------------
+        presets(facade, suiteId);
+
         // Searching across the bridge --------------------------------------
         facade.renameGame(suiteId, "Người Chạy Trên Mây");
         Map<String, Object> hit = Json.readObject(facade.searchJson("nguoi chay", 0));
@@ -275,5 +278,79 @@ public final class FacadeTest extends Test {
                 "uninstall succeeds");
         eq(0, Json.array(Json.readObject(facade.libraryJson()), "games").size(),
                 "the library is empty again");
+    }
+    /**
+     * Presets: one answer to "how big, how loud, how many frames", saved
+     * under a name and applied to every other game.
+     */
+    private void presets(MobiCoreFacade facade, String suiteId) throws Exception {
+        // Set the game up by hand first, so the preset carries something.
+        facade.setDeviceProfile(suiteId, "s40-128x128");
+        Map<String, Object> tuned = Json.readObject(facade.profileJson(suiteId));
+        tuned.put("volume", Integer.valueOf(35));
+        tuned.put("frameLimit", Integer.valueOf(24));
+        facade.updateProfile(Json.write(tuned));
+
+        check(Json.bool(Json.readObject(facade.savePreset("Dien thoai cua toi", suiteId)),
+                "ok", false), "settings can be saved under a name");
+        eq(1, Json.array(Json.readObject(facade.presetsJson()), "presets").size(),
+                "and the list shows it");
+
+        // Applied to another game, which is the whole point.
+        facade.importSuite(SampleSuite.zip(otherGame()), null);
+        String other = null;
+        List<Object> games = Json.array(Json.readObject(facade.libraryJson()), "games");
+        for (int i = 0; i < games.size(); i++) {
+            Map<String, Object> game = (Map<String, Object>) games.get(i);
+            String id = Json.string(game, "suiteId", "");
+            if (!suiteId.equals(id)) {
+                other = id;
+            }
+        }
+        check(other != null, "a second game is installed to apply it to");
+        check(Json.bool(Json.readObject(facade.applyPreset("Dien thoai cua toi", other)),
+                "ok", false), "the preset applies to another game");
+
+        Map<String, Object> after = Json.readObject(facade.profileJson(other));
+        eq(35, Json.integer(after, "volume", 0), "which takes the saved volume");
+        eq(24, Json.integer(after, "frameLimit", 0), "and the saved frame cap");
+        eq("s40-128x128", Json.string(Json.child(after, "device"), "id", ""),
+                "and the saved screen");
+        eq(other, Json.string(after, "suiteId", ""), "but stays the game it is");
+        check(!Json.bool(after, "auto", true),
+                "and no longer claims the emulator measured all that");
+
+        check(!Json.bool(Json.readObject(facade.applyPreset("khong co", other)), "ok", true),
+                "a preset that does not exist applies nothing");
+        check(!Json.bool(Json.readObject(facade.setDefaultPreset("khong co")), "ok", true),
+                "and cannot be made the default");
+        check(Json.bool(Json.readObject(facade.setDefaultPreset("Dien thoai cua toi")),
+                "ok", false), "one that does exist can");
+        eq("Dien thoai cua toi",
+                Json.string(Json.readObject(facade.appSettingsJson()), "defaultPreset", ""),
+                "and is remembered between sessions");
+
+        check(Json.bool(Json.readObject(facade.deletePreset("Dien thoai cua toi")), "ok", false),
+                "a preset can be thrown away");
+        eq(0, Json.array(Json.readObject(facade.presetsJson()), "presets").size(),
+                "after which none are listed");
+        facade.setDefaultPreset("");
+        facade.uninstall(other, false);
+        facade.autoSetup(suiteId);
+    }
+
+    /** A second suite, so a preset has somewhere to be applied. */
+    private Map<String, byte[]> otherGame() throws Exception {
+        Map<String, byte[]> entries = new java.util.LinkedHashMap<String, byte[]>();
+        entries.put("META-INF/MANIFEST.MF", SampleSuite.utf8("Manifest-Version: 1.0\n"
+                + "MIDlet-Name: Tile Rush\n"
+                + "MIDlet-Version: 1.0\n"
+                + "MIDlet-Vendor: Test Games\n"
+                + "MIDlet-1: Tile Rush,,demo.TileRush\n"
+                + "MicroEdition-Configuration: CLDC-1.1\n"
+                + "MicroEdition-Profile: MIDP-2.0\n"));
+        entries.put("demo/TileRush.class",
+                new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE});
+        return entries;
     }
 }

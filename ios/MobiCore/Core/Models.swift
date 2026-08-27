@@ -212,3 +212,9 @@ struct Screenshot: Codable, Identifiable, Hashable {
 struct ScreenshotsResponse: Codable {
     let screenshots: [Screenshot]
 }
+
+/// Named settings, saved once and applied to any game.
+struct PresetsResponse: Codable {
+    let presets: [String]
+    let defaultPreset: String
+}

@@ -21,13 +21,13 @@ public final class StorageTest extends Test {
         eq("/data/MobiCore/library.json", layout.libraryIndexPath(), "library index at the root");
         eq("/data/MobiCore/screenshots/demo", layout.screenshotDir("demo"),
                 "pictures of a game live under its own name");
-        eq(10, StorageLayout.TOP_LEVEL.length, "all documented directories are declared");
+        eq(11, StorageLayout.TOP_LEVEL.length, "all documented directories are declared");
 
         Vfs vfs = new MemoryVfs();
         for (String dir : StorageLayout.TOP_LEVEL) {
             vfs.mkdirs(layout.dir(dir));
         }
-        eq(10, vfs.list(layout.root()).size(), "every top level directory is created");
+        eq(11, vfs.list(layout.root()).size(), "every top level directory is created");
         check(vfs.isDirectory(layout.dir(StorageLayout.GAMES)), "games is a directory");
 
         vfs.write(layout.jarPath("demo"), new byte[]{1, 2, 3});

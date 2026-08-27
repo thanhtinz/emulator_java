@@ -24,6 +24,30 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                 }
 
+                SectionCard(title: "BỘ CẤU HÌNH MẶC ĐỊNH") {
+                    if client.presets.isEmpty {
+                        Text("Lưu một bộ cấu hình trong phần cài đặt của game, rồi chọn ở đây "
+                             + "để mọi game nhập vào sau đều dùng bộ đó.")
+                            .font(.footnote)
+                            .foregroundStyle(Palette.textDim)
+                    } else {
+                        // "Không dùng" is the default: with nothing chosen, a
+                        // new game is configured from what is inside it,
+                        // which is right until someone has decided otherwise
+                        // for their own phone.
+                        Picker("Game mới sẽ dùng", selection: Binding(
+                            get: { client.defaultPreset },
+                            set: { client.setDefaultPreset($0) }
+                        )) {
+                            Text("Không dùng").tag("")
+                            ForEach(client.presets, id: \.self) { preset in
+                                Text(preset).tag(preset)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                    }
+                }
+
                 SectionCard(title: "BỘ GIẢ LẬP") {
                     VStack(spacing: 6) {
                         FieldRow(label: "Cấu hình", value: "CLDC 1.0 / 1.1")

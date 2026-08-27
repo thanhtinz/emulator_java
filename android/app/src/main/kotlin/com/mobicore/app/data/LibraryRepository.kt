@@ -4,6 +4,7 @@ import com.mobicore.core.jar.SuiteLoader
 import com.mobicore.core.library.BatchImport
 import com.mobicore.core.library.GameLibrary
 import com.mobicore.core.library.LibraryEntry
+import com.mobicore.core.library.PresetStore
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
 import com.mobicore.core.model.DeviceProfile
@@ -27,6 +28,7 @@ class LibraryRepository(filesDir: String) {
     private val layout = StorageLayout(StorageLayout.join(filesDir, "MobiCore"))
     private val vfs = LocalVfs()
     private val library = GameLibrary(vfs, layout)
+    private val presetStore = PresetStore(vfs, layout)
 
     private val _games = MutableStateFlow<List<LibraryEntry>>(emptyList())
     val games: StateFlow<List<LibraryEntry>> = _games.asStateFlow()
@@ -38,6 +40,7 @@ class LibraryRepository(filesDir: String) {
         library.setClock(System.currentTimeMillis())
         library.open()
         refresh()
+        refreshPresets()
     }
 
     private fun refresh() {
@@ -53,6 +56,7 @@ class LibraryRepository(filesDir: String) {
     fun importSuite(jar: ByteArray, jad: ByteArray?): LibraryEntry {
         library.setClock(System.currentTimeMillis())
         val result = library.install(jar, jad)
+        applyDefaultPreset()
         refresh()
         return result.entry()
     }
@@ -66,6 +70,7 @@ class LibraryRepository(filesDir: String) {
      */
     fun importMany(names: Array<String>, payloads: Array<ByteArray>): BatchImport.Report {
         val report = BatchImport.run(library, names, payloads)
+        applyDefaultPreset()
         refresh()
         return report
     }
@@ -293,6 +298,72 @@ class LibraryRepository(filesDir: String) {
 
     fun deleteScreenshot(suiteId: String, name: String): Boolean =
         library.deleteScreenshot(suiteId, name)
+
+    // ---------------------------------------------------------- presets
+
+    private val _presets = MutableStateFlow<List<String>>(emptyList())
+
+    /** Named settings, saved once and applied to any game. */
+    val presets: StateFlow<List<String>> = _presets.asStateFlow()
+
+    private val _defaultPreset = MutableStateFlow("")
+    val defaultPreset: StateFlow<String> = _defaultPreset.asStateFlow()
+
+    private fun refreshPresets() {
+        _presets.value = presetStore.names()
+        _defaultPreset.value = appSettings().defaultPreset()
+    }
+
+    fun savePreset(name: String, suiteId: String) {
+        val profile = library.profile(suiteId) ?: return
+        presetStore.save(name, profile)
+        refreshPresets()
+    }
+
+    /**
+     * Puts a saved preset's settings onto a game, keeping everything that is
+     * about the game itself: which suite it is, when it was last played,
+     * whether it is a favourite.
+     */
+    fun applyPreset(name: String, suiteId: String) {
+        val profile = library.profile(suiteId) ?: return
+        val applied = presetStore.apply(name, profile) ?: return
+        library.saveProfile(applied)
+        refresh()
+    }
+
+    fun deletePreset(name: String) {
+        presetStore.delete(name)
+        if (_defaultPreset.value == name) {
+            setDefaultPreset("")
+        }
+        refreshPresets()
+    }
+
+    /** Which preset a newly imported game starts from; empty for none. */
+    fun setDefaultPreset(name: String) {
+        val settings = appSettings()
+        settings.setDefaultPreset(name)
+        writeAppSettings(settings)
+        _defaultPreset.value = settings.defaultPreset()
+    }
+
+    /**
+     * Puts the default preset on games that nobody has configured by hand.
+     *
+     * Called after an import: a preset applied then must not undo a setting
+     * someone deliberately changed on a game they already had.
+     */
+    private fun applyDefaultPreset() {
+        val name = _defaultPreset.value
+        if (name.isEmpty()) return
+        library.all().forEach { entry ->
+            val profile = library.profile(entry.suiteId())
+            if (profile != null && profile.isAuto) {
+                presetStore.apply(name, profile)?.let { library.saveProfile(it) }
+            }
+        }
+    }
 
     fun toggleFavourite(suiteId: String) {
         val profile = library.profile(suiteId) ?: return

@@ -11,6 +11,7 @@ struct GameSettingsView: View {
     /// player who just wants to play should not have to scroll a page of
     /// switches to learn there is nothing for them to do.
     @State private var showAdvanced = false
+    @State private var presetName = ""
 
     var body: some View {
         ScrollView {
@@ -164,6 +165,51 @@ struct GameSettingsView: View {
                                     label: entry.label,
                                     value: String(current.input.mappings[entry.button] ?? 0)
                                 )
+                            }
+                        }
+                    }
+
+                    // Somebody with eighty games has one answer to "how big,
+                    // how loud, how many frames". A preset is that answer with
+                    // a name on it: worked out here, applied to the rest.
+                    SectionCard(title: "BỘ CẤU HÌNH",
+                                trailing: "\(client.presets.count) bộ") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if client.presets.isEmpty {
+                                Text("Chưa có bộ nào. Lưu cấu hình của game này rồi áp cho "
+                                     + "các game khác.")
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.textDim)
+                            }
+                            ForEach(client.presets, id: \.self) { preset in
+                                HStack {
+                                    Text(preset)
+                                        .font(.subheadline)
+                                        .foregroundStyle(Palette.text)
+                                    Spacer()
+                                    Button("Áp dụng") {
+                                        client.applyPreset(preset, to: suiteId)
+                                        reload()
+                                    }
+                                    .font(.footnote)
+                                    Button("Xoá") { client.deletePreset(preset) }
+                                        .font(.footnote)
+                                        .tint(Palette.bad)
+                                }
+                            }
+                            HStack {
+                                // Typed rather than picked: the useful names
+                                // are the player's own words, and no list the
+                                // app writes would contain them.
+                                TextField("Tên bộ cấu hình", text: $presetName)
+                                    .textFieldStyle(.roundedBorder)
+                                Button("Lưu") {
+                                    let name = presetName.trimmingCharacters(in: .whitespaces)
+                                    guard !name.isEmpty else { return }
+                                    client.savePreset(name, from: suiteId)
+                                    presetName = ""
+                                }
+                                .disabled(presetName.trimmingCharacters(in: .whitespaces).isEmpty)
                             }
                         }
                     }

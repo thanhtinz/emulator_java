@@ -203,6 +203,26 @@
     return [_facade takeScreenshot];
 }
 
+- (NSString *)presetsJSON {
+    return [_facade presetsJson];
+}
+
+- (NSString *)savePreset:(NSString *)name fromSuite:(NSString *)suiteId {
+    return [_facade savePresetWithNSString:name withNSString:suiteId];
+}
+
+- (NSString *)applyPreset:(NSString *)name toSuite:(NSString *)suiteId {
+    return [_facade applyPresetWithNSString:name withNSString:suiteId];
+}
+
+- (NSString *)deletePreset:(NSString *)name {
+    return [_facade deletePresetWithNSString:name];
+}
+
+- (NSString *)setDefaultPreset:(NSString *)name {
+    return [_facade setDefaultPresetWithNSString:name];
+}
+
 - (NSString *)screenshotsJSONForSuite:(NSString *)suiteId {
     return [_facade screenshotsJsonWithNSString:suiteId];
 }

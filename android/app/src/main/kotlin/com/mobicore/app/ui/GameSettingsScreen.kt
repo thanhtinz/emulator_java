@@ -21,10 +21,12 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -261,6 +263,13 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
         }
 
         item {
+            // Somebody with eighty games has one answer to "how big, how
+            // loud, how many frames". A preset is that answer with a name on
+            // it: worked out here, applied to the rest.
+            PresetCard(library, suiteId)
+        }
+
+        item {
             SectionCard(title = "MẠNG") {
                 OptionRow("Truy cập mạng", listOf("Chặn", "Hỏi trước", "Cho phép"), networkMode) {
                     networkMode = it
@@ -270,6 +279,75 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
         }
 
         item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+/**
+ * Saving these settings under a name, and putting a saved one back.
+ *
+ * The name is typed rather than picked, because the useful ones are the
+ * player's own words — "điện thoại của tôi", "màn hình nhỏ" — and no list the
+ * app writes would contain them.
+ */
+@Composable
+private fun PresetCard(library: LibraryRepository, suiteId: String) {
+    val presets by library.presets.collectAsState()
+    var name by remember { mutableStateOf("") }
+
+    SectionCard(title = "BỘ CẤU HÌNH", trailing = "${presets.size} bộ") {
+        Column {
+            if (presets.isEmpty()) {
+                Text(
+                    "Chưa có bộ nào. Lưu cấu hình của game này rồi áp cho các game khác.",
+                    color = MobiColors.TextDim,
+                    fontSize = 13.sp,
+                )
+            } else {
+                presets.forEach { preset ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(preset, color = MobiColors.Text, fontSize = 14.sp,
+                            modifier = Modifier.weight(1f))
+                        Text(
+                            "Áp dụng",
+                            color = MobiColors.Accent,
+                            fontSize = 13.sp,
+                            modifier = Modifier.clickable { library.applyPreset(preset, suiteId) },
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            "Xoá",
+                            color = MobiColors.Bad,
+                            fontSize = 13.sp,
+                            modifier = Modifier.clickable { library.deletePreset(preset) },
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text("Tên bộ cấu hình") },
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    "Lưu",
+                    color = if (name.isBlank()) MobiColors.TextDim else MobiColors.Accent,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable(enabled = name.isNotBlank()) {
+                        library.savePreset(name.trim(), suiteId)
+                        name = ""
+                    },
+                )
+            }
+        }
     }
 }
 

@@ -20,6 +20,7 @@
 | 16 | Chạm thẳng vào thanh lệnh của game | Xong |
 | 17 | Phím hướng to bằng phím số, trang chủ theo kiểu J2ME Loader | Xong |
 | 18 | Thư viện ảnh chụp | Xong |
+| 19 | Bộ cấu hình dùng lại | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -742,3 +743,29 @@ là cách một trình xem ảnh biến thành cách đọc trộm phần còn l
 test cho đúng trường hợp đó.
 
 Ảnh: `build/screenshots/21-screenshots.png`.
+
+## Bộ cấu hình: chỉnh một lần, áp cho cả bộ sưu tập
+
+Người có tám mươi game và **một** cái điện thoại chỉ có một câu trả lời cho
+"màn hình bao nhiêu, âm lượng bao nhiêu, mấy khung hình" — mà trước đây phải
+trả lời tám mươi lần. Nay câu trả lời đó có tên: **bộ cấu hình** (J2ME Loader
+gọi là *profiles*).
+
+- Trong cài đặt của một game: gõ tên rồi **Lưu** — cấu hình hiện tại thành một
+  bộ. Bộ nào cũng **Áp dụng** được cho game khác, hoặc **Xoá**.
+- Trong Cài đặt chung: chọn **bộ mặc định** — mọi game nhập vào sau đó tự dùng
+  bộ đó. Mặc định là "Không dùng": chưa ai quyết gì thì game vẫn được cấu hình
+  từ chính nội dung của nó.
+- Nhập cả thư mục thì bộ mặc định chỉ áp cho những game **chưa ai chỉnh tay** —
+  một lần nhập không được xoá đi thiết lập người ta cố ý đổi cho game đã có.
+
+Bộ cấu hình chỉ mang **thiết lập**, không mang **danh tính**: nó lưu máy giả
+lập, bàn phím, phóng ảnh, âm thanh, mạng… và không bao giờ lưu `suiteId`, số
+lần chơi, hay dấu yêu thích. Áp một bộ lên game khác không được biến game đó
+thành game khác. Tên bộ do người dùng gõ nên bị lọc mọi ký tự đường dẫn trước
+khi thành tên tệp.
+
+Ở lõi: `core/library/PresetStore.java`, thư mục `presets/`, và facade có
+`presetsJson`, `savePreset`, `applyPreset`, `deletePreset`, `setDefaultPreset`.
+
+Ảnh: `build/screenshots/04-game-settings.png`.

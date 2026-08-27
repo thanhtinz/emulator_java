@@ -38,6 +38,7 @@ final class MobiCoreClient: ObservableObject {
         let byId = Dictionary(uniqueKeysWithValues: response.games.map { ($0.suiteId, $0) })
         recent = response.recent.compactMap { byId[$0] }
         favourites = response.favourites.compactMap { byId[$0] }
+        refreshPresets()
     }
 
     func game(_ suiteId: String) -> Game? {
@@ -235,6 +236,39 @@ final class MobiCoreClient: ObservableObject {
     func cycleKeypadLayout(_ suiteId: String) {
         report(decode(bridge.cycleKeypadLayout(forSuite: suiteId)))
         refresh()
+    }
+
+    // MARK: - Presets
+
+    /// Named settings, saved once and applied to any game.
+    @Published private(set) var presets: [String] = []
+    /// Which preset a newly imported game starts from; empty for none.
+    @Published private(set) var defaultPreset = ""
+
+    func refreshPresets() {
+        let payload: PresetsResponse? = decode(bridge.presetsJSON())
+        presets = payload?.presets ?? []
+        defaultPreset = payload?.defaultPreset ?? ""
+    }
+
+    func savePreset(_ name: String, from suiteId: String) {
+        report(decode(bridge.savePreset(name, fromSuite: suiteId)))
+        refreshPresets()
+    }
+
+    func applyPreset(_ name: String, to suiteId: String) {
+        report(decode(bridge.applyPreset(name, toSuite: suiteId)))
+        refresh()
+    }
+
+    func deletePreset(_ name: String) {
+        report(decode(bridge.deletePreset(name)))
+        refreshPresets()
+    }
+
+    func setDefaultPreset(_ name: String) {
+        report(decode(bridge.setDefaultPreset(name)))
+        refreshPresets()
     }
 
     /// Keeps a picture of what the running game is showing.

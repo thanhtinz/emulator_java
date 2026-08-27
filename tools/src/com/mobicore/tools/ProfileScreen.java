@@ -56,11 +56,11 @@ public final class ProfileScreen {
         session.destroy();
         String backupPath = library.backup(entry.suiteId());
 
-        return draw(library, entry, profile, backupPath);
+        return draw(library, entry, profile, backupPath, vfs, layout);
     }
 
     private Framebuffer draw(GameLibrary library, LibraryEntry entry, GameProfile profile,
-                             String backupPath) throws Exception {
+                             String backupPath, Vfs vfs, StorageLayout layout) throws Exception {
         Framebuffer frame = Preview.newScreen();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
@@ -126,6 +126,27 @@ public final class ProfileScreen {
         ui.field("Giữ tỉ lệ khung", profile.keepAspect() ? "Bật" : "Tắt", fieldX,
                 row + Ui.ROW * 4, fieldWidth);
         y += displayHeight + 14;
+
+        // Presets --------------------------------------------------------
+        // Real ones: saved out of this very profile through the same store
+        // the app uses, so the screenshot cannot show a feature that does not
+        // work.
+        com.mobicore.core.library.PresetStore presets =
+                new com.mobicore.core.library.PresetStore(vfs, layout);
+        presets.save("Điện thoại của tôi", profile);
+        presets.save("Màn hình nhỏ", profile);
+        java.util.List<String> names = presets.names();
+        int presetHeight = ui.sectionHeight(names.size() + 1);
+        row = ui.section(margin, y, width, presetHeight, "BỘ CẤU HÌNH",
+                names.size() + " bộ");
+        for (int i = 0; i < names.size(); i++) {
+            ui.text(ui.medium(), names.get(i), fieldX, row, Theme.TEXT);
+            ui.textRight(ui.small(), "Áp dụng    Xoá", fieldX + fieldWidth,
+                    row + (ui.medium().height() - ui.small().height()) / 2, Theme.ACCENT);
+            row += Ui.ROW;
+        }
+        ui.field("Lưu cấu hình này thành", "Tên bộ cấu hình  +", fieldX, row, fieldWidth);
+        y += presetHeight + 14;
 
         // Input mapping --------------------------------------------------
         String[][] buttons = {

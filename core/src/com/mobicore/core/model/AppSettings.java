@@ -23,6 +23,14 @@ public final class AppSettings {
     /** Sort order the library opens with; see {@code GameLibrary.SORT_*}. */
     private int librarySort;
     private boolean confirmBeforeDeleting = true;
+    /**
+     * The preset every newly imported game starts from, or empty for none.
+     *
+     * <p>Empty is the default: with nothing set, a new game is configured
+     * from what is inside it, which is right until someone has decided
+     * otherwise for their own phone.</p>
+     */
+    private String defaultPreset = "";
 
     public int theme() {
         return theme;
@@ -60,12 +68,21 @@ public final class AppSettings {
         this.confirmBeforeDeleting = confirm;
     }
 
+    public String defaultPreset() {
+        return defaultPreset;
+    }
+
+    public void setDefaultPreset(String name) {
+        this.defaultPreset = name == null ? "" : name;
+    }
+
     public Map<String, Object> toJson() {
         Map<String, Object> json = Json.object();
         json.put("theme", Integer.valueOf(theme));
         json.put("themeName", themeName(theme));
         json.put("librarySort", Integer.valueOf(librarySort));
         json.put("confirmBeforeDeleting", Boolean.valueOf(confirmBeforeDeleting));
+        json.put("defaultPreset", defaultPreset);
         return json;
     }
 
@@ -74,6 +91,7 @@ public final class AppSettings {
         settings.setTheme(Json.integer(json, "theme", THEME_LIGHT));
         settings.librarySort = Json.integer(json, "librarySort", 0);
         settings.confirmBeforeDeleting = Json.bool(json, "confirmBeforeDeleting", true);
+        settings.defaultPreset = Json.string(json, "defaultPreset", "");
         return settings;
     }
 }

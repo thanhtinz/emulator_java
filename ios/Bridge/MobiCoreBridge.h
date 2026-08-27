@@ -123,6 +123,13 @@ NS_ASSUME_NONNULL_BEGIN
 /** Saves a picture of what the running game is showing. */
 - (NSString *)takeScreenshot;
 
+/** Named settings, saved once and applied to any game. */
+- (NSString *)presetsJSON;
+- (NSString *)savePreset:(NSString *)name fromSuite:(NSString *)suiteId;
+- (NSString *)applyPreset:(NSString *)name toSuite:(NSString *)suiteId;
+- (NSString *)deletePreset:(NSString *)name;
+- (NSString *)setDefaultPreset:(NSString *)name;
+
 /** Every picture taken of one game, newest first. */
 - (NSString *)screenshotsJSONForSuite:(NSString *)suiteId;
 
