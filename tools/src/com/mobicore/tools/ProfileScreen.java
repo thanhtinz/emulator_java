@@ -76,7 +76,7 @@ public final class ProfileScreen {
         // This page is long: automatic setup, the screen, the keypad, display
         // and sound, presets, key mapping, the controller, saved data. On a
         // phone it scrolls; here it is drawn at full length.
-        Framebuffer frame = Preview.newScreen(1840);
+        Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar(entry.title(), "Cài đặt");
@@ -260,7 +260,7 @@ public final class ProfileScreen {
         ui.text(ui.small(), ui.ellipsize(ui.small(), backupPath, fieldWidth), fieldX,
                 row + Ui.ROW, Theme.TEXT_DIM);
 
-        return frame;
+        return Preview.fit(frame);
     }
 
     /** What the settings screen calls one of the emulator's own buttons. */

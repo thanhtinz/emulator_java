@@ -47,7 +47,7 @@ public final class LinkScreen {
                         "<!DOCTYPE html><html><body>Đăng nhập</body></html>", "text/html"));
         Map<String, Object> result = Json.readObject(facade.installFromUrl(link));
 
-        Framebuffer frame = Preview.newScreen();
+        Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar("Nhập từ liên kết", "MobiCore");
@@ -110,6 +110,6 @@ public final class LinkScreen {
         int buttonWidth = (width - 12) / 2;
         ui.button(margin, y, buttonWidth, "Hủy", false);
         ui.button(margin + buttonWidth + 12, y, buttonWidth, "Tải về", true, Icons.IMPORT);
-        return frame;
+        return Preview.fit(frame);
     }
 }

@@ -48,7 +48,7 @@ public final class SlotsScreen {
         }
         save(library, entry.suiteId(), session, StorageLayout.SLOT_AUTO);
 
-        Framebuffer frame = Preview.newScreen();
+        Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
 
@@ -98,7 +98,7 @@ public final class SlotsScreen {
             }
             y += height + 12;
         }
-        return frame;
+        return Preview.fit(frame);
     }
 
     private void save(GameLibrary library, String suiteId, EmulatorSession session, int slot)

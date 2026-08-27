@@ -139,7 +139,7 @@ struct GameDetailView: View {
                             FieldRow(label: "Phiên bản", value: game.version)
                             FieldRow(label: "Mã bộ cài", value: game.suiteId)
                             FieldRow(label: "Dung lượng", value: byteString(game.jarSize))
-                            FieldRow(label: "Máy giả lập",
+                            FieldRow(label: "Màn hình",
                                      value: game.settings?.device.resolution ?? "—")
                             FieldRow(label: "Phóng ảnh", value: game.settings?.scaleModeName ?? "—")
                             FieldRow(label: "Đã chơi",

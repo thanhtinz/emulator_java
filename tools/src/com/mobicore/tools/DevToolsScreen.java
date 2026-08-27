@@ -101,7 +101,7 @@ public final class DevToolsScreen {
 
     private Framebuffer draw(GameLibrary library, LibraryEntry entry, EmulatorSession session,
                              ModManager mods, RmsEditor rms) throws Exception {
-        Framebuffer frame = Preview.newScreen();
+        Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar("Công cụ", entry.title());
@@ -188,7 +188,10 @@ public final class DevToolsScreen {
             row += entryHeight;
         }
 
-        ui.tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
-        return frame;
+        // Thanh thẻ nằm đáy trang, nên nó được vẽ sau khi trang đã cắt về
+        // đúng chiều cao thật — vẽ trước thì nó dính vào đáy tấm thừa.
+        Framebuffer page = Preview.fit(frame, Ui.TAB_BAR);
+        new Ui(page).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
+        return page;
     }
 }

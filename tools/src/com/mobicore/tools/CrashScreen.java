@@ -37,7 +37,7 @@ public final class CrashScreen {
         facade.renderFrame();
         Map<String, Object> crash = Json.readObject(facade.crashJson());
 
-        Framebuffer frame = Preview.newScreen();
+        Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar(Json.string(crash, "game", "Game"), "MobiCore");
@@ -122,6 +122,6 @@ public final class CrashScreen {
         ui.button(margin + buttonWidth + 12, y, buttonWidth, "Chơi lại", true, Icons.PLAY);
 
         facade.dismissCrash();
-        return frame;
+        return Preview.fit(frame);
     }
 }

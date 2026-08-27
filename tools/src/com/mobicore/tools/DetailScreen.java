@@ -57,7 +57,7 @@ public final class DetailScreen {
     private Framebuffer draw(MobiCoreFacade facade, Map<String, Object> game,
                              Map<String, Object> settings, Map<String, Object> saves,
                              Map<String, Object> inspect, String suiteId) throws Exception {
-        Framebuffer frame = Preview.newScreen();
+        Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar(Json.string(game, "title", ""), "Chi tiết");
@@ -142,7 +142,7 @@ public final class DetailScreen {
         ui.field("Mã bộ cài", Json.string(game, "suiteId", ""), fieldX, row + Ui.ROW, fieldWidth);
         ui.field("Dung lượng", kb(Json.longValue(game, "jarSize", 0)), fieldX, row + Ui.ROW * 2,
                 fieldWidth);
-        ui.field("Máy giả lập", Json.string(device, "name", ""), fieldX, row + Ui.ROW * 3, fieldWidth);
+        ui.field("Màn hình", Json.string(device, "name", ""), fieldX, row + Ui.ROW * 3, fieldWidth);
         ui.field("Đã chơi", Json.string(settings, "playedName", "chưa chơi"), fieldX,
                 row + Ui.ROW * 5, fieldWidth);
         ui.field("Số lần chơi", String.valueOf(Json.integer(settings, "playCount", 0)), fieldX,
@@ -209,7 +209,7 @@ public final class DetailScreen {
         ui.text(ui.small(), "Dữ liệu lưu luôn được sao lưu trước khi xoá bất cứ thứ gì.",
                 fieldX, y + 12 + ui.medium().height() + 4, Theme.TEXT_DIM);
 
-        return frame;
+        return Preview.fit(frame);
     }
 
     /**

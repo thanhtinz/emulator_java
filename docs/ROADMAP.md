@@ -1666,3 +1666,23 @@ không. Ảnh chụp màn hình cũng là khung hình thật của bản mẫu �
 Cầu nối: `handsetJson`, `setHandset`, `setSystemProperty` và `resetHandset`.
 
 [props]: https://github.com/nikita36078/J2ME-Loader/blob/master/app/src/main/assets/defaults/system.props
+
+### Sửa: trang xem trước không còn bị cắt ngang
+
+Trang chi tiết game và trang nhập game **dài hơn tấm vẽ** của bản xem trước, và
+chỗ bị cắt rơi đúng vào giữa một cái thẻ — chữ lọt ra khỏi khung, hai mục cuối
+của trang chi tiết ("NỘI DUNG BỘ CÀI" và nút gỡ game) thì không hiện ra lần
+nào. Nó đã xảy ra hơn một lần vì cùng một chuyện: nội dung dài thêm mà con số
+chiều cao thì đứng yên — thêm hai ứng dụng mẫu vào bộ cài là đủ.
+
+Nay các trang ấy được vẽ vào một tấm rộng tay rồi **cắt về đúng chiều dài
+thật** (`Preview.fit`), nên trang nào cũng hiện đủ dù nội dung của nó đổi. Và
+để chuyện này không âm thầm quay lại: khi nội dung chạm đáy tấm vẽ, `fit` **kêu
+lên** thay vì lặng lẽ trả về một trang cụt — cắt thêm khoảng trắng vào đấy chỉ
+giấu chỗ cụt đi. Bài kiểm tra `Trang xem trước không bị cắt` vẽ từng trang và
+nhìn mấy hàng cuối, chứ không kiểm một con số chiều cao nào: con số đúng hôm
+nay sẽ sai vào ngày ai đó thêm một dòng.
+
+Nhân tiện, dòng "Máy giả lập" trong trang chi tiết được gọi lại đúng tên của
+nó — **"Màn hình"** — vì từ giai đoạn 32 nó chỉ còn nói về cỡ màn hình, và từ
+giai đoạn 44 thì "máy giả lập" đã có nghĩa khác.

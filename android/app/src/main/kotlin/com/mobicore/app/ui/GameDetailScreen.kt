@@ -313,7 +313,7 @@ fun GameDetailScreen(
                     FieldRow("Phiên bản", entry.version())
                     FieldRow("Mã bộ cài", entry.suiteId())
                     FieldRow("Dung lượng", formatBytes(entry.jarSize()))
-                    FieldRow("Máy giả lập", profile?.device()?.toString() ?: "—")
+                    FieldRow("Màn hình", profile?.device()?.toString() ?: "—")
                     FieldRow("Phóng ảnh", profile?.scaleModeName() ?: "—")
                     FieldRow("Số lần chơi", (profile?.playCount() ?: 0).toString())
                     // How long it has held someone, which is the thing worth

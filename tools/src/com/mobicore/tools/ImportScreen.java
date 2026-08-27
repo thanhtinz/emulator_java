@@ -20,7 +20,7 @@ public final class ImportScreen {
         SuiteLoader suite = SuiteLoader.load(SampleSuite.jar(), SampleSuite.jad());
         MidletSuiteInfo info = suite.info();
 
-        Framebuffer frame = Preview.newScreen();
+        Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar("Nhập trò chơi", "MobiCore");
@@ -116,7 +116,7 @@ public final class ImportScreen {
         ui.button(margin, y, buttonWidth, "Hủy", false);
         ui.button(margin + buttonWidth + 12, y, buttonWidth, "Cài đặt", true, Icons.IMPORT);
 
-        return frame;
+        return Preview.fit(frame);
     }
 
     /** Placeholder cover for a suite that carries no icon of its own. */

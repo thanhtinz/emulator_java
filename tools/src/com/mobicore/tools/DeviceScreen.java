@@ -38,7 +38,7 @@ public final class DeviceScreen {
         String suiteId = Json.string(Json.child(imported, "game"), "suiteId", "");
         Map<String, Object> handset = Json.readObject(facade.handsetJson(suiteId));
 
-        Framebuffer frame = Preview.newScreen();
+        Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar("Máy giả lập", "Sky Runner");
@@ -117,7 +117,7 @@ public final class DeviceScreen {
                     valueRight, top, Theme.TEXT);
             top += line;
         }
-        return frame;
+        return Preview.fit(frame);
     }
 
     /**

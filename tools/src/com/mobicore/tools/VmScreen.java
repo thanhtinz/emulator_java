@@ -90,7 +90,7 @@ public final class VmScreen {
     }
 
     private Framebuffer draw(Vm vm, List<Row> rows) {
-        Framebuffer frame = Preview.newScreen();
+        Framebuffer frame = Preview.newPage();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar("Máy ảo", "Công cụ nhà phát triển");
@@ -160,7 +160,7 @@ public final class VmScreen {
             }
         }
 
-        return frame;
+        return Preview.fit(frame);
     }
 
     private static String group(long value) {

@@ -7,6 +7,7 @@ import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.storage.LocalVfs;
 import com.mobicore.core.storage.Vfs;
 import com.mobicore.tools.ui.Theme;
+import com.mobicore.tools.ui.Ui;
 
 import java.io.IOException;
 
@@ -136,6 +137,17 @@ public final class Preview {
         System.out.println("  " + name + "  " + frame.width() + "x" + frame.height());
     }
 
+    /**
+     * Một trang dài, để cắt lại cho vừa sau khi vẽ xong.
+     *
+     * <p>Trang cài đặt trên điện thoại thì cuộn được; ảnh xem trước thì
+     * không, nên nó được vẽ hết chiều dài rồi cắt. Con số này chỉ cần đủ
+     * rộng tay: phần thừa bị {@link #fit} cắt đi.</p>
+     */
+    static Framebuffer newPage() {
+        return newScreen(2600);
+    }
+
     static Framebuffer newScreen() {
         return newScreen(SCREEN_HEIGHT);
     }
@@ -147,6 +159,59 @@ public final class Preview {
      * phone is drawn at full length instead — a screenshot cut off at the
      * fold shows less than the page has.</p>
      */
+    /**
+     * Cắt trang cho vừa đúng phần đã vẽ.
+     *
+     * <p>Bản xem trước không cuộn được, nên một trang dài hơn màn hình bị
+     * cắt ngang — và chỗ bị cắt luôn rơi vào giữa một cái thẻ, tức là chữ
+     * lọt ra khỏi khung. Vẽ vào một tấm thừa rồi cắt về đúng chiều cao thật
+     * thì trang nào cũng hiện đủ, kể cả khi nội dung của nó đổi: một bộ cài
+     * có thêm hai ứng dụng là trang dài thêm hai dòng, và không ai phải nhớ
+     * sửa lại con số chiều cao.</p>
+     *
+     * <p>Không bao giờ ngắn hơn một màn hình điện thoại: một trang ngắn thì
+     * chỗ trống dưới nó cũng là một phần của cái người ta nhìn thấy.</p>
+     */
+    static Framebuffer fit(Framebuffer frame) {
+        return fit(frame, 0);
+    }
+
+    /**
+     * @param reserve chỗ chừa thêm dưới cùng, cho thứ vẽ đè lên đáy trang
+     */
+    static Framebuffer fit(Framebuffer frame, int reserve) {
+        int[] pixels = frame.pixels();
+        int lastInk = -1;
+        for (int y = frame.height() - 1; y >= 0 && lastInk < 0; y--) {
+            for (int x = 0; x < frame.width(); x++) {
+                if (pixels[y * frame.width() + x] != Theme.BG) {
+                    lastInk = y;
+                    break;
+                }
+            }
+        }
+        if (lastInk >= frame.height() - 1) {
+            // Chạm đáy tấm vẽ nghĩa là phần dưới đã mất chứ không phải trang
+            // vừa vặn. Cắt thêm khoảng trống vào đây chỉ giấu chỗ cụt đi, nên
+            // chỗ này kêu lên thay vì lặng lẽ trả về một trang thiếu.
+            throw new IllegalStateException(
+                    "Trang bị cắt: nội dung chạm đáy tấm vẽ cao " + frame.height()
+                            + "px. Vẽ vào Preview.newPage() rộng tay hơn.");
+        }
+        int height = Math.max(SCREEN_HEIGHT, lastInk + 1 + Ui.PAD + reserve);
+        if (height == frame.height()) {
+            return frame;
+        }
+        Framebuffer cut = new Framebuffer(frame.width(), height);
+        cut.setAntialias(true);
+        cut.setColor(Theme.BG);
+        cut.fillRect(0, 0, cut.width(), cut.height());
+        cut.setBlendMode(Framebuffer.BLEND_REPLACE);
+        cut.drawFramebuffer(frame, 0, 0);
+        cut.setBlendMode(Framebuffer.BLEND_SRC_OVER);
+        return cut;
+    }
+
     static Framebuffer newScreen(int height) {
         Framebuffer frame = new Framebuffer(SCREEN_WIDTH, height);
         // The interface is drawn with the same primitives a game uses, so it
