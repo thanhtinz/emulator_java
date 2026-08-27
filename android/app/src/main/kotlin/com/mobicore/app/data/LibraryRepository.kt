@@ -399,6 +399,20 @@ class LibraryRepository(filesDir: String) {
         }
     }
 
+    /**
+     * Auto-repeat for one button, in milliseconds between presses; 0 is off.
+     *
+     * Half the shooters of the era expect a thumb hammering the keypad, and a
+     * held key is not that input: a game reading `keyPressed` sees one press
+     * however long it is held.
+     */
+    fun setTurbo(suiteId: String, button: String, intervalMs: Int) {
+        val profile = library.profile(suiteId) ?: return
+        profile.input().setTurbo(button, intervalMs)
+        library.saveProfile(profile)
+        refresh()
+    }
+
     fun toggleFavourite(suiteId: String) {
         val profile = library.profile(suiteId) ?: return
         profile.isFavourite = !profile.isFavourite

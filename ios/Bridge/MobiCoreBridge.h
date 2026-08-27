@@ -123,6 +123,9 @@ NS_ASSUME_NONNULL_BEGIN
 /** Saves a picture of what the running game is showing. */
 - (NSString *)takeScreenshot;
 
+/** Auto-repeat for one button, in ms between presses; 0 switches it off. */
+- (NSString *)setTurbo:(int32_t)intervalMs forButton:(NSString *)button suite:(NSString *)suiteId;
+
 /** How fast the running game plays; steps through half, normal, 2x, 3x. */
 - (NSString *)cycleSpeed;
 - (NSString *)speedJSON;

@@ -203,6 +203,10 @@
     return [_facade takeScreenshot];
 }
 
+- (NSString *)setTurbo:(int32_t)intervalMs forButton:(NSString *)button suite:(NSString *)suiteId {
+    return [_facade setTurboWithNSString:suiteId withNSString:button withInt:intervalMs];
+}
+
 - (NSString *)cycleSpeed {
     return [_facade cycleSpeed];
 }

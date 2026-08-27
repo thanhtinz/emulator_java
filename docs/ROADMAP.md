@@ -23,6 +23,7 @@
 | 19 | Bộ cấu hình dùng lại | Xong |
 | 20 | Nhiều ô lưu trạng thái | Xong |
 | 21 | Chỉnh tốc độ chạy game | Xong |
+| 22 | Liên thanh (turbo) | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -821,3 +822,25 @@ chơi đã xem rồi. Chiều ngược lại cũng đáng: game canh nhịp cho 
 máy đang giả lập thì cho chậm lại là chơi được.
 
 Ảnh: `build/screenshots/20-game-menu.png`.
+
+## Liên thanh: máy bấm hộ
+
+Hồ sơ điều khiển vốn đã có ô `turbo` từ lâu, lưu vào JSON đàng hoàng — nhưng
+**chưa bao giờ được dùng**: một thiết lập ghi ra rồi không làm gì cả. Nay nó
+chạy thật.
+
+Vì sao cần: một nửa số game bắn thời đó viết cho ngón cái nện bàn phím — mỗi
+lần bấm một phát đạn, không có tự động bắn, và có màn không mash thì không qua
+nổi. Giữ phím **không phải** cùng một thao tác: game đọc `keyPressed` chỉ thấy
+đúng một lần bấm dù giữ bao lâu. Nên liên thanh phải **nhả ra rồi bấm lại** —
+đó chính là việc `EmulatorSession.pumpTurbo()` làm mỗi khung hình, theo đúng
+khoảng thời gian đã đặt.
+
+- Bật trong cài đặt game: **Tắt / Chậm (120ms) / Nhanh (50ms)**, cho phím Chọn
+  (phím bắn). Phím hướng cố tình không có — d-pad mà tự nhả ra là d-pad giật
+  cục.
+- Đổi giữa ván thì game đang chạy nhận ngay: người bật liên thanh là đang bật
+  cho trận họ đánh dở.
+- Facade: `setTurbo(suiteId, button, intervalMs)`.
+
+Ảnh: `build/screenshots/04-game-settings.png` (dòng "Chọn — liên thanh 50ms").

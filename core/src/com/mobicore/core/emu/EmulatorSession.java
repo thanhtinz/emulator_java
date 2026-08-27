@@ -37,6 +37,8 @@ import com.mobicore.core.vm.VmObject;
 import com.mobicore.core.vm.VmThrow;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * One running game.
@@ -258,6 +260,57 @@ public final class EmulatorSession {
         pressButton2(button);
     }
 
+    // ---------------------------------------------------------------- turbo
+
+    /** Buttons being held that repeat on their own, and when each last fired. */
+    private final Map<String, Long> turboHeld = new LinkedHashMap<String, Long>();
+
+    /**
+     * Taps the held turbo buttons again when their interval is up.
+     *
+     * <p>Turbo exists because these games were written for a keypad that a
+     * thumb could hammer, and half the shooters of the era expect exactly
+     * that: a shot per press, no auto-fire, and a level that is unwinnable
+     * unless the player mashes. Holding the key is not the same input — a
+     * game reading {@code keyPressed} sees one press however long it is held
+     * — so the emulator has to let go and press again, which is what this
+     * does.</p>
+     *
+     * @return how many presses were sent
+     */
+    public int pumpTurbo() {
+        if (turboHeld.isEmpty() || state != STATE_ACTIVE) {
+            return 0;
+        }
+        long now = vm.host().currentTimeMillis();
+        int fired = 0;
+        for (Map.Entry<String, Long> held : turboHeld.entrySet()) {
+            String button = held.getKey();
+            int interval = profile.input().turboFor(button);
+            if (interval <= 0) {
+                continue;
+            }
+            if (now - held.getValue().longValue() < interval) {
+                continue;
+            }
+            held.setValue(Long.valueOf(now));
+            int keyCode = profile.input().keyCodeFor(button);
+            if (keyCode != 0) {
+                // Released first: a game that only counts presses would see
+                // nothing at all from a key that never came back up.
+                keyReleased(keyCode);
+                keyPressed(keyCode);
+                fired++;
+            }
+        }
+        return fired;
+    }
+
+    /** True while {@code button} is being held and repeating. */
+    public boolean isTurboHeld(String button) {
+        return turboHeld.containsKey(button);
+    }
+
     /**
      * Presses a virtual keypad button.
      *
@@ -285,6 +338,9 @@ public final class EmulatorSession {
         int keyCode = profile.input().keyCodeFor(button);
         if (keyCode != 0) {
             keyPressed(keyCode);
+            if (profile.input().turboFor(button) > 0) {
+                turboHeld.put(button, Long.valueOf(vm.host().currentTimeMillis()));
+            }
         }
         return false;
     }
@@ -299,6 +355,7 @@ public final class EmulatorSession {
             releaseButton(diagonal[1]);
             return;
         }
+        turboHeld.remove(button);
         int keyCode = profile.input().keyCodeFor(button);
         if (keyCode != 0) {
             keyReleased(keyCode);
@@ -440,6 +497,7 @@ public final class EmulatorSession {
         // Timers first: a MIDlet that drives itself from a TimerTask expects
         // its tick to have happened before the frame it paints.
         pumpTimers();
+        pumpTurbo();
         context.drainCallbacks();
         VmObject current = context.current();
         if (current == null) {

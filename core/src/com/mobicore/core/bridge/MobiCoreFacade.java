@@ -461,6 +461,40 @@ public final class MobiCoreFacade {
         }
     }
 
+    /**
+     * Turns auto-repeat on or off for one button.
+     *
+     * <p>Half the shooters of the era expect a thumb hammering the keypad: a
+     * shot per press, no auto-fire, and a level that cannot be won without
+     * mashing. Holding a key is not that input — a game reading
+     * {@code keyPressed} sees one press however long it is held — so turbo
+     * lets go and presses again on the player's behalf.</p>
+     *
+     * @param intervalMs milliseconds between presses, or 0 to switch it off
+     */
+    public String setTurbo(String suiteId, String button, int intervalMs) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.input().setTurbo(button, intervalMs);
+            library.saveProfile(profile);
+            if (session != null && suiteId.equals(activeSuiteId)) {
+                // The running game takes it now: a player switching turbo on
+                // is switching it on for the fight they are in.
+                session.profile().input().setTurbo(button, intervalMs);
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("button", button);
+            json.put("turbo", Integer.valueOf(profile.input().turboFor(button)));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
     public String setInputPreset(String suiteId, String preset) {
         try {
             GameProfile profile = library.profile(suiteId);

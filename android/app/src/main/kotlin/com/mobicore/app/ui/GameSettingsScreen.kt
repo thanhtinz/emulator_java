@@ -258,6 +258,30 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                         val code = profile.input().keyCodeFor(button)
                         FieldRow(label, "${MidpContext.keyName(code)}  ($code)")
                     }
+                    Spacer(Modifier.height(10.dp))
+                    // Turbo where it belongs: beside the keys it acts on.
+                    // Only fire and the numbers get it — a d-pad that repeats
+                    // is a d-pad that stutters.
+                    val turbo = profile.input().turboFor("fire")
+                    OptionRow(
+                        label = "Liên thanh phím Chọn",
+                        options = listOf("Tắt", "Chậm", "Nhanh"),
+                        selected = when {
+                            turbo == 0 -> 0
+                            turbo >= 100 -> 1
+                            else -> 2
+                        },
+                    ) { index ->
+                        library.setTurbo(
+                            suiteId,
+                            "fire",
+                            when (index) {
+                                1 -> 120
+                                2 -> 50
+                                else -> 0
+                            },
+                        )
+                    }
                 }
             }
         }

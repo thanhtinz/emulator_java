@@ -42,6 +42,8 @@ public final class ProfileScreen {
         // is that a player never has to touch any of this.
         GameProfile profile = library.profile(entry.suiteId());
         profile.setVolume(65);
+        // Turbo on fire, so the screenshot shows the setting doing something.
+        profile.input().setTurbo("fire", 50);
         profile.setFavourite(true);
         profile.markPlayed(1_700_000_000_000L);
         library.saveProfile(profile);
