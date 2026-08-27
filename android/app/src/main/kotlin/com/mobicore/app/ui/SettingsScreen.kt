@@ -30,10 +30,8 @@ fun SettingsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
         Modifier.fillMaxSize().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Text("Cài đặt", color = MobiColors.Text, fontSize = 28.sp,
-                fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
-        }
+        // The bar above already names this page.
+        item { Spacer(Modifier.height(4.dp)) }
 
         item {
             SectionCard(title = "GIAO DIỆN") {

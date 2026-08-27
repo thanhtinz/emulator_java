@@ -17,8 +17,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Preview of the Home screen the mobile shells present: recently played,
- * favourites and the full library, all read from a real {@link GameLibrary}.
+ * Preview of the Home screen: a toolbar and the games, read from a real
+ * {@link GameLibrary}.
+ *
+ * <p>Shaped after the emulators people already use — one flat, sorted list of
+ * what is installed, with find, sort and everything else on the toolbar, and
+ * the one floating button that adds a game. The tabs, sections and cards this
+ * screen used to carry were the app talking about itself; a library screen's
+ * job is to get out of the way of the game someone came to open.</p>
  */
 public final class LibraryScreen {
 
@@ -121,100 +127,91 @@ public final class LibraryScreen {
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
 
-        int margin = 16;
-        int width = frame.width() - margin * 2;
-
-        ui.text(ui.title(), "MobiCore", margin, 14, Theme.TEXT);
-        // One tap, always in the same corner: the light and dark switch is
-        // the one setting people change often enough to want it on the way.
-        int toggle = 40;
-        int toggleX = frame.width() - margin - toggle;
-        int toggleY = 14 + (ui.title().height() - toggle) / 2;
-        ui.panel(toggleX, toggleY, toggle, toggle, Theme.SURFACE, Theme.BORDER);
-        Icons.drawCentred(frame, Theme.isDark() ? Icons.LIGHT_MODE : Icons.DARK_MODE,
-                toggleX + toggle / 2, toggleY + toggle / 2, 22, Theme.ACCENT);
-
-        int y = 14 + ui.title().height() + 14;
-        // The search box lives here rather than in a tab of its own: a tab
-        // holding a search field over the games this screen already lists
-        // makes people look in two places for one thing.
-        y += ui.searchField(margin, y, width, "", "Tìm theo tên hoặc nhà phát hành") + 18;
-
-        ui.text(ui.small(), "VỪA CHƠI", margin, y, Theme.TEXT_DIM);
-        y += ui.small().height() + 10;
-        List<LibraryEntry> recent = library.sort(library.all(), GameLibrary.SORT_RECENT, profiles);
-        int tileX = margin;
-        for (LibraryEntry entry : recent) {
-            GameProfile profile = profiles.get(entry.suiteId());
-            if (profile == null || profile.lastPlayed() == 0) {
-                continue;
-            }
-            drawTile(ui, library, entry, tileX, y);
-            tileX += TILE + 14;
-            if (tileX + TILE > margin + width) {
-                break;
-            }
-        }
-        y += TILE + ui.small().height() + 22;
-
-        ui.text(ui.small(), "TẤT CẢ TRÒ CHƠI", margin, y, Theme.TEXT_DIM);
-        ui.textRight(ui.small(), "đã cài " + library.size(), frame.width() - margin, y, Theme.TEXT_DIM);
-        y += ui.small().height() + 10;
-
-        for (LibraryEntry entry : library.sort(library.all(), GameLibrary.SORT_TITLE, profiles)) {
-            drawRow(ui, library, entry, profiles.get(entry.suiteId()), margin, y, width);
-            y += ROW_HEIGHT + 12;
-        }
-
-        List<LibraryEntry> favourites = library.favourites(profiles);
-        if (!favourites.isEmpty()) {
-            y += 6;
-            ui.text(ui.small(), "YÊU THÍCH", margin, y, Theme.TEXT_DIM);
-            y += ui.small().height() + 10;
-            for (LibraryEntry entry : favourites) {
-                drawRow(ui, library, entry, profiles.get(entry.suiteId()), margin, y, width);
-                y += ROW_HEIGHT + 12;
+        int y = toolBar(ui);
+        List<LibraryEntry> games = library.sort(library.all(), GameLibrary.SORT_TITLE, profiles);
+        for (int i = 0; i < games.size(); i++) {
+            LibraryEntry entry = games.get(i);
+            drawRow(ui, library, entry, profiles.get(entry.suiteId()), y);
+            y += ROW_HEIGHT;
+            if (i < games.size() - 1) {
+                frame.setColor(Theme.BORDER);
+                frame.fillRect(MARGIN + ICON + GAP, y, frame.width() - MARGIN - ICON - GAP, 1);
             }
         }
 
-        ui.tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 0);
         // Importing is what a new install has to do first and what most later
         // visits come back for, so it gets the one floating button on the
-        // screen — small, always in the same corner, never in the way of the
-        // list.
-        ui.fab(Icons.ADD);
+        // screen — always the same corner, never over the list.
+        ui.fab(Icons.ADD, 0);
         return frame;
     }
 
-    /** Cover size in the "vừa chơi" row, and the height of a list row. */
-    private static final int TILE = 108;
-    private static final int ROW_HEIGHT = 84;
+    /**
+     * The toolbar, laid out the way a J2ME emulator's is: the app's name, and
+     * on the right the three things that act on the list — find one, order
+     * them, everything else.
+     *
+     * <p>The bottom tabs this screen used to carry are gone with it. There
+     * was one list and two settings pages behind them, and settings reached
+     * through a toolbar menu is where anyone looks for them anyway.</p>
+     */
+    private int toolBar(Ui ui) {
+        Framebuffer frame = ui.frame();
+        int height = 74;
+        frame.setColor(Theme.SURFACE);
+        frame.fillRect(0, 0, frame.width(), height);
+        frame.setColor(Theme.BORDER);
+        frame.fillRect(0, height - 1, frame.width(), 1);
 
-    private void drawTile(Ui ui, GameLibrary library, LibraryEntry entry, int x, int y)
-            throws Exception {
-        drawArtwork(ui, library, entry, x, y, TILE);
-        ui.textCenter(ui.small(), ui.ellipsize(ui.small(), entry.title(), TILE + 8),
-                x + TILE / 2, y + TILE + 8, Theme.TEXT);
+        ui.text(ui.large(), "MobiCore", MARGIN, (height - ui.large().height()) / 2, Theme.TEXT);
+        int glyph = 26;
+        int step = 46;
+        int x = frame.width() - MARGIN - glyph;
+        String[] actions = {Icons.MORE, Icons.SORT, Icons.SEARCH};
+        for (int i = 0; i < actions.length; i++) {
+            Icons.draw(frame, actions[i], x, (height - glyph) / 2, glyph, Theme.TEXT_DIM);
+            x -= step;
+        }
+        return height;
     }
 
+    /** Margins and sizes: 36dp icon, 10dp padding, as the same list has. */
+    private static final int MARGIN = 16;
+    private static final int ICON = 52;
+    private static final int GAP = 14;
+    private static final int ROW_HEIGHT = 84;
+
+    /**
+     * One game: its icon, its name, and underneath the vendor and version.
+     *
+     * <p>A flat row rather than a card. A list of eighty games in eighty
+     * cards is eighty rectangles to look past, and the icon already tells one
+     * row from the next.</p>
+     */
     private void drawRow(Ui ui, GameLibrary library, LibraryEntry entry, GameProfile profile,
-                         int x, int y, int width) throws Exception {
-        ui.panel(x, y, width, ROW_HEIGHT, Theme.SURFACE, Theme.BORDER);
-        int cover = ROW_HEIGHT - 24;
-        drawArtwork(ui, library, entry, x + 12, y + 12, cover);
-        int textLeft = x + 12 + cover + 14;
-        String chip = profile != null ? profile.device().resolution() : entry.profile();
-        int chipWidth = ui.small().stringWidth(chip) + 18;
+                         int y) throws Exception {
+        Framebuffer frame = ui.frame();
+        int width = frame.width();
+        drawArtwork(ui, library, entry, MARGIN, y + (ROW_HEIGHT - ICON) / 2, ICON);
+
+        int left = MARGIN + ICON + GAP;
+        int right = width - MARGIN;
+        int textTop = y + (ROW_HEIGHT - ui.mediumBold().height() - ui.small().height() - 6) / 2;
         ui.text(ui.mediumBold(),
-                ui.ellipsize(ui.mediumBold(), entry.title(), width - cover - chipWidth - 60),
-                textLeft, y + 14, Theme.TEXT);
-        ui.text(ui.small(), entry.vendor() + "  ·  " + entry.version(), textLeft,
-                y + 14 + ui.mediumBold().height() + 4, Theme.TEXT_DIM);
-        ui.chip(chip, x + width - chipWidth - 14, y + 14, Theme.ACCENT, Theme.ACCENT_DIM);
+                ui.ellipsize(ui.mediumBold(), entry.title(), right - left - 30),
+                left, textTop, Theme.TEXT);
+
+        int metaY = textTop + ui.mediumBold().height() + 6;
+        String version = entry.version();
+        int versionWidth = ui.small().stringWidth(version);
+        ui.text(ui.small(),
+                ui.ellipsize(ui.small(), entry.vendor(), right - left - versionWidth - 16),
+                left, metaY, Theme.TEXT_DIM);
+        ui.textRight(ui.small(), version, right, metaY, Theme.TEXT_DIM);
+
         if (profile != null && profile.isFavourite()) {
-            int favouriteWidth = ui.iconChipWidth("yêu thích");
-            ui.iconChip(Icons.STAR, "yêu thích", x + width - favouriteWidth - 14,
-                    y + 14 + ui.chipHeight() + 8, Theme.WARN, Theme.WARN_BG);
+            Icons.drawCentred(frame, Icons.STAR, right - 8, textTop + ui.mediumBold().height() / 2,
+                    18, Theme.WARN);
         }
     }
 

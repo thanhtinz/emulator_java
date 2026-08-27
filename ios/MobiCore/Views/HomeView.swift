@@ -1,101 +1,45 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Trang chủ: vừa chơi, yêu thích, rồi toàn bộ trò chơi đã cài.
+/// Trang chủ: một danh sách phẳng những trò chơi đã cài.
+///
+/// Shaped after the emulators people already use — the games, sorted, with
+/// find, sort and everything else on the toolbar, and the one button that adds
+/// a game. The sections and cards this screen used to carry were the app
+/// talking about itself; every row spent on a heading is a row not spent on a
+/// game.
 struct HomeView: View {
 
     @EnvironmentObject private var client: MobiCoreClient
     @State private var importing = false
     @State private var query = ""
-    private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+    @State private var showingTools = false
+    @State private var showingSettings = false
+
+    private var shown: [Game] {
+        query.trimmingCharacters(in: .whitespaces).isEmpty
+            ? client.sorted(client.games, by: client.librarySort)
+            : client.search(query, sort: client.librarySort)
+    }
 
     var body: some View {
-        ScrollView {
+        Group {
             if client.games.isEmpty {
                 EmptyLibraryView(onImport: { importing = true })
-                    .padding(.top, 60)
             } else {
-                VStack(alignment: .leading, spacing: 18) {
-                    // Typing replaces the whole screen with the matches:
-                    // someone searching has stopped browsing. There is no
-                    // separate library tab — it only ever held this box over
-                    // the same games.
-                    if searching {
-                        Picker("Sắp xếp", selection: Binding(
-                            get: { client.librarySort },
-                            set: { client.setLibrarySort($0) }
-                        )) {
-                            Text("Tên").tag(0)
-                            Text("Vừa chơi").tag(1)
-                            Text("Nhà phát hành").tag(2)
-                        }
-                        .pickerStyle(.segmented)
-
-                        let matches = client.search(query, sort: client.librarySort)
-                        Text("\(matches.count) kết quả")
-                            .font(.caption2)
-                            .foregroundStyle(Palette.textDim)
-                        ForEach(matches) { game in
-                            GameRowLink(game: game)
-                        }
-                        if matches.isEmpty {
-                            Text("Không tìm thấy. Thử một từ khoá khác.")
-                                .font(.footnote)
-                                .foregroundStyle(Palette.textDim)
-                        }
-                    } else {
-                    if !client.recent.isEmpty {
-                        Text("VỪA CHƠI")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Palette.textDim)
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(client.recent) { game in
-                                    NavigationLink(value: game.suiteId) {
-                                        VStack(spacing: 6) {
-                                            GameArtwork(
-                                                title: game.title,
-                                                image: client.artwork(game.suiteId),
-                                                size: 84
-                                            )
-                                            Text(game.title)
-                                                .font(.footnote)
-                                                .foregroundStyle(Palette.text)
-                                                .lineLimit(1)
-                                                .frame(width: 88)
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-                    }
-
-                    if !client.favourites.isEmpty {
-                        Text("YÊU THÍCH")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Palette.textDim)
-                        ForEach(client.favourites) { game in
-                            GameRowLink(game: game)
-                        }
-                    }
-
-                    Text("TẤT CẢ TRÒ CHƠI")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Palette.textDim)
-                    ForEach(client.games) { game in
-                        GameRowLink(game: game)
-                    }
-                    }
+                List(shown) { game in
+                    GameRowLink(game: game)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowBackground(Palette.background)
                 }
-                .padding(16)
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
         .background(Palette.background)
         // Importing is the first thing a new install must do and the reason
         // for most later visits, so it gets the one floating button on the
-        // screen: small, always in the same corner, and never taking a band
-        // of the screen away from the games.
+        // screen: small, always in the same corner.
         .overlay(alignment: .bottomTrailing) {
             Button {
                 importing = true
@@ -111,26 +55,51 @@ struct HomeView: View {
             .accessibilityLabel("Nhập trò chơi")
             .padding(16)
         }
-        .searchable(text: $query, prompt: "Tìm theo tên hoặc nhà phát hành")
+        .searchable(text: $query, prompt: "Tìm trò chơi")
         .navigationTitle("MobiCore")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // One tap, always in the same corner: light and dark is the
-            // setting people change often enough to want it on the way.
-            Button {
-                client.cycleTheme()
+            // Sort, then everything else: the two things a toolbar over a
+            // list is for.
+            Menu {
+                Picker("Sắp xếp", selection: Binding(
+                    get: { client.librarySort },
+                    set: { client.setLibrarySort($0) }
+                )) {
+                    Text("Theo tên").tag(0)
+                    Text("Vừa chơi").tag(1)
+                    Text("Nhà phát hành").tag(2)
+                }
             } label: {
-                Image(systemName: Palette.dark ? "sun.max" : "moon")
+                Image(systemName: "arrow.up.arrow.down")
             }
-            .accessibilityLabel("Đổi giao diện sáng tối")
+            .accessibilityLabel("Sắp xếp")
+
+            Menu {
+                Button {
+                    client.cycleTheme()
+                } label: {
+                    Label(Palette.dark ? "Giao diện sáng" : "Giao diện tối",
+                          systemImage: Palette.dark ? "sun.max" : "moon")
+                }
+                Button {
+                    showingTools = true
+                } label: {
+                    Label("Công cụ", systemImage: "wrench.and.screwdriver")
+                }
+                Button {
+                    showingSettings = true
+                } label: {
+                    Label("Cài đặt", systemImage: "gearshape")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+            .accessibilityLabel("Thêm")
         }
         .navigationDestination(for: String.self) { GameDetailView(suiteId: $0) }
-        .toolbar {
-            Button {
-                importing = true
-            } label: {
-                Label("Nhập trò chơi", systemImage: "square.and.arrow.down")
-            }
-        }
+        .navigationDestination(isPresented: $showingTools) { ToolsView() }
+        .navigationDestination(isPresented: $showingSettings) { SettingsView() }
         .fileImporter(
             isPresented: $importing,
             allowedContentTypes: MobiCoreTypes.importable,
@@ -165,23 +134,35 @@ struct GameRowLink: View {
     let game: Game
     @EnvironmentObject private var client: MobiCoreClient
 
+    /// A flat row rather than a card: a list of eighty games in eighty cards
+    /// is eighty rectangles to look past, and the icon already tells one row
+    /// from the next.
     var body: some View {
         NavigationLink(value: game.suiteId) {
-            SectionCard {
-                HStack(spacing: 12) {
-                    GameArtwork(title: game.title, image: client.artwork(game.suiteId))
-                    VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 14) {
+                GameArtwork(title: game.title, image: client.artwork(game.suiteId), size: 40)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
                         Text(game.title)
                             .font(.body.weight(.semibold))
                             .foregroundStyle(Palette.text)
                             .lineLimit(1)
-                        Text("\(game.vendor) · \(game.version)")
-                            .font(.footnote)
+                        if game.settings?.favourite == true {
+                            Image(systemName: "star.fill")
+                                .font(.caption2)
+                                .foregroundStyle(Palette.warn)
+                        }
+                    }
+                    HStack {
+                        Text(game.vendor)
+                            .font(.caption)
                             .foregroundStyle(Palette.textDim)
                             .lineLimit(1)
+                        Spacer()
+                        Text(game.version)
+                            .font(.caption)
+                            .foregroundStyle(Palette.textDim)
                     }
-                    Spacer()
-                    Chip(text: game.settings?.device.resolution ?? game.profile)
                 }
             }
         }

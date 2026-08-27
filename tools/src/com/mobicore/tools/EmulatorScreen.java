@@ -38,6 +38,23 @@ public final class EmulatorScreen {
     private static final float SOFT_SCALE_Y = 0.75f;
     /** A hair of daylight between keys; J2ME Loader snaps its keys together. */
     private static final int GAP = 4;
+    /** Down each side of the keypad, and between the two pads. */
+    private static final int MARGIN = 12;
+
+    /**
+     * How tall a pad key is, given the size of a numeric key.
+     *
+     * <p>The pad has three rows against the grid's four, so at one key size
+     * it ends up markedly shorter than the numbers beside it and reads as the
+     * lesser of the two. It is the other way round: the pad is what a game is
+     * played with, and the numbers are mostly for typing a name. So the pad
+     * keeps the same width — both pads still fit across the screen at J2ME
+     * Loader's key size — and gains the height, three of its rows coming to
+     * exactly four of theirs.</p>
+     */
+    private static int padKeyHeight(int key) {
+        return (key * 4 + GAP) / 3;
+    }
 
     private final String fixtureDir;
     private EmulatorSession session;
@@ -190,13 +207,12 @@ public final class EmulatorScreen {
     /** Softkey bar, then whichever pads the layout shows. */
     private int controlHeight(Ui ui, int key) {
         int soft = session.showsSoftKeyBar() ? 0 : (int) (key * SOFT_SCALE_Y) + 12;
-        int rows = 0;
+        int pads = 0;
         if (showsNumbers()) {
-            rows = 4;
+            pads = key * 4 + GAP * 3;
         } else if (showsArrows()) {
-            rows = 3;
+            pads = padKeyHeight(key) * 3 + GAP * 2;
         }
-        int pads = rows == 0 ? 0 : key * rows + GAP * (rows - 1);
         return 12 + soft + pads + 12;
     }
 
@@ -265,7 +281,7 @@ public final class EmulatorScreen {
         // the top of it.
         int stack = key * 4 + GAP * 3 + (softHeight == 0 ? 0 : softHeight + 14);
         int padY = barHeight + Math.max(12, (frame.height() - barHeight - stack) / 2);
-        directionalPad(ui, dpadX, padY + (key + GAP) / 2, key);
+        directionalPad(ui, dpadX, padY, key, padKeyHeight(key));
         numericPad(ui, numX, padY, key);
 
         // The softkeys stay at the bottom outside corners: they are the two
@@ -327,8 +343,9 @@ public final class EmulatorScreen {
         frame.fillRect(0, top, frame.width(), 1);
 
         int y = top + 12;
+        boolean both = showsArrows() && showsNumbers();
         int padWidth = key * 3 + GAP * 2;
-        int margin = (frame.width() - padWidth * 2) / 3;
+        int margin = both ? (frame.width() - padWidth * 2) / 3 : (frame.width() - padWidth) / 2;
         int softWidth = (int) (key * SOFT_SCALE_X);
         int softHeight = (int) (key * SOFT_SCALE_Y);
         // While the screen carries the command bar, that bar is the softkeys:
@@ -337,10 +354,9 @@ public final class EmulatorScreen {
         // is two ways to do one thing. A game that goes full screen takes the
         // bar away, and then these keys are the only way to reach a command.
         if (!session.showsSoftKeyBar()) {
-            softKey(ui, margin + (padWidth - softWidth) / 2, y, softWidth, softHeight,
-                    session.leftSoftKeyLabel(), "L");
-            softKey(ui, frame.width() - margin - padWidth + (padWidth - softWidth) / 2, y,
-                    softWidth, softHeight, session.rightSoftKeyLabel(), "R");
+            softKey(ui, margin, y, softWidth, softHeight, session.leftSoftKeyLabel(), "L");
+            softKey(ui, frame.width() - margin - softWidth, y, softWidth, softHeight,
+                    session.rightSoftKeyLabel(), "R");
             y += softHeight + 12;
         }
 
@@ -353,15 +369,14 @@ public final class EmulatorScreen {
         }
 
         int padTop = y;
-        boolean both = showsArrows() && showsNumbers();
         if (showsNumbers()) {
-            numericPad(ui, both ? margin : (frame.width() - padWidth) / 2, padTop, key);
+            numericPad(ui, margin, padTop, key);
         }
         if (showsArrows()) {
             // Alone, a pad takes the middle: there is no reason to leave a
             // hole where the other half of the keypad used to be.
-            int x = both ? frame.width() - margin - padWidth : (frame.width() - padWidth) / 2;
-            directionalPad(ui, x, padTop + (both ? (key + GAP) / 2 : 0), key);
+            int x = both ? frame.width() - margin - padWidth : margin;
+            directionalPad(ui, x, padTop, key, padKeyHeight(key));
         }
     }
 
@@ -437,27 +452,27 @@ public final class EmulatorScreen {
      * and no handset had a diagonal key — a corner of the pad was two
      * directions held at once, which is exactly what these send.</p>
      */
-    private void directionalPad(Ui ui, int x, int y, int key) {
+    private void directionalPad(Ui ui, int x, int y, int key, int tall) {
         int centreX = x + key + GAP;
         int rightX = centreX + key + GAP;
-        int middleY = y + key + GAP;
-        int bottomY = middleY + key + GAP;
+        int middleY = y + tall + GAP;
+        int bottomY = middleY + tall + GAP;
 
-        arrowKey(ui, centreX, y, key, 0);
-        arrowKey(ui, x, middleY, key, 2);
-        arrowKey(ui, rightX, middleY, key, 3);
-        arrowKey(ui, centreX, bottomY, key, 1);
+        arrowKey(ui, centreX, y, key, tall, 0);
+        arrowKey(ui, x, middleY, key, tall, 2);
+        arrowKey(ui, rightX, middleY, key, tall, 3);
+        arrowKey(ui, centreX, bottomY, key, tall, 1);
 
-        arrowKey(ui, x, y, key, 4);
-        arrowKey(ui, rightX, y, key, 5);
-        arrowKey(ui, x, bottomY, key, 6);
-        arrowKey(ui, rightX, bottomY, key, 7);
+        arrowKey(ui, x, y, key, tall, 4);
+        arrowKey(ui, rightX, y, key, tall, 5);
+        arrowKey(ui, x, bottomY, key, tall, 6);
+        arrowKey(ui, rightX, bottomY, key, tall, 7);
 
         // "F" is what J2ME Loader writes on the fire key, and fire is what
         // MIDP calls it; the pad's middle key has never been an "OK" button.
-        ui.panel(centreX, middleY, key, key, Theme.ACCENT_DIM, Theme.ACCENT);
+        ui.panel(centreX, middleY, key, tall, Theme.ACCENT_DIM, Theme.ACCENT);
         ui.textCenter(ui.largeBold(), "F", centreX + key / 2,
-                middleY + (key - ui.largeBold().height()) / 2, Theme.ACCENT);
+                middleY + (tall - ui.largeBold().height()) / 2, Theme.ACCENT);
     }
 
     /** Arrows in the order the pad draws them, corners last. */
@@ -470,12 +485,12 @@ public final class EmulatorScreen {
      * Directional key. The arrow is the Material chevron the Android keypad
      * puts on the same key, so the two keypads cannot drift apart.
      */
-    private void arrowKey(Ui ui, int x, int y, int key, int direction) {
-        ui.panel(x, y, key, key, Theme.KEY, Theme.ACCENT);
+    private void arrowKey(Ui ui, int x, int y, int key, int tall, int direction) {
+        ui.panel(x, y, key, tall, Theme.KEY, Theme.ACCENT);
         // The corners are quieter than the four main directions: they are
         // there when a game needs them, not competing for the thumb.
         boolean corner = direction >= 4;
-        Icons.drawCentred(ui.frame(), ARROWS[direction], x + key / 2, y + key / 2,
+        Icons.drawCentred(ui.frame(), ARROWS[direction], x + key / 2, y + tall / 2,
                 corner ? key * 2 / 5 : key * 3 / 5, Theme.ACCENT);
     }
 

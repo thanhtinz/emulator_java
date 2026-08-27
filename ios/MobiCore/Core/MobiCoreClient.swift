@@ -100,6 +100,14 @@ final class MobiCoreClient: ObservableObject {
         return payload?.games ?? []
     }
 
+    /// The whole library in the chosen order. An empty query is what the core
+    /// treats as "everything", so ordering goes through the same path as a
+    /// search and cannot drift from it.
+    func sorted(_ games: [Game], by sort: Int) -> [Game] {
+        let ordered = search("", sort: sort)
+        return ordered.isEmpty ? games : ordered
+    }
+
     func setLibrarySort(_ sort: Int) {
         report(decode(bridge.setLibrarySort(Int32(sort))))
         librarySort = sort

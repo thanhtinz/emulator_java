@@ -34,15 +34,11 @@ struct MobiCoreApp: App {
 struct RootView: View {
 
     var body: some View {
-        TabView {
-            NavigationStack { HomeView() }
-                .tabItem { Label("Trang chủ", systemImage: "house") }
-            NavigationStack { ToolsView() }
-                .tabItem { Label("Công cụ", systemImage: "wrench.and.screwdriver") }
-            NavigationStack { SettingsView() }
-                .tabItem { Label("Cài đặt", systemImage: "gearshape") }
-        }
-        .tint(Palette.accent)
-        .background(Palette.background)
+        // The library is the app. Tools and Settings are pushed from the
+        // toolbar menu rather than being given a tab of their own beside the
+        // games: they are two settings pages, not two thirds of the product.
+        NavigationStack { HomeView() }
+            .tint(Palette.accent)
+            .background(Palette.background)
     }
 }

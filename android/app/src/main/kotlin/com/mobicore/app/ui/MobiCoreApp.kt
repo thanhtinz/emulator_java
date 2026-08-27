@@ -5,14 +5,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.VideogameAsset
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -25,27 +26,28 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import com.mobicore.app.R
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mobicore.app.data.LibraryRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Top level destinations, mirroring the product's information architecture. */
-private enum class Tab(val labelRes: Int) {
-    HOME(R.string.tab_home),
-    TOOLS(R.string.tab_tools),
-    SETTINGS(R.string.tab_settings),
-}
-
 /**
- * Where the user is. Detail, settings and the emulator are pushed on top of a
- * tab rather than being tabs themselves.
+ * Where the user is.
+ *
+ * The library is the app; everything else is pushed on top of it and comes
+ * back to it. The bottom tabs that used to hold Tools and Settings are gone —
+ * they were two settings pages given the same weight as the games, and a
+ * toolbar menu is where anyone looks for them.
  */
 sealed interface Route {
-    data object Tabs : Route
+    data object Library : Route
+    data object Tools : Route
+    data object Settings : Route
     data class Detail(val suiteId: String) : Route
     data class GameSettings(val suiteId: String) : Route
     data class Emulator(val suiteId: String) : Route
@@ -54,8 +56,7 @@ sealed interface Route {
 
 @Composable
 fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
-    var tab by remember { mutableStateOf(Tab.HOME) }
-    var route by remember { mutableStateOf<Route>(Route.Tabs) }
+    var route by remember { mutableStateOf<Route>(Route.Library) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -110,7 +111,7 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
             GameDetailScreen(
                 library = library,
                 suiteId = current.suiteId,
-                onBack = { route = Route.Tabs },
+                onBack = { route = Route.Library },
                 onPlay = { route = Route.Emulator(current.suiteId) },
                 onSettings = { route = Route.GameSettings(current.suiteId) },
                 onSaves = { route = Route.Saves(current.suiteId) },
@@ -136,47 +137,57 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
             return
         }
 
-        Route.Tabs -> Unit
+        Route.Tools -> {
+            BackedScreen("Công cụ", onBack = { route = Route.Library }) {
+                ToolsScreen(library = library, games = games)
+            }
+            return
+        }
+
+        Route.Settings -> {
+            BackedScreen("Cài đặt", onBack = { route = Route.Library }) {
+                SettingsScreen(library = library, games = games)
+            }
+            return
+        }
+
+        Route.Library -> Unit
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = {
-            NavigationBar {
-                Tab.entries.forEach { entry ->
-                    NavigationBarItem(
-                        selected = tab == entry,
-                        onClick = { tab = entry },
-                        icon = { Icon(iconFor(entry), contentDescription = null) },
-                        label = { Text(stringResource(entry.labelRes)) },
-                    )
-                }
-            }
-        },
-    ) { padding ->
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when (tab) {
-                Tab.HOME -> HomeScreen(
-                    library = library,
-                    games = games,
-                    profiles = profiles,
-                    onOpen = { route = Route.Detail(it) },
-                    onImport = { importLauncher.launch(IMPORT_MIME_TYPES) },
-                )
-
-                Tab.TOOLS -> ToolsScreen(library = library, games = games)
-
-                Tab.SETTINGS -> SettingsScreen(library = library, games = games)
-            }
+            HomeScreen(
+                library = library,
+                games = games,
+                profiles = profiles,
+                onOpen = { route = Route.Detail(it) },
+                onImport = { importLauncher.launch(IMPORT_MIME_TYPES) },
+                onTools = { route = Route.Tools },
+                onSettings = { route = Route.Settings },
+            )
         }
     }
 }
 
+/** A pushed page: its own bar with a way back, and the page under it. */
 @Composable
-private fun iconFor(tab: Tab) = when (tab) {
-    Tab.HOME -> Icons.Filled.Home
-    Tab.TOOLS -> Icons.Filled.Build
-    Tab.SETTINGS -> Icons.Filled.Settings
+private fun BackedScreen(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+    Column(Modifier.fillMaxSize().background(MobiColors.Background)) {
+        Row(
+            Modifier.fillMaxWidth().background(MobiColors.Surface)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại",
+                    tint = MobiColors.Accent)
+            }
+            Text(title, color = MobiColors.Text, fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold)
+        }
+        HorizontalDivider(color = MobiColors.Border)
+        content()
+    }
 }
 
 /**

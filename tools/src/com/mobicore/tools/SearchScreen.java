@@ -53,62 +53,59 @@ public final class SearchScreen {
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
 
-        int margin = 16;
-        int width = frame.width() - margin * 2;
-        ui.text(ui.title(), "MobiCore", margin, 14, Theme.TEXT);
+        // Searching takes the toolbar over rather than living in a box below
+        // it: a field that is always on screen costs a row of games on every
+        // visit, and most visits are not searches.
+        int height = 74;
+        frame.setColor(Theme.SURFACE);
+        frame.fillRect(0, 0, frame.width(), height);
+        frame.setColor(Theme.BORDER);
+        frame.fillRect(0, height - 1, frame.width(), 1);
+        int glyph = 26;
+        Icons.draw(frame, Icons.SEARCH, 16, (height - glyph) / 2, glyph, Theme.TEXT_DIM);
+        ui.text(ui.large(), query, 16 + glyph + 14, (height - ui.large().height()) / 2,
+                Theme.TEXT);
+        Icons.draw(frame, Icons.CLOSE, frame.width() - 16 - glyph, (height - glyph) / 2, glyph,
+                Theme.TEXT_DIM);
 
-        int y = 14 + ui.title().height() + 14;
-        y += ui.searchField(margin, y, width, query, "Tìm theo tên hoặc nhà phát hành") + 12;
-
-        String[] sorts = {"Tên", "Vừa chơi", "Nhà phát hành"};
-        int chipX = margin;
-        for (int i = 0; i < sorts.length; i++) {
-            boolean selected = i == GameLibrary.SORT_TITLE;
-            chipX += ui.chip(sorts[i], chipX, y,
-                    selected ? Theme.ACCENT : Theme.TEXT_DIM,
-                    selected ? Theme.ACCENT_DIM : Theme.SURFACE_ALT) + 8;
-        }
-        y += ui.chipHeight() + 16;
-
-        ui.text(ui.small(), found.size() + " kết quả", margin, y, Theme.TEXT_DIM);
-        y += ui.small().height() + 10;
-
+        int y = height;
         for (int i = 0; i < found.size(); i++) {
             LibraryEntry entry = found.get(i);
-            y += row(ui, library, entry, profiles.get(entry.suiteId()), margin, y, width) + 12;
+            row(ui, library, entry, profiles.get(entry.suiteId()), y);
+            y += ROW_HEIGHT;
+            if (i < found.size() - 1) {
+                frame.setColor(Theme.BORDER);
+                frame.fillRect(82, y, frame.width() - 82, 1);
+            }
         }
-
         if (found.isEmpty()) {
-            ui.textCenter(ui.medium(), "Không có kết quả", frame.width() / 2, y + 40,
-                    Theme.TEXT_DIM);
+            ui.textCenter(ui.medium(), "Không tìm thấy. Thử một từ khoá khác.",
+                    frame.width() / 2, y + 40, Theme.TEXT_DIM);
         }
-
-        ui.tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 0);
         return frame;
     }
 
-    /** One result: cover, both names when they differ, and the device. */
-    private int row(Ui ui, GameLibrary library, LibraryEntry entry, GameProfile profile,
-                    int x, int y, int width) throws Exception {
-        int height = 84;
+    private static final int ROW_HEIGHT = 84;
+
+    /** One result: its icon, its name, and the name it was installed under. */
+    private void row(Ui ui, GameLibrary library, LibraryEntry entry, GameProfile profile, int y)
+            throws Exception {
         Framebuffer frame = ui.frame();
-        ui.panel(x, y, width, height, Theme.SURFACE, Theme.BORDER);
+        int icon = 52;
+        LibraryScreen.drawCover(ui, library, entry, 16, y + (ROW_HEIGHT - icon) / 2, icon);
 
-        int cover = height - 24;
-        LibraryScreen.drawCover(ui, library, entry, x + 12, y + 12, cover);
-
-        int textLeft = x + 12 + cover + 14;
-        String chip = profile != null ? profile.device().resolution() : entry.profile();
-        int chipWidth = ui.small().stringWidth(chip) + 18;
-        ui.text(ui.mediumBold(),
-                ui.ellipsize(ui.mediumBold(), entry.title(), width - cover - chipWidth - 60),
-                textLeft, y + 14, Theme.TEXT);
+        int left = 16 + icon + 14;
+        int right = frame.width() - 16;
+        int top = y + (ROW_HEIGHT - ui.mediumBold().height() - ui.small().height() - 6) / 2;
+        ui.text(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), entry.title(), right - left),
+                left, top, Theme.TEXT);
         String second = entry.isRenamed()
                 ? "tên gốc: " + entry.originalTitle()
-                : entry.vendor() + "  ·  " + entry.version();
-        ui.text(ui.small(), ui.ellipsize(ui.small(), second, width - cover - chipWidth - 60),
-                textLeft, y + 14 + ui.mediumBold().height() + 4, Theme.TEXT_DIM);
-        ui.chip(chip, x + width - chipWidth - 14, y + 14, Theme.ACCENT, Theme.ACCENT_DIM);
-        return height;
+                : entry.vendor();
+        int metaY = top + ui.mediumBold().height() + 6;
+        String version = entry.version();
+        ui.text(ui.small(), ui.ellipsize(ui.small(), second,
+                right - left - ui.small().stringWidth(version) - 16), left, metaY, Theme.TEXT_DIM);
+        ui.textRight(ui.small(), version, right, metaY, Theme.TEXT_DIM);
     }
 }

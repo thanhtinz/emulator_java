@@ -55,6 +55,9 @@ public final class Icons {
     public static final String ROTATE = "screen_rotation";
     public static final String SPEED = "speed";
     public static final String EXIT = "exit_to_app";
+    /** The toolbar's own three: search, sort, and everything else. */
+    public static final String SORT = "sort";
+    public static final String MORE = "more_vert";
     public static final String LIGHT_MODE = "brightness_high";
     public static final String DARK_MODE = "brightness_4";
 

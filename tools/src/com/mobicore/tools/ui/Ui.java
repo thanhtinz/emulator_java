@@ -189,9 +189,14 @@ public final class Ui {
      * band of the screen away from the games themselves.</p>
      */
     public void fab(String icon) {
+        fab(icon, TAB_BAR);
+    }
+
+    /** The same button with the space to leave beneath it stated. */
+    public void fab(String icon, int bottomInset) {
         int size = FAB;
         int x = frame.width() - PAD - size;
-        int y = frame.height() - TAB_BAR - PAD - size;
+        int y = frame.height() - bottomInset - PAD - size;
         frame.setColor(0x33000000);
         frame.fillArc(x - 1, y + 2, size + 2, size + 2, 0, 360);
         frame.setColor(Theme.ACCENT);

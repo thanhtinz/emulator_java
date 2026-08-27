@@ -18,6 +18,7 @@
 | 14 | Đánh dấu phím mềm L/R và màn hình ngang | Xong |
 | 15 | Menu trong game và bàn phím đổi kiểu | Xong |
 | 16 | Chạm thẳng vào thanh lệnh của game | Xong |
+| 17 | Phím hướng to bằng phím số, trang chủ theo kiểu J2ME Loader | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -692,3 +693,31 @@ hai đường để làm một việc.
   hai bàn phím con nằm giữa cột thay vì treo trên đỉnh.
 
 Ảnh: `build/screenshots/03-emulator.png`, `build/screenshots/18-landscape.png`.
+
+## Phím hướng to hơn, trang chủ gọn lại
+
+**Bàn phím hướng** trước đây thấp hơn hẳn bàn phím số bên cạnh (3 hàng so với
+4), trông như thứ phụ — trong khi nó mới là thứ dùng để chơi, còn phím số chủ
+yếu để gõ tên. Nay phím hướng giữ nguyên bề ngang (hai bàn phím vẫn vừa một
+màn hình ở cỡ phím của J2ME Loader) và **cao thêm**: ba hàng của nó bằng đúng
+bốn hàng phím số. Cỡ phím số **không đổi**.
+
+**Trang chủ** làm lại theo J2ME Loader (`fragment_apps_list.xml`,
+`menu/main.xml`, `list_row_jar.xml`):
+
+- Thanh công cụ: tên app bên trái; bên phải là **tìm**, **sắp xếp**, và **⋮**.
+  Bấm tìm thì ô nhập chiếm luôn thanh công cụ (bên đó dùng `SearchView`
+  `showAsAction="ifRoom"`), chứ không để một ô tìm kiếm chiếm chỗ vĩnh viễn.
+- Danh sách **phẳng**: biểu tượng 36dp, tên đậm, dưới là nhà phát hành và
+  phiên bản — đúng bố cục hàng của họ. Bỏ thẻ (card) bao quanh mỗi game: tám
+  mươi game là tám mươi khung phải nhìn xuyên qua.
+- Bỏ luôn các mục "VỪA CHƠI / YÊU THÍCH / TẤT CẢ TRÒ CHƠI". Sắp xếp theo "Vừa
+  chơi" đã làm được việc đó mà không tốn hàng nào; game yêu thích có dấu sao
+  ngay trên hàng.
+- **Bỏ thanh tab dưới đáy**. Công cụ và Cài đặt vào menu ⋮ — bên J2ME Loader
+  chúng cũng nằm trong overflow. Chúng là hai trang cài đặt, không phải hai
+  phần ba sản phẩm.
+- Nút **+** tròn góc dưới phải, lề 16dp, y như `activity_main`.
+
+Ảnh: `build/screenshots/05-library.png`, `build/screenshots/16-search.png`,
+`build/screenshots/03-emulator.png`.
