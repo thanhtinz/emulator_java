@@ -22,9 +22,19 @@ import java.util.Map;
 public final class CrashScreen {
 
     private final String fixtureDir;
+    private final String midletClass;
 
     public CrashScreen(String fixtureDir) {
+        this(fixtureDir, "demo.CrashDemo");
+    }
+
+    /**
+     * @param midletClass bản mẫu hỏng theo kiểu nào — mỗi kiểu một lời giải
+     *                    thích khác, và màn hình này vẽ lời giải thích ấy
+     */
+    public CrashScreen(String fixtureDir, String midletClass) {
         this.fixtureDir = fixtureDir;
+        this.midletClass = midletClass;
     }
 
     public Framebuffer render() throws Exception {
@@ -33,7 +43,10 @@ public final class CrashScreen {
         Map<String, Object> imported = Json.readObject(
                 facade.importSuite(SampleSuite.jar(fixtureDir), SampleSuite.jad()));
         String suiteId = Json.string(Json.child(imported, "game"), "suiteId", "");
-        facade.startGame(suiteId, "demo.CrashDemo");
+        facade.startGame(suiteId, midletClass);
+        // Hạn chờ treo rút xuống một phần tư giây: ảnh chụp cần cái màn hình
+        // hiện ra sau đó, không cần tám giây chờ thật.
+        facade.session().vm().setStuckAfterMs(250);
         facade.renderFrame();
         Map<String, Object> crash = Json.readObject(facade.crashJson());
 

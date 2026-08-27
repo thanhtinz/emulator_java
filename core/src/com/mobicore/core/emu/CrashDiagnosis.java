@@ -41,6 +41,8 @@ public final class CrashDiagnosis {
     public static final int KIND_EMULATOR = 7;
     /** Không đủ căn cứ để nói gì. */
     public static final int KIND_UNKNOWN = 8;
+    /** Game chạy mãi một chỗ, không vẽ xong khung hình. */
+    public static final int KIND_HANG = 9;
 
     private final int kind;
     private final String title;
@@ -116,6 +118,15 @@ public final class CrashDiagnosis {
                 ? detail
                 : (detail.length() == 0 ? type : type + ": " + detail);
 
+        if (type.length() == 0 && detail.startsWith("Game không phản hồi")) {
+            return new CrashDiagnosis(KIND_HANG, "Game bị treo",
+                    "Game chạy mãi một chỗ mà không vẽ xong khung hình, nên máy ảo "
+                            + "cắt ngang để còn thoát ra được.",
+                    "Chơi lại từ chỗ đã lưu. Nếu lần nào cũng treo ở đúng chỗ này thì "
+                            + "bản game đó vốn đã hỏng — máy ảo không chờ lâu hơn được, "
+                            + "vì chờ nữa thì cũng chỉ là màn hình đứng im.",
+                    technical);
+        }
         if (type.length() == 0) {
             return new CrashDiagnosis(KIND_EMULATOR, "Máy ảo gặp sự cố",
                     detail.length() == 0

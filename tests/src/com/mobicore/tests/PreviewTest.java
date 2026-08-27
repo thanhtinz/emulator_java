@@ -49,6 +49,7 @@ public final class PreviewTest extends Test {
         clear("Chỗ lưu", new SlotsScreen(fixtureDir).render());
         clear("Nhập từ liên kết", new LinkScreen(fixtureDir).render());
         clear("Game hỏng", new CrashScreen(fixtureDir).render());
+        clear("Game treo", new CrashScreen(fixtureDir, "demo.HangDemo").render());
     }
 
     /**

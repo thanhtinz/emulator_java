@@ -13,6 +13,7 @@ import com.mobicore.core.jar.SuiteLoader
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.storage.LocalVfs
 import com.mobicore.core.storage.StorageLayout
+import com.mobicore.core.vm.VmCancelled
 import com.mobicore.core.vm.VmError
 import com.mobicore.core.vm.VmThrow
 import java.util.concurrent.atomic.AtomicBoolean
@@ -165,6 +166,8 @@ class EmulatorEngine(
             Thread.currentThread().interrupt()
         } catch (thrown: VmThrow) {
             noteCrash(active, thrown)
+        } catch (stopped: VmCancelled) {
+            // Người chơi dừng, không phải game hỏng: không có gì để báo.
         } catch (error: VmError) {
             noteCrash(active, error)
         } catch (unexpected: RuntimeException) {
@@ -365,6 +368,10 @@ class EmulatorEngine(
 
     fun stop() {
         stopRequested.set(true)
+        // Một game kẹt trong vòng lặp của chính nó không bao giờ đọc tới cờ
+        // dừng ở trên: lệnh này xuyên thẳng vào máy ảo, nên rời một game treo
+        // là chuyện tức thì chứ không phải chờ hết giờ.
+        session?.requestStop()
         loop?.interrupt()
         loop?.join(750)
         loop = null

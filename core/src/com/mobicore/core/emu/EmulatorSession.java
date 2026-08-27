@@ -564,7 +564,21 @@ public final class EmulatorSession {
         log.info("MIDlet resumed");
     }
 
+    /**
+     * Bảo game dừng ngay, kể cả khi nó đang kẹt giữa một khung hình.
+     *
+     * <p>Gọi từ luồng khác: người chơi bấm thoát trong lúc luồng game còn
+     * đang chạy. Không có chỗ này thì một game vòng lặp vô tận giữ luồng ấy
+     * cho tới khi hết giờ chờ, và người chơi ngồi nhìn màn hình đứng im.</p>
+     */
+    public void requestStop() {
+        vm.setCancelled(true);
+    }
+
     public void destroy() {
+        // Dọn dẹp phải chạy được, nên lệnh dừng được gỡ trước: destroyApp và
+        // việc ghi nốt phần lưu cũng là mã chạy trong máy ảo.
+        vm.setCancelled(false);
         if (state == STATE_DESTROYED || midlet == null) {
             state = STATE_DESTROYED;
             return;

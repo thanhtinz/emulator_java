@@ -190,6 +190,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) NSString *activeSuiteId;
 @property (nonatomic, readonly) CGSize screenSize;
 
+/// Bảo game dừng ngay, kể cả khi nó đang kẹt giữa một khung hình.
+- (NSString *)requestStopGame;
+
 /// Advances one frame. Returns NO when nothing changed.
 - (BOOL)renderFrame;
 

@@ -27,6 +27,9 @@ public final class Vm {
 
     private VmHost host = VmHost.DEFAULT;
     private long instructionBudget = Long.MAX_VALUE;
+    /** Bao lâu thì một lời gọi vào game bị coi là treo. */
+    private long stuckAfterMs = 8000;
+    private volatile boolean cancelled;
     private int maxFrames = 512;
 
     public Vm() {
@@ -63,6 +66,43 @@ public final class Vm {
 
     public long instructionBudget() {
         return instructionBudget;
+    }
+
+    /**
+     * Một lời gọi vào game chạy quá lâu thì bị cắt.
+     *
+     * <p>Game J2ME viết vòng lặp của chính nó, và một vòng lặp không có lối
+     * ra là chuyện thường gặp trong đám game viết cho đúng một đời máy. Không
+     * có cái hạn này thì luồng chạy game kẹt mãi: màn hình đứng im, không nút
+     * nào bấm được, và cách duy nhất thoát ra là tắt hẳn ứng dụng.</p>
+     *
+     * <p>Tám giây là rộng tay có chủ ý: máy ảo dịch từng lệnh nên một màn mở
+     * đầu nặng có thể chạy vài giây thật, và cắt nhầm một game đang chạy
+     * đúng thì tệ hơn là đợi thêm.</p>
+     *
+     * @param millis 0 hoặc số âm thì bỏ hạn
+     */
+    public void setStuckAfterMs(long millis) {
+        this.stuckAfterMs = millis <= 0 ? Long.MAX_VALUE : millis;
+    }
+
+    public long stuckAfterMs() {
+        return stuckAfterMs;
+    }
+
+    /**
+     * Bảo game dừng lại ngay, dù nó đang ở giữa một khung hình.
+     *
+     * <p>Đặt từ luồng khác — người chơi bấm thoát trong lúc luồng game còn
+     * đang chạy — nên là {@code volatile}: luồng game phải thấy được ngay
+     * chứ không phải ở lần đọc bộ nhớ nào đó về sau.</p>
+     */
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
+    }
+
+    public boolean isCancelled() {
+        return cancelled;
     }
 
     public int maxFrames() {

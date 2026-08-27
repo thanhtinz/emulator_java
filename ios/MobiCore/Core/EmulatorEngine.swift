@@ -157,6 +157,10 @@ final class EmulatorEngine: ObservableObject {
 
     func stop() {
         running = false
+        // Một game kẹt trong vòng lặp của chính nó không bao giờ đọc tới cờ
+        // dừng ở trên: lệnh này xuyên thẳng vào máy ảo, nên rời một game treo
+        // là chuyện tức thì chứ không phải chờ hết giờ.
+        _ = bridge.requestStopGame()
         displayLink?.invalidate()
         displayLink = nil
         if isRunning {

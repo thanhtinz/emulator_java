@@ -31,6 +31,7 @@ public final class SampleSuite {
             + "MIDlet-7: File Demo,,demo.FileDemo\n"
             + "MIDlet-8: Crash Demo,,demo.CrashDemo\n"
             + "MIDlet-9: Device Demo,,demo.DeviceDemo\n"
+            + "MIDlet-10: Hang Demo,,demo.HangDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 
@@ -49,6 +50,7 @@ public final class SampleSuite {
             + "MIDlet-7: File Demo,,demo.FileDemo\n"
             + "MIDlet-8: Crash Demo,,demo.CrashDemo\n"
             + "MIDlet-9: Device Demo,,demo.DeviceDemo\n"
+            + "MIDlet-10: Hang Demo,,demo.HangDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 

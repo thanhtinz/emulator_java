@@ -355,6 +355,10 @@
     return [_facade startGameWithNSString:suiteId];
 }
 
+- (NSString *)requestStopGame {
+    return [_facade requestStop];
+}
+
 - (BOOL)isRunning {
     return [_facade isRunning];
 }

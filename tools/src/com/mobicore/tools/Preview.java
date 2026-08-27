@@ -63,6 +63,7 @@ public final class Preview {
         write(vfs, outDir, "23-nokia.png", nokiaScreen(fixtures));
         write(vfs, outDir, "27-install-link.png", new LinkScreen(fixtures).render());
         write(vfs, outDir, "28-crash.png", new CrashScreen(fixtures).render());
+        write(vfs, outDir, "29-hang.png", new CrashScreen(fixtures, "demo.HangDemo").render());
         // The keypad in the other shape and faded back, which is what the
         // two new settings do to it.
         write(vfs, outDir, "26-arrange-keys.png", arrangeScreen(fixtures));

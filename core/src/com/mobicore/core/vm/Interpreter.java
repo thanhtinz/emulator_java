@@ -67,6 +67,52 @@ public final class Interpreter {
         return out.toString();
     }
 
+    /**
+     * Bao nhiêu lệnh thì ngó đồng hồ một lần.
+     *
+     * <p>Vòng lặp chính chạy hàng chục triệu lệnh mỗi giây, nên hỏi giờ ở mỗi
+     * lệnh là tự làm chậm chính mình. Con số này đủ nhỏ để một game treo bị
+     * bắt trong vài phần nghìn giây, và đủ lớn để phép so sánh thêm vào không
+     * đo được.</p>
+     */
+    private static final long CHECK_EVERY = 65536L;
+
+    /** Khi lời gọi ngoài cùng bắt đầu, theo giờ thật. */
+    private long watchStart;
+
+    /**
+     * Chỗ ngó ra ngoài: hết giờ chưa, có ai bảo dừng chưa.
+     *
+     * @return mốc lệnh của lần ngó tiếp theo
+     */
+    private long checkIn(Frame frame) {
+        if (vm.isCancelled()) {
+            throw new VmCancelled("Người chơi dừng game");
+        }
+        long limit = vm.stuckAfterMs();
+        if (limit != Long.MAX_VALUE && watchStart > 0) {
+            // Giờ thật, không phải giờ của game: điều khiển tốc độ làm đồng hồ
+            // của game chạy nhanh chậm khác đi, còn "người ngồi đợi bao lâu"
+            // thì không.
+            long waited = System.currentTimeMillis() - watchStart;
+            if (waited > limit) {
+                throw new VmError("Game không phản hồi sau " + describe(waited)
+                        + ", đang kẹt trong " + frame.method.key());
+            }
+        }
+        if (executed > vm.instructionBudget()) {
+            throw new VmError("Instruction budget exhausted in " + frame.method.key());
+        }
+        return executed + CHECK_EVERY;
+    }
+
+    /** Khoảng thời gian, nói bằng đơn vị nó đáng được nói. */
+    private static String describe(long millis) {
+        // Chia lấy nguyên cho 1000 biến một phần tư giây thành "0 giây", tức
+        // là một câu nói rằng chẳng có gì xảy ra cả.
+        return millis >= 1000 ? (millis / 1000) + " giây" : millis + " mili giây";
+    }
+
     public Object invoke(VmMethod method, VmObject self, Object[] args) {
         if (method.nativeImpl() != null) {
             return method.nativeImpl().invoke(vm, self, args);
@@ -95,6 +141,11 @@ public final class Interpreter {
         if (method.isSynchronized()) {
             frame.monitor = method.isStatic() ? vm.mirrorOf(method.owner()) : self;
             Monitors.enter(frame.monitor);
+        }
+        if (stack.isEmpty()) {
+            // Lời gọi ngoài cùng: đồng hồ đo "người chơi đã đợi bao lâu" bắt
+            // đầu chạy từ đây, chứ không phải từ lúc mở game.
+            watchStart = System.currentTimeMillis();
         }
         stack.add(frame);
         try {
@@ -142,13 +193,13 @@ public final class Interpreter {
     private Object execute(Frame frame) {
         byte[] code = frame.method.code();
         VmClass owner = frame.method.owner();
-        long budget = vm.instructionBudget();
+        long checkpoint = executed + CHECK_EVERY;
 
         while (true) {
             try {
                 while (true) {
-                    if (++executed > budget) {
-                        throw new VmError("Instruction budget exhausted in " + frame.method.key());
+                    if (++executed > checkpoint) {
+                        checkpoint = checkIn(frame);
                     }
                     int pc = frame.pc;
                     int op = code[pc] & 0xFF;

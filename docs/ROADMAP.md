@@ -1685,3 +1685,47 @@ nay sẽ sai vào ngày ai đó thêm một dòng.
 Nhân tiện, dòng "Máy giả lập" trong trang chi tiết được gọi lại đúng tên của
 nó — **"Màn hình"** — vì từ giai đoạn 32 nó chỉ còn nói về cỡ màn hình, và từ
 giai đoạn 44 thì "máy giả lập" đã có nghĩa khác.
+
+## Giai đoạn 45 — game treo thì vẫn thoát được
+
+Game J2ME viết vòng lặp của chính nó, và một vòng lặp **không có lối ra** là
+chuyện thường trong đám game viết cho đúng một đời máy: chờ một phím không bao
+giờ tới, chờ một cờ không bao giờ đổi. Trên máy thật đó là một chiếc điện thoại
+phải tháo pin. Ở đây, cho tới giờ, đó là luồng chạy game kẹt trong máy ảo mãi
+mãi: màn hình đứng im, không nút nào bấm được, và cách duy nhất thoát ra là tắt
+hẳn ứng dụng — mất luôn cả phần chưa lưu.
+
+Nay có hai lối ra, và cả hai đều phải chạy được **từ bên trong một vòng lặp vô
+tận**:
+
+- **Hết giờ thì máy ảo tự cắt.** Một lời gọi vào game chạy quá **tám giây** bị
+  cắt ngang và báo lên như một lần hỏng, với lời giải thích riêng của nó: "Game
+  bị treo — game chạy mãi một chỗ mà không vẽ xong khung hình". Tám giây là
+  rộng tay có chủ ý: máy ảo dịch từng lệnh, một màn mở đầu nặng có thể chạy vài
+  giây thật, và **cắt nhầm một game đang chạy đúng thì tệ hơn là đợi thêm**.
+- **Người chơi bấm thoát thì cắt ngay.** Không ai ngồi đợi cho hết tám giây.
+  Lệnh dừng đến từ luồng giao diện và xuyên thẳng vào chỗ game đang chạy, nên
+  rời một game treo là chuyện tức thì. Nó **không** bị coi là một lần hỏng —
+  không có gì để báo, không có gì để giải thích — nên nó mang một tên riêng
+  (`VmCancelled`) để chỗ bắt được phân biệt.
+
+Cách cài đặt đáng nói ở chỗ nó **không làm chậm vòng lặp chính**. Vòng lặp đã
+sẵn có một phép so sánh mỗi lệnh (hạn số lệnh); nay phép so sánh ấy đếm tới một
+*mốc*, và cứ 65536 lệnh mới ngó ra ngoài một lần: hết giờ chưa, có ai bảo dừng
+chưa. Máy ảo chạy hàng chục triệu lệnh mỗi giây, nên mốc ấy đủ nhỏ để bắt được
+một game treo trong vài phần nghìn giây, và đủ lớn để phép so sánh thêm vào
+không đo được.
+
+Giờ dùng ở đây là **giờ thật**, không phải đồng hồ của game: điều khiển tốc độ
+làm đồng hồ game chạy nhanh chậm khác đi, còn "người ngồi đợi bao lâu" thì
+không.
+
+Và dọn dẹp vẫn phải chạy được: `destroyApp` cùng việc ghi nốt phần lưu cũng là
+mã chạy trong máy ảo, nên lệnh dừng được gỡ ngay đầu `destroy()` — dừng một
+game treo không được phép làm mất phần đã chơi.
+
+Bản mẫu `demo.HangDemo` treo thật bằng bytecode thật. Bài kiểm tra chạy cả hai
+lối ra, và lối thứ hai chạy **từ một luồng khác** — vì đó đúng là cách nó xảy
+ra ngoài đời.
+
+Cầu nối: `requestStop`.

@@ -46,6 +46,7 @@ import com.mobicore.core.storage.Json;
 import com.mobicore.core.storage.LocalVfs;
 import com.mobicore.core.storage.StorageLayout;
 import com.mobicore.core.storage.Vfs;
+import com.mobicore.core.vm.VmCancelled;
 import com.mobicore.core.vm.VmError;
 import com.mobicore.core.vm.VmHost;
 import com.mobicore.core.vm.VmThrow;
@@ -1754,9 +1755,24 @@ public final class MobiCoreFacade {
             return error(e.getMessage());
         } catch (VmThrow e) {
             return error(noteCrash(suiteId, e));
+        } catch (VmCancelled e) {
+            // Người chơi dừng, không phải game hỏng: không có gì để báo.
+            return error("Đã dừng mở game");
         } catch (VmError e) {
             return error(noteCrash(suiteId, e));
         }
+    }
+
+    /**
+     * Phiên đang chạy, cho công cụ và bài kiểm tra.
+     *
+     * <p>Giao diện điện thoại không dùng chỗ này — nó nói chuyện qua JSON như
+     * mọi thứ khác — nhưng công cụ trên máy tính thì cần chạm vào máy ảo
+     * thật, chẳng hạn để rút ngắn hạn chờ treo xuống còn một phần tư giây
+     * thay vì ngồi đợi tám giây.</p>
+     */
+    public EmulatorSession session() {
+        return session;
     }
 
     public boolean isRunning() {
@@ -1841,6 +1857,9 @@ public final class MobiCoreFacade {
         } catch (VmThrow e) {
             session.log().error("Frame aborted: " + e);
             noteCrash(activeSuiteId, e);
+            return false;
+        } catch (VmCancelled e) {
+            session.log().info("Frame aborted: người chơi dừng game");
             return false;
         } catch (VmError e) {
             session.log().error("Frame aborted: " + e.getMessage());
@@ -2530,6 +2549,20 @@ public final class MobiCoreFacade {
         String saved = saveState();
         stopGame();
         return saved;
+    }
+
+    /**
+     * Bảo game dừng ngay, kể cả khi nó đang kẹt giữa một khung hình.
+     *
+     * <p>Gọi từ luồng giao diện trong lúc luồng chạy game còn đang ở trong
+     * máy ảo: một game vòng lặp vô tận không bao giờ đọc tới cờ dừng thường,
+     * nên lệnh này xuyên thẳng vào chỗ nó đang chạy.</p>
+     */
+    public String requestStop() {
+        if (session != null) {
+            session.requestStop();
+        }
+        return ok("stopping", "true");
     }
 
     public void stopGame() {
