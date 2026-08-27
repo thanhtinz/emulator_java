@@ -32,6 +32,9 @@ struct GameSettings: Codable, Hashable {
     var keypadLayout: Int
     /// Which MIDlet inside the suite the play button opens; empty for the first.
     var midletClass: String
+    /// Total time in this game, and the words for it.
+    var playedMs: Int64?
+    var playedName: String?
     var frameLimit: Int
     var volume: Int
     var muted: Bool

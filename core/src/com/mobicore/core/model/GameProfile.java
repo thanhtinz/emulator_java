@@ -86,6 +86,16 @@ public final class GameProfile {
     private boolean favourite;
     private long lastPlayed;
     private int playCount;
+    /**
+     * Total time spent in this game, in milliseconds.
+     *
+     * <p>The library already knew when a game was last opened, which answers
+     * "what was I playing" and nothing else. How long it has held someone is
+     * the thing worth knowing about a collection of eighty: it separates the
+     * four games that were actually played from the seventy-six that were
+     * opened once.</p>
+     */
+    private long playedMs;
 
     public GameProfile(String suiteId, DeviceProfile device, InputProfile input) {
         this.suiteId = suiteId;
@@ -305,6 +315,38 @@ public final class GameProfile {
         this.playCount++;
     }
 
+    public long playedMs() {
+        return playedMs;
+    }
+
+    /**
+     * Adds a session's length.
+     *
+     * <p>Measured on the wall clock rather than the game's own: at triple
+     * speed the player still spent the minutes they spent, and a total that
+     * shrank because someone used fast-forward would be measuring the wrong
+     * thing.</p>
+     */
+    public void addPlayedMs(long millis) {
+        if (millis > 0) {
+            playedMs += millis;
+        }
+    }
+
+    /** "3 giờ 12 phút", "12 phút", "chưa chơi" — never a bare number. */
+    public static String playedName(long millis) {
+        if (millis < 60_000L) {
+            return millis <= 0 ? "chưa chơi" : "dưới một phút";
+        }
+        long minutes = millis / 60_000L;
+        long hours = minutes / 60;
+        minutes = minutes % 60;
+        if (hours == 0) {
+            return minutes + " phút";
+        }
+        return minutes == 0 ? hours + " giờ" : hours + " giờ " + minutes + " phút";
+    }
+
     /**
      * Viewport for the emulated screen inside a widget of the given size,
      * as {x, y, width, height}.
@@ -368,6 +410,8 @@ public final class GameProfile {
         json.put("favourite", Boolean.valueOf(favourite));
         json.put("lastPlayed", Long.valueOf(lastPlayed));
         json.put("playCount", Integer.valueOf(playCount));
+        json.put("playedMs", Long.valueOf(playedMs));
+        json.put("playedName", playedName(playedMs));
         return json;
     }
 
@@ -397,6 +441,7 @@ public final class GameProfile {
         profile.favourite = Json.bool(json, "favourite", false);
         profile.lastPlayed = Json.longValue(json, "lastPlayed", 0L);
         profile.playCount = Json.integer(json, "playCount", 0);
+        profile.playedMs = Json.longValue(json, "playedMs", 0L);
         return profile;
     }
 }

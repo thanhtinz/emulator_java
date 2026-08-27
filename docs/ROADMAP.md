@@ -28,6 +28,7 @@
 | 24 | Sao lưu toàn bộ thư viện | Xong |
 | 25 | Tua lại vài giây | Xong |
 | 26 | Chọn MIDlet trong gói | Xong |
+| 27 | Thống kê thời gian chơi | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -945,5 +946,24 @@ trong manifest — phần còn lại của gói coi như không tồn tại.
   được vì một cái tên cũ.
 
 Facade: `midletsJson(suiteId)` và `startGame(suiteId, midletClass)`.
+
+Ảnh: `build/screenshots/06-game-detail.png`.
+
+## Đã chơi bao lâu
+
+Thư viện vốn biết game được mở **lúc nào** — đủ để trả lời "hôm qua mình chơi
+gì" và không gì hơn. Cái đáng biết về một bộ sưu tập tám mươi game là game nào
+**giữ chân người ta**: nó tách bốn game thật sự được chơi khỏi bảy mươi sáu
+game mở đúng một lần.
+
+- `GameProfile.playedMs` cộng dồn sau mỗi lần thoát game; trang chi tiết hiện
+  dòng **Đã chơi** ("3 giờ 12 phút", "12 phút", "dưới một phút", "chưa chơi" —
+  không bao giờ là một con số trần).
+- Thêm kiểu sắp xếp **Chơi lâu nhất** trong menu sắp xếp ở trang chủ.
+- Đo bằng **đồng hồ thật**, không phải đồng hồ của game: chạy 3× thì người chơi
+  vẫn bỏ ra đúng ngần ấy phút, một con số co lại vì ai đó tua nhanh là đang đo
+  nhầm thứ.
+- Lỗi khi ghi hồ sơ lúc thoát thì bỏ qua: một tổng thiếu mất một phiên còn hơn
+  là sập khi rời game.
 
 Ảnh: `build/screenshots/06-game-detail.png`.

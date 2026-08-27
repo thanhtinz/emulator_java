@@ -69,6 +69,7 @@ struct HomeView: View {
                     Text("Theo tên").tag(0)
                     Text("Vừa chơi").tag(1)
                     Text("Nhà phát hành").tag(2)
+                    Text("Chơi lâu nhất").tag(3)
                 }
             } label: {
                 Image(systemName: "arrow.up.arrow.down")

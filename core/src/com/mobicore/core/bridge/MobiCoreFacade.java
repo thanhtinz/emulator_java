@@ -859,6 +859,7 @@ public final class MobiCoreFacade {
                 profile.setMidletClass("");
             }
             activeSuiteId = suiteId;
+            startedAt = now();
             profile.markPlayed(now());
             library.saveProfile(profile);
 
@@ -1609,9 +1610,42 @@ public final class MobiCoreFacade {
 
     public void stopGame() {
         if (session != null) {
+            recordPlayTime();
             session.destroy();
             session = null;
             activeSuiteId = null;
+        }
+    }
+
+    /** When the running game was started, on the wall clock. */
+    private long startedAt;
+
+    /**
+     * Adds this session's length to the game's total.
+     *
+     * <p>Measured on the wall clock rather than the game's own: at triple
+     * speed the player still spent the minutes they spent, and a total that
+     * shrank because someone used fast-forward would be measuring the wrong
+     * thing.</p>
+     */
+    private void recordPlayTime() {
+        if (library == null || activeSuiteId == null || startedAt == 0) {
+            return;
+        }
+        long elapsed = now() - startedAt;
+        startedAt = 0;
+        if (elapsed <= 0) {
+            return;
+        }
+        try {
+            GameProfile profile = library.profile(activeSuiteId);
+            if (profile != null) {
+                profile.addPlayedMs(elapsed);
+                library.saveProfile(profile);
+            }
+        } catch (IOException e) {
+            // A total that missed one session is worth more than a crash on
+            // the way out of a game.
         }
     }
 

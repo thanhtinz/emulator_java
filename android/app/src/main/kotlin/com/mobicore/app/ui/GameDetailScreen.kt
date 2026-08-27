@@ -239,6 +239,12 @@ fun GameDetailScreen(
                     FieldRow("Máy giả lập", profile?.device()?.toString() ?: "—")
                     FieldRow("Phóng ảnh", profile?.scaleModeName() ?: "—")
                     FieldRow("Số lần chơi", (profile?.playCount() ?: 0).toString())
+                    // How long it has held someone, which is the thing worth
+                    // knowing about a collection of eighty.
+                    FieldRow(
+                        "Đã chơi",
+                        GameProfile.playedName(profile?.playedMs() ?: 0L),
+                    )
                 }
             }
         }

@@ -137,6 +137,9 @@ public final class FacadeTest extends Test {
         eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
                 "and round again");
 
+        // How long a game has held someone ----------------------------------
+        playTime(facade, suiteId);
+
         // Picking which MIDlet in the suite to open --------------------------
         midlets(facade, suiteId);
 
@@ -285,6 +288,40 @@ public final class FacadeTest extends Test {
         eq(0, Json.array(Json.readObject(facade.libraryJson()), "games").size(),
                 "the library is empty again");
     }
+    /**
+     * Play time: the library knew when a game was last opened, which answers
+     * "what was I playing" and nothing else.
+     */
+    private void playTime(MobiCoreFacade facade, String suiteId) throws Exception {
+        eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "playedMs", -1),
+                "a game nobody has played has no time on it");
+        eq("chưa chơi",
+                Json.string(Json.readObject(facade.profileJson(suiteId)), "playedName", ""),
+                "and says so in words rather than a bare zero");
+
+        facade.startGame(suiteId);
+        for (int i = 0; i < 5; i++) {
+            facade.renderFrame();
+        }
+        Thread.sleep(30);
+        facade.stopGame();
+        long first = Json.longValue(Json.readObject(facade.profileJson(suiteId)), "playedMs", 0L);
+        check(first > 0, "leaving a game adds the time it was open");
+
+        facade.startGame(suiteId);
+        Thread.sleep(30);
+        facade.stopGame();
+        long second = Json.longValue(Json.readObject(facade.profileJson(suiteId)), "playedMs", 0L);
+        check(second > first, "and a second session adds to the first rather than replacing it");
+
+        eq("12 phút", com.mobicore.core.model.GameProfile.playedName(12 * 60_000L),
+                "minutes read as minutes");
+        eq("2 giờ 5 phút", com.mobicore.core.model.GameProfile.playedName(125 * 60_000L),
+                "and hours as hours");
+        eq("dưới một phút", com.mobicore.core.model.GameProfile.playedName(5_000L),
+                "a short session is not rounded away to nothing");
+    }
+
     /**
      * A JAR often holds more than one MIDlet — the game, a help screen, a
      * settings screen, sometimes a second game — and only the first could

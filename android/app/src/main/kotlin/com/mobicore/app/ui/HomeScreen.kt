@@ -225,6 +225,7 @@ private fun ToolBar(
                 SortItem(library, "Theo tên", GameLibrary.SORT_TITLE) { sortOpen = false }
                 SortItem(library, "Vừa chơi", GameLibrary.SORT_RECENT) { sortOpen = false }
                 SortItem(library, "Nhà phát hành", GameLibrary.SORT_VENDOR) { sortOpen = false }
+                SortItem(library, "Chơi lâu nhất", GameLibrary.SORT_PLAYED) { sortOpen = false }
             }
         }
         Box {

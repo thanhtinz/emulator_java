@@ -496,6 +496,8 @@ public final class GameLibrary {
     public static final int SORT_TITLE = 0;
     public static final int SORT_RECENT = 1;
     public static final int SORT_VENDOR = 2;
+    /** Longest played first: which games a collection is actually for. */
+    public static final int SORT_PLAYED = 3;
 
     /** Sorts a result list; {@code profiles} supplies play times for SORT_RECENT. */
     public List<LibraryEntry> sort(List<LibraryEntry> input, final int mode,
@@ -514,11 +516,22 @@ public final class GameLibrary {
                     if (a != b) {
                         return a > b ? -1 : 1;
                     }
+                } else if (mode == SORT_PLAYED) {
+                    long a = playedFor(profiles, left);
+                    long b = playedFor(profiles, right);
+                    if (a != b) {
+                        return a > b ? -1 : 1;
+                    }
                 }
                 return left.title().compareToIgnoreCase(right.title());
             }
         });
         return sorted;
+    }
+
+    private static long playedFor(Map<String, GameProfile> profiles, LibraryEntry entry) {
+        GameProfile profile = profiles == null ? null : profiles.get(entry.suiteId());
+        return profile == null ? 0 : profile.playedMs();
     }
 
     private static long playedAt(Map<String, GameProfile> profiles, LibraryEntry entry) {

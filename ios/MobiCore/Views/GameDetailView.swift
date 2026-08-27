@@ -137,6 +137,8 @@ struct GameDetailView: View {
                             FieldRow(label: "Máy giả lập",
                                      value: game.settings?.device.resolution ?? "—")
                             FieldRow(label: "Phóng ảnh", value: game.settings?.scaleModeName ?? "—")
+                            FieldRow(label: "Đã chơi",
+                                     value: game.settings?.playedName ?? "chưa chơi")
                             FieldRow(label: "Số lần chơi",
                                      value: String(game.settings?.playCount ?? 0))
                         }

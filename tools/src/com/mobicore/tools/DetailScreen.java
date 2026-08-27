@@ -136,13 +136,15 @@ public final class DetailScreen {
 
         // Details --------------------------------------------------------
         Map<String, Object> device = Json.child(settings, "device");
-        int detailsHeight = ui.sectionHeight(5);
+        int detailsHeight = ui.sectionHeight(6);
         int row = ui.section(margin, y, width, detailsHeight, "THÔNG TIN", null);
         ui.field("Phiên bản", Json.string(game, "version", ""), fieldX, row, fieldWidth);
         ui.field("Mã bộ cài", Json.string(game, "suiteId", ""), fieldX, row + Ui.ROW, fieldWidth);
         ui.field("Dung lượng", kb(Json.longValue(game, "jarSize", 0)), fieldX, row + Ui.ROW * 2,
                 fieldWidth);
         ui.field("Máy giả lập", Json.string(device, "name", ""), fieldX, row + Ui.ROW * 3, fieldWidth);
+        ui.field("Đã chơi", Json.string(settings, "playedName", "chưa chơi"), fieldX,
+                row + Ui.ROW * 5, fieldWidth);
         ui.field("Số lần chơi", String.valueOf(Json.integer(settings, "playCount", 0)), fieldX,
                 row + Ui.ROW * 4, fieldWidth);
         y += detailsHeight + 14;
