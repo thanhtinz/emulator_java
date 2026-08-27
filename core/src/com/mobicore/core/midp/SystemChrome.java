@@ -86,6 +86,33 @@ public final class SystemChrome {
         return labelFont().height() + 5;
     }
 
+    /** Nothing was hit; the tap belongs to the game. */
+    public static final int HIT_NONE = 0;
+    public static final int HIT_LEFT = 1;
+    public static final int HIT_RIGHT = 2;
+
+    /**
+     * Which softkey a tap landed on, if any.
+     *
+     * <p>A touchscreen handset ran these games with the command bar itself as
+     * the button: the labels are drawn along the bottom of the screen, and
+     * tapping a label runs its command. Two more buttons underneath, saying
+     * the same two words, are two ways to do one thing.</p>
+     */
+    public static int softKeyHit(MidpContext context, int x, int y) {
+        if (context.isFullScreen() || !context.hasSoftKeys()) {
+            return HIT_NONE;
+        }
+        Framebuffer screen = context.screen();
+        if (y < screen.height() - softKeyBarHeight() || y >= screen.height()) {
+            return HIT_NONE;
+        }
+        if (x < screen.width() / 2) {
+            return leftLabel(context) == null ? HIT_NONE : HIT_LEFT;
+        }
+        return rightLabel(context) == null ? HIT_NONE : HIT_RIGHT;
+    }
+
     /** Applies the measured heights to a context. */
     public static void measure(MidpContext context) {
         context.setChromeHeights(titleBarHeight(), softKeyBarHeight());

@@ -4,6 +4,7 @@ import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.midp.MidpContext;
+import com.mobicore.core.midp.SystemChrome;
 import com.mobicore.core.midp.MidpForms;
 import com.mobicore.core.midp.ScreenRenderer;
 import com.mobicore.core.vm.Vm;
@@ -60,6 +61,7 @@ public final class FormsTest extends Test {
         alerts(session, context, vm);
         diagonals(session);
         softKeysAreLandR(session);
+        tappingTheCommandBar();
         systemKeyboard(session, context, vm);
     }
 
@@ -265,6 +267,38 @@ public final class FormsTest extends Test {
      * marked L and R must run the game's own commands, not send some other
      * key code.</p>
      */
+    /**
+     * On a touchscreen the command bar is the button.
+     *
+     * <p>That is how these games were played on one: the labels are drawn
+     * along the bottom of the screen and tapping a label runs its command.
+     * The emulator has to deliver that tap to the command rather than pass it
+     * down to the game as a stray touch.</p>
+     */
+    private void tappingTheCommandBar() throws Exception {
+        EmulatorSession session = boot();
+        MidpContext context = session.context();
+        check(session.showsSoftKeyBar(), "a list screen carries the command bar");
+
+        // Into "Nhập tên", whose right key is "Quay lại".
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_FIRE);
+        check(session.isTextInputActive(), "the TextBox is up");
+        eq("Quay lại", session.rightSoftKeyLabel(), "with its own back command on the right key");
+
+        int barTop = context.screen().height() - SystemChrome.softKeyBarHeight() + 2;
+        session.pointerPressed(context.screen().width() - 6, barTop);
+        check(!session.isTextInputActive(), "tapping that label ran the command behind it");
+
+        // A tap on the game is still the game's.
+        eq(SystemChrome.HIT_NONE, SystemChrome.softKeyHit(context,
+                        context.screen().width() / 2, context.screen().height() / 2),
+                "a tap in the middle of the screen is not a softkey");
+        eq(SystemChrome.HIT_LEFT, SystemChrome.softKeyHit(context, 4, barTop),
+                "the left half of the bar is the left key");
+    }
+
     private void softKeysAreLandR(EmulatorSession session) {
         eq(MidpContext.KEY_SOFT_LEFT,
                 com.mobicore.core.model.InputProfile.nokia().keyCodeFor("softLeft"),

@@ -54,12 +54,14 @@ struct EmulatorView: View {
                 // the game a strip along the top.
                 HStack(spacing: 0) {
                     ControlColumn(directional: true, softKeyLabel: engine.leftSoftKeyLabel,
+                                  showSoftKey: !engine.showsSoftKeyBar,
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) })
                         .padding(.vertical, 8)
                     GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     ControlColumn(directional: false, softKeyLabel: engine.rightSoftKeyLabel,
+                                  showSoftKey: !engine.showsSoftKeyBar,
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) })
                         .padding(.vertical, 8)
@@ -95,7 +97,8 @@ struct EmulatorView: View {
                         onRelease: { engine.release($0) },
                         leftSoftKey: engine.leftSoftKeyLabel,
                         rightSoftKey: engine.rightSoftKeyLabel,
-                        layout: settings?.keypadLayout ?? 0
+                        layout: settings?.keypadLayout ?? 0,
+                        showSoftKeys: !engine.showsSoftKeyBar
                     )
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)

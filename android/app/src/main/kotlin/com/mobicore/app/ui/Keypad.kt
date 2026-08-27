@@ -87,6 +87,14 @@ fun Keypad(
     modifier: Modifier = Modifier,
     /** Which keys to show; see `GameProfile.KEYPAD_*`. */
     layout: Int = GameProfile.KEYPAD_FULL,
+    /**
+     * False while the emulated screen carries the command bar: that bar is
+     * drawn with the game's own labels and a tap on it runs the command, so
+     * two more keys saying the same two words are two ways to do one thing.
+     * A game that goes full screen takes the bar away, and then these are the
+     * only way left to reach a command.
+     */
+    showSoftKeys: Boolean = true,
 ) {
     val arrows = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_ARROWS
     val numbers = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_NUMBERS
@@ -97,9 +105,11 @@ fun Keypad(
         // The two softkeys and nothing else. The call, end and clear keys a
         // handset carried are gone from the pad: they were there because the
         // device was a phone, and on screen they crowd the keys games read.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            SoftKey(leftSoftKey, "softLeft", onPress, onRelease, key)
-            SoftKey(rightSoftKey, "softRight", onPress, onRelease, key)
+        if (showSoftKeys) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                SoftKey(leftSoftKey, "softLeft", onPress, onRelease, key)
+                SoftKey(rightSoftKey, "softRight", onPress, onRelease, key)
+            }
         }
         // A pad left on its own takes the middle: there is no reason to keep
         // a hole where the other half of the keypad used to be.
@@ -131,6 +141,7 @@ fun Keypad(
 fun ControlColumn(
     directional: Boolean,
     softKeyLabel: String?,
+    showSoftKey: Boolean,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -154,13 +165,15 @@ fun ControlColumn(
             } else {
                 NumericPad(onPress, onRelease, key)
             }
-            SoftKey(
-                label = softKeyLabel,
-                button = if (directional) "softLeft" else "softRight",
-                onPress = onPress,
-                onRelease = onRelease,
-                key = key,
-            )
+            if (showSoftKey) {
+                SoftKey(
+                    label = softKeyLabel,
+                    button = if (directional) "softLeft" else "softRight",
+                    onPress = onPress,
+                    onRelease = onRelease,
+                    key = key,
+                )
+            }
         }
     }
 }

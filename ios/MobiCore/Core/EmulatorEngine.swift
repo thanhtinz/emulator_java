@@ -22,6 +22,9 @@ final class EmulatorEngine: ObservableObject {
     /// Labels the running screen has mapped to the two softkeys.
     @Published private(set) var leftSoftKeyLabel: String?
     @Published private(set) var rightSoftKeyLabel: String?
+    /// True while the emulated screen draws the command bar itself, which on
+    /// a touchscreen is the softkeys: tapping a label runs its command.
+    @Published private(set) var showsSoftKeyBar = false
 
     private let bridge = MobiCoreBridge.shared
     private let queue = DispatchQueue(label: "com.mobicore.midlet", qos: .userInitiated)
@@ -153,16 +156,25 @@ final class EmulatorEngine: ObservableObject {
         }
     }
 
+    /// What the two softkeys carry, and whether the screen shows them itself.
+    private struct SoftKeys: Decodable {
+        let left: String?
+        let right: String?
+        let bar: Bool?
+    }
+
     /// Re-reads the softkey labels from the running screen.
     func refreshSoftKeys() {
         guard let data = bridge.softKeysJSON().data(using: .utf8),
-              let labels = try? JSONDecoder().decode([String: String?].self, from: data) else {
+              let labels = try? JSONDecoder().decode(SoftKeys.self, from: data) else {
             leftSoftKeyLabel = nil
             rightSoftKeyLabel = nil
+            showsSoftKeyBar = false
             return
         }
-        leftSoftKeyLabel = labels["left"] ?? nil
-        rightSoftKeyLabel = labels["right"] ?? nil
+        leftSoftKeyLabel = labels.left
+        rightSoftKeyLabel = labels.right
+        showsSoftKeyBar = labels.bar ?? false
     }
 
     func release(_ button: String) {

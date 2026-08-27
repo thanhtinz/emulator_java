@@ -174,6 +174,7 @@ fun EmulatorScreen(
                 ControlColumn(
                     directional = true,
                     softKeyLabel = engine.leftSoftKeyLabel(),
+                    showSoftKey = !engine.showsSoftKeyBar(),
                     onPress = { engine.pressButton(it) },
                     onRelease = { engine.releaseButton(it) },
                     modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
@@ -184,6 +185,7 @@ fun EmulatorScreen(
                 ControlColumn(
                     directional = false,
                     softKeyLabel = engine.rightSoftKeyLabel(),
+                    showSoftKey = !engine.showsSoftKeyBar(),
                     onPress = { engine.pressButton(it) },
                     onRelease = { engine.releaseButton(it) },
                     modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
@@ -229,6 +231,7 @@ fun EmulatorScreen(
                 rightSoftKey = engine.rightSoftKeyLabel(),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
                 layout = profile?.keypadLayout() ?: GameProfile.KEYPAD_FULL,
+                showSoftKeys = !engine.showsSoftKeyBar(),
             )
         }
         Spacer(Modifier.height(6.dp))

@@ -17,6 +17,7 @@
 | 13 | Tìm game không dấu | Xong |
 | 14 | Đánh dấu phím mềm L/R và màn hình ngang | Xong |
 | 15 | Menu trong game và bàn phím đổi kiểu | Xong |
+| 16 | Chạm thẳng vào thanh lệnh của game | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -671,3 +672,23 @@ dạng "điểm cuối" sang tâm — theo phụ lục cài đặt của đặc 
 cung là ném lỗi, mà phần lớn biểu tượng Material có hình tròn đều dùng cung.
 
 Ảnh: `build/screenshots/19-keypad-arrows.png`, `build/screenshots/20-game-menu.png`.
+
+## Chạm thẳng vào thanh lệnh, bỏ hai phím trùng
+
+Máy cảm ứng chạy game J2ME theo cách này: thanh lệnh ở đáy màn hình game **là**
+nút — chạm vào chữ "Tạm dừng" là chạy lệnh đó. Trước đây app vẽ thanh đó nhưng
+không nhận chạm, nên phải để thêm hai phím mềm bên dưới ghi đúng hai chữ ấy:
+hai đường để làm một việc.
+
+- `SystemChrome.softKeyHit` xác định chạm rơi vào nửa trái hay nửa phải của
+  thanh; `EmulatorSession.pointerPressed` chạy lệnh tương ứng **trước** khi
+  đưa chạm xuống cho game, đúng như máy thật.
+- Bàn phím ảo chỉ hiện hai phím **L/R** khi màn hình **không** có thanh lệnh —
+  tức là khi game chạy toàn màn hình (`setFullScreenMode(true)`), lúc đó phím
+  mềm là đường duy nhất còn lại để gọi lệnh. J2ME Loader luôn hiện L/R vì bàn
+  phím của nó nổi đè lên game và không biết game đang gán lệnh gì; ở đây thanh
+  lệnh là của mình vẽ nên biết rõ.
+- Bỏ được hàng phím đó, game cao thêm gần một trăm pixel, và khi cầm ngang thì
+  hai bàn phím con nằm giữa cột thay vì treo trên đỉnh.
+
+Ảnh: `build/screenshots/03-emulator.png`, `build/screenshots/18-landscape.png`.

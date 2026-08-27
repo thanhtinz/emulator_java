@@ -189,14 +189,14 @@ public final class EmulatorScreen {
 
     /** Softkey bar, then whichever pads the layout shows. */
     private int controlHeight(Ui ui, int key) {
-        int soft = (int) (key * SOFT_SCALE_Y);
+        int soft = session.showsSoftKeyBar() ? 0 : (int) (key * SOFT_SCALE_Y) + 12;
         int rows = 0;
         if (showsNumbers()) {
             rows = 4;
         } else if (showsArrows()) {
             rows = 3;
         }
-        int pads = rows == 0 ? 0 : 14 + key * rows + GAP * (rows - 1);
+        int pads = rows == 0 ? 0 : key * rows + GAP * (rows - 1);
         return 12 + soft + pads + 12;
     }
 
@@ -257,22 +257,28 @@ public final class EmulatorScreen {
                 barHeight + (frame.height() - barHeight - shownHeight) / 2,
                 shownWidth, shownHeight);
 
-        int softHeight = (int) (key * SOFT_SCALE_Y);
+        int softHeight = session.showsSoftKeyBar() ? 0 : (int) (key * SOFT_SCALE_Y);
         int dpadX = (side - padWidth) / 2;
         int numX = frame.width() - side + (side - padWidth) / 2;
-        int padY = barHeight + 12;
+        // With the command bar on screen there is no softkey under the pads,
+        // so they sit in the middle of their column instead of hanging from
+        // the top of it.
+        int stack = key * 4 + GAP * 3 + (softHeight == 0 ? 0 : softHeight + 14);
+        int padY = barHeight + Math.max(12, (frame.height() - barHeight - stack) / 2);
         directionalPad(ui, dpadX, padY + (key + GAP) / 2, key);
         numericPad(ui, numX, padY, key);
 
         // The softkeys stay at the bottom outside corners: they are the two
         // keys the game labels, and both thumbs rest there when the phone is
         // held sideways.
-        int softWidth = (int) (key * SOFT_SCALE_X);
-        int softY = frame.height() - softHeight - 14;
-        softKey(ui, (side - softWidth) / 2, softY, softWidth, softHeight,
-                session.leftSoftKeyLabel(), "L");
-        softKey(ui, frame.width() - side + (side - softWidth) / 2, softY, softWidth, softHeight,
-                session.rightSoftKeyLabel(), "R");
+        if (!session.showsSoftKeyBar()) {
+            int softWidth = (int) (key * SOFT_SCALE_X);
+            int softY = frame.height() - softHeight - 14;
+            softKey(ui, (side - softWidth) / 2, softY, softWidth, softHeight,
+                    session.leftSoftKeyLabel(), "L");
+            softKey(ui, frame.width() - side + (side - softWidth) / 2, softY, softWidth,
+                    softHeight, session.rightSoftKeyLabel(), "R");
+        }
         return frame;
     }
 
@@ -325,22 +331,28 @@ public final class EmulatorScreen {
         int margin = (frame.width() - padWidth * 2) / 3;
         int softWidth = (int) (key * SOFT_SCALE_X);
         int softHeight = (int) (key * SOFT_SCALE_Y);
-        // Each softkey sits over the pad its thumb is on, at the width J2ME
-        // Loader gives them: two keys across, three quarters of a key tall.
-        softKey(ui, margin + (padWidth - softWidth) / 2, y, softWidth, softHeight,
-                session.leftSoftKeyLabel(), "L");
-        softKey(ui, frame.width() - margin - padWidth + (padWidth - softWidth) / 2, y,
-                softWidth, softHeight, session.rightSoftKeyLabel(), "R");
+        // While the screen carries the command bar, that bar is the softkeys:
+        // it is drawn with the game's own labels and a tap on it runs the
+        // command. Repeating the same two words on two more keys underneath
+        // is two ways to do one thing. A game that goes full screen takes the
+        // bar away, and then these keys are the only way to reach a command.
+        if (!session.showsSoftKeyBar()) {
+            softKey(ui, margin + (padWidth - softWidth) / 2, y, softWidth, softHeight,
+                    session.leftSoftKeyLabel(), "L");
+            softKey(ui, frame.width() - margin - padWidth + (padWidth - softWidth) / 2, y,
+                    softWidth, softHeight, session.rightSoftKeyLabel(), "R");
+            y += softHeight + 12;
+        }
 
         if (session.isTextInputActive()) {
             // The phone's own keyboard covers this half of the screen while a
             // game is asking for text, so the pads are not drawn at all: what
             // goes here is the band the keyboard leaves behind.
-            keyboardNotice(ui, Ui.PAD, y + softHeight + 14, frame.width() - Ui.PAD * 2);
+            keyboardNotice(ui, Ui.PAD, y, frame.width() - Ui.PAD * 2);
             return;
         }
 
-        int padTop = y + softHeight + 14;
+        int padTop = y;
         boolean both = showsArrows() && showsNumbers();
         if (showsNumbers()) {
             numericPad(ui, both ? margin : (frame.width() - padWidth) / 2, padTop, key);

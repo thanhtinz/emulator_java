@@ -474,6 +474,17 @@ public final class EmulatorSession {
         return invokeCommand(command);
     }
 
+    /**
+     * True while the system draws the command bar inside the screen.
+     *
+     * <p>When it does, the bar is the softkeys and the virtual keypad has no
+     * business repeating them. A game that goes full screen takes the bar
+     * away, and then the keypad is the only way left to reach a command.</p>
+     */
+    public boolean showsSoftKeyBar() {
+        return !context.isFullScreen() && context.hasSoftKeys();
+    }
+
     /** Label the left softkey should show, or {@code null} when it has none. */
     public String leftSoftKeyLabel() {
         return SystemChrome.leftLabel(context);
@@ -541,6 +552,13 @@ public final class EmulatorSession {
     }
 
     public void pointerPressed(int x, int y) {
+        // The command bar along the bottom of the screen is a button on a
+        // touchscreen, which is how these games were played on one.
+        int hit = SystemChrome.softKeyHit(context, x, y);
+        if (hit != SystemChrome.HIT_NONE) {
+            pressSoftKey(hit == SystemChrome.HIT_LEFT);
+            return;
+        }
         if (ScreenInput.pointerPressed(context, x, y, commandSink())) {
             return;
         }

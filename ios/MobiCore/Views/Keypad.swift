@@ -44,6 +44,10 @@ struct Keypad: View {
     var key: CGFloat = KeyMetrics.upright
     /// Which keys to show; see `GameProfile.KEYPAD_*` in the core.
     var layout: Int = 0
+    /// False while the emulated screen carries the command bar: that bar is
+    /// drawn with the game's own labels and a tap on it runs the command, so
+    /// two more keys saying the same two words are two ways to do one thing.
+    var showSoftKeys = true
 
     private var arrows: Bool { layout == 0 || layout == 1 }
     private var numbers: Bool { layout == 0 || layout == 2 }
@@ -52,12 +56,14 @@ struct Keypad: View {
         VStack(spacing: KeyMetrics.gap * 3) {
             // Directly under the screen, so they line up with the labels the
             // system draws along its bottom edge, as they do on a handset.
-            HStack {
-                SoftKey(label: leftSoftKey, button: "softLeft", key: key,
-                        onPress: onPress, onRelease: onRelease)
-                Spacer(minLength: 12)
-                SoftKey(label: rightSoftKey, button: "softRight", key: key,
-                        onPress: onPress, onRelease: onRelease)
+            if showSoftKeys {
+                HStack {
+                    SoftKey(label: leftSoftKey, button: "softLeft", key: key,
+                            onPress: onPress, onRelease: onRelease)
+                    Spacer(minLength: 12)
+                    SoftKey(label: rightSoftKey, button: "softRight", key: key,
+                            onPress: onPress, onRelease: onRelease)
+                }
             }
             // A pad left on its own takes the middle: no reason to keep a
             // hole where the other half of the keypad used to be.
@@ -162,6 +168,7 @@ struct ControlColumn: View {
     /// True for the pad hand, false for the numbers.
     let directional: Bool
     let softKeyLabel: String?
+    let showSoftKey: Bool
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
 
@@ -181,8 +188,10 @@ struct ControlColumn: View {
                     pad.numericColumn
                 }
                 Spacer(minLength: 0)
-                SoftKey(label: softKeyLabel, button: directional ? "softLeft" : "softRight",
-                        key: key, onPress: onPress, onRelease: onRelease)
+                if showSoftKey {
+                    SoftKey(label: softKeyLabel, button: directional ? "softLeft" : "softRight",
+                            key: key, onPress: onPress, onRelease: onRelease)
+                }
             }
             .frame(maxWidth: .infinity)
         }

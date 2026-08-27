@@ -250,6 +250,15 @@ class EmulatorEngine(
      * Labels the two softkeys should show. A handset leaves them blank until a
      * MIDlet registers a Command, and shows whatever it registered.
      */
+    /**
+     * True while the emulated screen draws the command bar itself.
+     *
+     * A touchscreen ran these games with that bar as the button, so while it
+     * is there the keypad leaves its two softkeys out rather than repeating
+     * the same two words underneath.
+     */
+    fun showsSoftKeyBar(): Boolean = session?.showsSoftKeyBar() ?: false
+
     fun leftSoftKeyLabel(): String? = session?.leftSoftKeyLabel()
 
     fun rightSoftKeyLabel(): String? = session?.rightSoftKeyLabel()

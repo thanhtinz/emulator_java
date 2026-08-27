@@ -716,6 +716,9 @@ public final class MobiCoreFacade {
         Map<String, Object> json = Json.object();
         json.put("left", session == null ? null : session.leftSoftKeyLabel());
         json.put("right", session == null ? null : session.rightSoftKeyLabel());
+        // When the screen carries the command bar, tapping it runs the
+        // commands and the keypad leaves those two keys out.
+        json.put("bar", Boolean.valueOf(session != null && session.showsSoftKeyBar()));
         return Json.write(json);
     }
 
