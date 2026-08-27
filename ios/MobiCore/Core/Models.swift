@@ -241,6 +241,18 @@ struct Screenshot: Codable, Identifiable, Hashable {
     var isClip: Bool { clip ?? false }
 }
 
+/// The one game offered on the way in, if there is one.
+struct ContinueCard: Codable {
+    let has: Bool
+    let game: Game?
+    let suiteId: String?
+    /// True when pressing it carries on; false when it starts again.
+    let resumes: Bool?
+    let action: String?
+    let lastPlayed: Int64?
+    let playedName: String?
+}
+
 /// Whether tilting the phone steers one game, and how far it must lean.
 struct TiltSettings: Codable {
     let enabled: Bool

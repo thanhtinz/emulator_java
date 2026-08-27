@@ -2,6 +2,7 @@ package com.mobicore.tools;
 
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.gfx.PngReader;
+import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.library.CollectionStore;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
@@ -63,6 +64,18 @@ public final class LibraryScreen {
         markPlayed(library, profiles, "blue-fox-games.night-racer.2-1", now - 3_600_000L, false);
         markPlayed(library, profiles, "iron-lantern.dungeon-bell.0-9", now - 86_400_000L, true);
         profiles = library.allProfiles();
+
+        // A real save state for the game played last, so the card says what
+        // it would really do rather than what it might.
+        EmulatorSession session = EmulatorSession.create(
+                library.load("mobicore-samples.sky-runner.1-2-0"),
+                profiles.get("mobicore-samples.sky-runner.1-2-0"),
+                vfs, layout, null);
+        session.start();
+        session.renderFrame();
+        library.writeSaveState("mobicore-samples.sky-runner.1-2-0", 0,
+                com.mobicore.core.emu.SaveState.capture(session), null);
+        session.destroy();
 
         return draw(library, profiles);
     }
@@ -140,6 +153,7 @@ public final class LibraryScreen {
 
         int y = toolBar(ui);
         y = shelfRow(ui, y);
+        y = continueCard(ui, library, profiles, y);
         List<LibraryEntry> games = library.sort(library.all(), GameLibrary.SORT_TITLE, profiles);
         for (int i = 0; i < games.size(); i++) {
             LibraryEntry entry = games.get(i);
@@ -156,6 +170,51 @@ public final class LibraryScreen {
         // screen — always the same corner, never over the list.
         ui.fab(Icons.ADD, 0);
         return frame;
+    }
+
+    /**
+     * The game they were playing, offered before the list they would have to
+     * search through.
+     *
+     * <p>It says which of the two it would do. Carrying on from where a game
+     * was left is not starting it again, and a player offered "Chơi tiếp" who
+     * gets a fresh start has lost the thing they came back for.</p>
+     */
+    private int continueCard(Ui ui, GameLibrary library, Map<String, GameProfile> profiles,
+                             int y) throws Exception {
+        LibraryEntry latest = null;
+        GameProfile latestProfile = null;
+        for (LibraryEntry entry : library.all()) {
+            GameProfile profile = profiles.get(entry.suiteId());
+            if (profile == null || profile.lastPlayed() <= 0) {
+                continue;
+            }
+            if (latestProfile == null || profile.lastPlayed() > latestProfile.lastPlayed()) {
+                latest = entry;
+                latestProfile = profile;
+            }
+        }
+        if (latest == null) {
+            return y;
+        }
+        Framebuffer frame = ui.frame();
+        boolean resumes = library.readSaveState(latest.suiteId(), 0) != null;
+        int height = 76;
+        int x = 12;
+        int width = frame.width() - 24;
+        int top = y + 8;
+        ui.panel(x, top, width, height, Theme.SURFACE_ALT, Theme.BORDER);
+        drawArtwork(ui, library, latest, x + 12, top + 14, 48);
+
+        int textX = x + 12 + 48 + 14;
+        ui.text(ui.small(), resumes ? "Chơi tiếp" : "Chơi lại", textX, top + 12, Theme.ACCENT);
+        ui.text(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), latest.title(), width - 150),
+                textX, top + 12 + ui.small().height() + 2, Theme.TEXT);
+        ui.text(ui.small(), resumes ? "Tiếp tục từ chỗ đã lưu" : "Bắt đầu lại từ đầu",
+                textX, top + 12 + ui.small().height() + ui.mediumBold().height() + 6,
+                Theme.TEXT_DIM);
+        Icons.drawCentred(frame, Icons.PLAY, x + width - 30, top + height / 2, 26, Theme.ACCENT);
+        return top + height + 8;
     }
 
     /**

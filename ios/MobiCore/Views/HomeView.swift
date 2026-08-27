@@ -57,10 +57,44 @@ struct HomeView: View {
                         .padding(.vertical, 8)
                     }
                 }
-                List(shown) { game in
-                    GameRowLink(game: game)
+                List {
+                    // The game they were playing, offered before the list
+                    // they would have to search. Only while nothing is being
+                    // searched or filtered: then the list is the answer to a
+                    // question, and this would answer a different one.
+                    if query.isEmpty, shelf.isEmpty, let card = client.continueCard(),
+                       let game = card.game {
+                        NavigationLink(value: game.suiteId) {
+                            HStack(spacing: 12) {
+                                GameArtwork(title: game.title,
+                                            image: client.artwork(game.suiteId), size: 48)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(card.action ?? "Chơi tiếp")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(Palette.accent)
+                                    Text(game.title)
+                                        .font(.headline)
+                                        .foregroundStyle(Palette.text)
+                                    Text(card.resumes == true
+                                         ? "Tiếp tục từ chỗ đã lưu" : "Bắt đầu lại từ đầu")
+                                        .font(.caption)
+                                        .foregroundStyle(Palette.textDim)
+                                }
+                                Spacer()
+                                Image(systemName: "play.fill")
+                                    .foregroundStyle(Palette.accent)
+                            }
+                            .padding(.vertical, 4)
+                        }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .listRowBackground(Palette.background)
+                        .listRowBackground(Palette.surfaceAlt)
+                    }
+                    ForEach(shown) { game in
+                        GameRowLink(game: game)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8,
+                                                      trailing: 16))
+                            .listRowBackground(Palette.background)
+                    }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)

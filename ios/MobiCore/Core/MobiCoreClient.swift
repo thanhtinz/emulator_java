@@ -479,6 +479,17 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.deleteGameFile(path, forSuite: suiteId)))
     }
 
+    // ------------------------------------------------------------ carrying on
+
+    /// The one game to offer on the way in, or nil when there is none.
+    ///
+    /// Opening the app to play the game you were just playing is the most
+    /// common thing anyone does with it, and without this it costs three taps.
+    func continueCard() -> ContinueCard? {
+        let card: ContinueCard? = decode(bridge.continueJSON())
+        return card?.has == true ? card : nil
+    }
+
     // -------------------------------------------------------------- tilting
 
     /// Whether tilting the phone steers this game.

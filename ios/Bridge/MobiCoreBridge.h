@@ -213,6 +213,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.
 - (NSString *)noteKeypadUse;
+/// The one game to offer on the way in, and starting it.
+- (NSString *)continueJSON;
+- (NSString *)continueGame;
+
 /// Steering a game by tilting the phone.
 - (NSString *)tiltJSONForSuite:(NSString *)suiteId;
 - (NSString *)setTiltEnabled:(BOOL)enabled forSuite:(NSString *)suiteId;

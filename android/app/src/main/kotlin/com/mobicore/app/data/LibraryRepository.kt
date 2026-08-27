@@ -335,6 +335,27 @@ class LibraryRepository(filesDir: String) {
     fun writeScreenshot(suiteId: String, png: ByteArray): String =
         library.writeScreenshot(suiteId, png)
 
+    /**
+     * The one game to offer on the way in, or null when there is none.
+     *
+     * Opening the app to play the game you were just playing is the most
+     * common thing anyone does with it, and without this it costs three taps.
+     *
+     * @return the game, and whether pressing it would carry on or start again
+     */
+    fun continueCard(): Pair<LibraryEntry, Boolean>? {
+        val profiles = library.allProfiles()
+        val latest = library.all()
+            .mapNotNull { entry -> profiles[entry.suiteId()]?.let { entry to it } }
+            .filter { it.second.lastPlayed() > 0 }
+            .maxByOrNull { it.second.lastPlayed() }
+            ?: return null
+        // Carrying on and starting again are not the same thing, and a player
+        // offered "continue" who gets a fresh start has lost what they came
+        // back for.
+        return latest.first to (library.readSaveState(latest.first.suiteId(), 0) != null)
+    }
+
     // ------------------------------------------------------------ collections
 
     /**

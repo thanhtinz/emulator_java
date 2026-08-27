@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sort
@@ -128,6 +129,18 @@ fun HomeScreen(
 
         Box(Modifier.fillMaxSize()) {
             LazyColumn(Modifier.fillMaxSize()) {
+                // The game they were playing, offered before the list they
+                // would have to search. Only while nothing is being searched
+                // or filtered: then the list is the answer to a question, and
+                // this would be an answer to a different one.
+                val resume = if (query.isBlank() && shelf.isEmpty()) {
+                    remember(games, profiles) { library.continueCard() }
+                } else {
+                    null
+                }
+                if (resume != null) {
+                    item { ContinueCard(library, resume.first, resume.second, onOpen) }
+                }
                 itemsIndexed(shown) { index, entry ->
                     GameRow(library, entry, profiles[entry.suiteId()], onOpen)
                     if (index < shown.size - 1) {
@@ -398,4 +411,62 @@ private fun ShelfChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     )
+}
+
+/**
+ * The game to carry on with, at the top of the library.
+ *
+ * It says which of the two it would do. Carrying on from where a game was left
+ * is not starting it again, and a player offered "Chơi tiếp" who gets a fresh
+ * start has lost the thing they came back for.
+ */
+@Composable
+private fun ContinueCard(
+    library: LibraryRepository,
+    entry: LibraryEntry,
+    resumes: Boolean,
+    onOpen: (String) -> Unit,
+) {
+    val artwork = remember(entry.suiteId()) { decodeArtwork(library.artwork(entry.suiteId())) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MobiColors.SurfaceAlt)
+            .clickable { onOpen(entry.suiteId()) }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        GameArtwork(entry.title(), artwork, size = 48)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = if (resumes) "Chơi tiếp" else "Chơi lại",
+                color = MobiColors.Accent,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = entry.title(),
+                color = MobiColors.Text,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = if (resumes) "Tiếp tục từ chỗ đã lưu" else "Bắt đầu lại từ đầu",
+                color = MobiColors.TextDim,
+                fontSize = 12.sp,
+            )
+        }
+        Icon(
+            Icons.Filled.PlayArrow,
+            contentDescription = null,
+            tint = MobiColors.Accent,
+            modifier = Modifier.size(28.dp),
+        )
+    }
 }

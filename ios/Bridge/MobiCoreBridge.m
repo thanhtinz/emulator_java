@@ -447,6 +447,14 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)continueJSON {
+    return [_facade continueJson];
+}
+
+- (NSString *)continueGame {
+    return [_facade continueGame];
+}
+
 - (NSString *)tiltJSONForSuite:(NSString *)suiteId {
     return [_facade tiltJsonWithNSString:suiteId];
 }

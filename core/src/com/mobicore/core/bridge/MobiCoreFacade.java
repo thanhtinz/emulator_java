@@ -205,6 +205,75 @@ public final class MobiCoreFacade {
     }
 
     /**
+     * The one game to offer on the way in.
+     *
+     * <p>Opening the app to play the game you were just playing is the most
+     * common thing anyone does with it, and today it costs three taps: find
+     * the game, open it, press play. This is that in one.</p>
+     *
+     * <p>It says which of the two it would do, because they are not the same
+     * thing: carrying on from where a game was left is not starting it again,
+     * and a player who is offered "continue" and gets a fresh start has lost
+     * the thing they came back for.</p>
+     */
+    public String continueJson() {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            Map<String, GameProfile> profiles = library.allProfiles();
+            LibraryEntry latest = null;
+            GameProfile latestProfile = null;
+            for (LibraryEntry entry : library.all()) {
+                GameProfile profile = profiles.get(entry.suiteId());
+                if (profile == null || profile.lastPlayed() <= 0) {
+                    continue;
+                }
+                if (latestProfile == null || profile.lastPlayed() > latestProfile.lastPlayed()) {
+                    latest = entry;
+                    latestProfile = profile;
+                }
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            if (latest == null) {
+                // Nothing has been played, so there is nothing to carry on
+                // with: better an empty answer than a card offering to
+                // continue a game nobody has started.
+                json.put("has", Boolean.FALSE);
+                return Json.write(json);
+            }
+            boolean saved = library.readSaveState(latest.suiteId(), 0) != null;
+            json.put("has", Boolean.TRUE);
+            json.put("game", latest.toJson());
+            json.put("suiteId", latest.suiteId());
+            json.put("resumes", Boolean.valueOf(saved));
+            json.put("action", saved ? "Chơi tiếp" : "Chơi lại");
+            json.put("lastPlayed", Long.valueOf(latestProfile.lastPlayed()));
+            json.put("playedName", GameProfile.playedName(latestProfile.playedMs()));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Starts whatever {@link #continueJson} offered.
+     *
+     * <p>Resolved here rather than by the caller passing the id back: between
+     * the card being drawn and the button being pressed a game can be
+     * uninstalled, and starting the one that is actually most recent is
+     * better than failing on the one that was.</p>
+     */
+    public String continueGame() {
+        Map<String, Object> card = Json.readObject(continueJson());
+        if (!Json.bool(card, "has", false)) {
+            return error("Chưa chơi game nào");
+        }
+        return resumeGame(Json.string(card, "suiteId", ""));
+    }
+
+    /**
      * The shelves the player has put their games on.
      *
      * <p>Every shelf comes back with how many games are on it, and — when a

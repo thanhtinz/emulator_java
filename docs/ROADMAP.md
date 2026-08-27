@@ -43,6 +43,7 @@
 | 39 | Bộ sưu tập trong thư viện | Xong |
 | 40 | Chia sẻ ảnh chụp và đoạn quay | Xong |
 | 41 | Nghiêng máy để lái | Xong |
+| 42 | Chơi tiếp ngay ở màn hình chính | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1530,3 +1531,37 @@ Cầu nối: `tiltJson`, `setTiltEnabled`, `setTiltSensitivity`, `setTiltAxes`,
 `setTiltInverted`, `tilted` (nghiêng tính bằng **phần nghìn**, vì cầu nối chỉ
 mang số nguyên). Android đọc `TYPE_GRAVITY`, iOS đọc `CMDeviceMotion.gravity` —
 cả hai đều đã ở đúng đơn vị: máy nằm nghiêng hẳn là 1.
+
+
+## Giai đoạn 42 — chơi tiếp ngay ở màn hình chính
+
+Mở ứng dụng để chơi tiếp cái game vừa chơi là **việc người ta làm nhiều nhất
+với nó**, và cho tới giờ nó tốn ba lần chạm: tìm game trong danh sách, mở ra,
+bấm chơi. Nay là một lần.
+
+Thẻ nằm trên đầu thư viện, và **nó nói rõ nó sẽ làm cái nào trong hai cái**:
+
+- **"Chơi tiếp — Tiếp tục từ chỗ đã lưu"** khi có trạng thái tự lưu.
+- **"Chơi lại — Bắt đầu lại từ đầu"** khi không có.
+
+Hai chuyện đó **không phải một**: người chơi được mời "chơi tiếp" mà nhận về một
+ván mới thì đã mất đúng thứ họ quay lại để lấy. Nên thẻ đọc trạng thái lưu
+trước, rồi mới chọn chữ.
+
+Vài chỗ nhỏ nhưng cố ý:
+
+- **Cài rồi chưa chơi thì không hiện.** Một cái thẻ mời "chơi tiếp" một game
+  chưa ai bắt đầu là một cái thẻ nói về không có gì.
+- **Đang tìm kiếm hoặc đang lọc theo kệ thì không hiện.** Lúc đó danh sách là
+  câu trả lời cho một câu hỏi cụ thể, và cái thẻ này trả lời một câu khác.
+- **Nút bấm tự tìm lại game mới nhất** chứ không cầm sẵn mã bộ cài từ lúc vẽ
+  thẻ: giữa lúc vẽ và lúc bấm, game đó có thể đã bị gỡ, và chạy cái đang thật
+  sự mới nhất thì tốt hơn là báo lỗi về cái đã từng là.
+
+Bài kiểm tra đi qua đúng vòng đời đó: thư viện rỗng → cài mà chưa chơi → chơi
+rồi thoát thường → chơi rồi thoát kiểu điện thoại (có lưu) → cài game thứ hai và
+chơi → gỡ game đang được mời. Game thứ hai được dựng bằng cách **cài lại chính
+tệp .jar đó với một bản mô tả khác tên**, vì thuộc tính trong .jad thắng
+manifest — nhờ vậy game thứ hai chạy thật chứ không phải một lớp giả.
+
+Cầu nối: `continueJson` và `continueGame`.
