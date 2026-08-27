@@ -37,6 +37,7 @@ import com.mobicore.core.net.NetworkPolicy;
 import com.mobicore.core.net.NetworkStack;
 import com.mobicore.core.net.NetworkTransport;
 import com.mobicore.core.rms.RecordStoreManager;
+import com.mobicore.core.emu.CrashDiagnosis;
 import com.mobicore.core.tools.CrashReport;
 import com.mobicore.core.tools.JadEditor;
 import com.mobicore.core.tools.RmsEditor;
@@ -76,6 +77,12 @@ public final class MobiCoreFacade {
     private StorageLayout layout;
     private EmulatorSession session;
     private String activeSuiteId;
+    /** Lần hỏng gần nhất, giữ lại sau khi game đã tắt để còn kể lại được. */
+    private CrashDiagnosis crash;
+    private String crashSuiteId = "";
+    private String crashGame = "";
+    private String crashStack = "";
+    private long crashAt;
     private VmHost host;
     /** Where sound goes once a game starts; recorded if the app sets none. */
     private AudioSink audioSink;
@@ -1730,9 +1737,9 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         } catch (VmThrow e) {
-            return error("The MIDlet threw " + e);
+            return error(noteCrash(suiteId, e));
         } catch (VmError e) {
-            return error(e.getMessage());
+            return error(noteCrash(suiteId, e));
         }
     }
 
@@ -1808,13 +1815,20 @@ public final class MobiCoreFacade {
         if (session == null) {
             return false;
         }
+        if (crash != null && activeSuiteId != null && activeSuiteId.equals(crashSuiteId)) {
+            // Một game đã chết thì khung hình sau cũng chết y như vậy. Chạy
+            // tiếp chỉ để ghi cùng một lỗi mỗi giây mấy chục lần.
+            return false;
+        }
         try {
             return session.renderFrame();
         } catch (VmThrow e) {
             session.log().error("Frame aborted: " + e);
+            noteCrash(activeSuiteId, e);
             return false;
         } catch (VmError e) {
             session.log().error("Frame aborted: " + e.getMessage());
+            noteCrash(activeSuiteId, e);
             return false;
         }
     }
@@ -2793,6 +2807,79 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
+    }
+
+    // --------------------------------------------------------- game hỏng
+
+    /**
+     * Ghi lại một lần hỏng và trả về câu giải thích cho người chơi.
+     *
+     * <p>Ngăn xếp được chụp ngay lúc này: phiên chạy sẽ bị dọn, còn câu hỏi
+     * "hỏng ở đâu" thì chỉ trả lời được khi phiên đó vẫn còn.</p>
+     */
+    private String noteCrash(String suiteId, Throwable failure) {
+        crash = CrashDiagnosis.of(failure);
+        crashSuiteId = suiteId == null ? "" : suiteId;
+        crashAt = now();
+        crashStack = session == null ? "" : session.vm().interpreter().crashTrace();
+        crashGame = session == null ? "" : session.info().title();
+        if (crashGame.length() == 0 && library != null && suiteId != null) {
+            LibraryEntry entry = library.find(suiteId);
+            crashGame = entry == null ? "" : entry.title();
+        }
+        return crash.reason();
+    }
+
+    /**
+     * Có lần hỏng nào chưa đọc không.
+     *
+     * <p>Hỏi kiểu này rẻ hơn đọc {@link #crashJson()}: bên iOS xem lại mỗi
+     * khung hình, và dựng một chuỗi JSON sáu chục lần một giây để phần lớn
+     * thời gian nhận về "không có gì" là việc thừa.</p>
+     */
+    public boolean hasCrashed() {
+        return crash != null;
+    }
+
+    /**
+     * Lần hỏng gần nhất, nếu có.
+     *
+     * <p>Còn nguyên sau khi game đã tắt, vì màn hình báo lỗi chỉ hiện ra sau
+     * lúc đó — và người chơi cần đọc được nó chứ không phải nhìn màn hình đen
+     * rồi tự đoán.</p>
+     */
+    public String crashJson() {
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        json.put("has", Boolean.valueOf(crash != null));
+        if (crash == null) {
+            return Json.write(json);
+        }
+        json.putAll(crash.toJson());
+        json.put("suiteId", crashSuiteId);
+        json.put("game", crashGame);
+        json.put("when", Long.valueOf(crashAt));
+        List<Object> frames = new ArrayList<Object>();
+        String[] lines = crashStack.split("\n");
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (line.length() > 0) {
+                frames.add(line);
+            }
+        }
+        json.put("stack", frames);
+        return Json.write(json);
+    }
+
+    /** Người chơi đã đọc xong: bỏ lời báo đi và tắt hẳn game đã chết. */
+    public String dismissCrash() {
+        crash = null;
+        crashSuiteId = "";
+        crashGame = "";
+        crashStack = "";
+        crashAt = 0;
+        stopGame();
+        return ok("has", "false");
     }
 
     /** Builds a crash report for the running session. */

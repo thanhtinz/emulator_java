@@ -42,6 +42,21 @@ public final class Interpreter {
         return stacks.get();
     }
 
+    /**
+     * Ngăn xếp của lần ném không ai bắt gần nhất.
+     *
+     * <p>Chụp lại ngay lúc ngoại lệ rời khung ngoài cùng, vì sau đó ngăn xếp
+     * đã bị gỡ sạch: chỗ hỏi "game chết ở đâu" — cái bắt được ngoại lệ — lại
+     * là chỗ không còn gì để đọc.</p>
+     */
+    private String lastTrace = "";
+
+    /** Ngăn xếp để kể lại một lần hỏng: đang chạy thì lấy ngay, xong rồi thì lấy lần chót. */
+    public String crashTrace() {
+        String now = stackTrace();
+        return now.length() > 0 ? now : lastTrace;
+    }
+
     /** Formats the emulated call stack for crash reports. */
     public String stackTrace() {
         StringBuilder out = new StringBuilder();
@@ -84,6 +99,13 @@ public final class Interpreter {
         stack.add(frame);
         try {
             return execute(frame);
+        } catch (RuntimeException e) {
+            if (stack.size() == 1) {
+                // Khung ngoài cùng: ngoại lệ này không ai trong game bắt, và
+                // đây là lần cuối ngăn xếp còn đầy đủ.
+                lastTrace = stackTrace();
+            }
+            throw e;
         } finally {
             stack.remove(stack.size() - 1);
             if (frame.monitor != null) {

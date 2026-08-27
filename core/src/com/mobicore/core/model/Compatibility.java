@@ -172,6 +172,28 @@ public final class Compatibility {
         return new Report(level, missing, notes);
     }
 
+    /**
+     * Tên tiếng Việt của phần điện thoại mà một lớp thuộc về, hoặc rỗng khi
+     * lớp đó không nằm trong danh sách đã biết.
+     *
+     * <p>Cùng một bảng tên dùng cho hai chỗ: lời cảnh báo trước khi chơi và
+     * lời giải thích sau khi game chết. Nếu tách ra thì cùng một thiếu sót sẽ
+     * được gọi bằng hai cái tên khác nhau.</p>
+     *
+     * @param internalName tên lớp dạng {@code javax/microedition/m3g/World}
+     */
+    public static String describe(String internalName) {
+        if (internalName == null) {
+            return "";
+        }
+        for (int i = 0; i < KNOWN_MISSING.length; i++) {
+            if (internalName.startsWith(KNOWN_MISSING[i][0])) {
+                return KNOWN_MISSING[i][1];
+            }
+        }
+        return "";
+    }
+
     private static boolean isSupported(String name) {
         for (int i = 0; i < SUPPORTED.length; i++) {
             if (name.startsWith(SUPPORTED[i])) {

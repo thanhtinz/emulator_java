@@ -20,6 +20,8 @@ final class EmulatorEngine: ObservableObject {
     @Published private(set) var isPaused = false
     @Published private(set) var measuredFps = 0
     @Published private(set) var error: String?
+    /// Vì sao game vừa chết, khi nó chết. Xem `CrashReading`.
+    @Published private(set) var crash: CrashReading?
     @Published private(set) var screenSize = CGSize(width: 240, height: 320)
     /// Labels the running screen has mapped to the two softkeys.
     @Published private(set) var leftSoftKeyLabel: String?
@@ -54,6 +56,7 @@ final class EmulatorEngine: ObservableObject {
             return
         }
         error = nil
+        crash = nil
         screenSize = CGSize(width: result.width ?? 240, height: result.height ?? 320)
         frameLimit = max(0, settings?.frameLimit ?? 30)
         isRunning = true
@@ -107,6 +110,18 @@ final class EmulatorEngine: ObservableObject {
         if solidity != keypadOpacity {
             keypadOpacity = solidity
         }
+        // Hỏi bằng một cờ chứ không dựng JSON mỗi khung hình: phần lớn thời
+        // gian câu trả lời là "không có gì", và chuỗi ấy sẽ bị vứt đi ngay.
+        if crash == nil, bridge.hasCrashed {
+            let reading: CrashReading? = decode(bridge.crashJSON())
+            if let reading, reading.has {
+                crash = reading
+                // Game đã chết thì vòng lặp không còn gì để chạy, nhưng phiên
+                // vẫn giữ nguyên để người chơi còn thấy màn hình cuối.
+                running = false
+                isRunning = false
+            }
+        }
         framesThisSecond += 1
         let now = CACurrentMediaTime()
         if now - secondMark >= 1 {
@@ -117,6 +132,14 @@ final class EmulatorEngine: ObservableObject {
     }
 
     private func finish() {
+        stop()
+    }
+
+    /// Người chơi đã đọc xong lời báo hỏng; game đã chết được dọn đi.
+    func dismissCrash() {
+        crash = nil
+        error = nil
+        _ = bridge.dismissCrash()
         stop()
     }
 

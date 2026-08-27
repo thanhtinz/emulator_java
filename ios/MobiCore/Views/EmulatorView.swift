@@ -81,22 +81,9 @@ struct EmulatorView: View {
                                   placement: placement)
                         .padding(.vertical, 8)
                 }
-                if let error = engine.error {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(Palette.bad)
-                        .padding(.horizontal, 16)
-                }
             } else {
                 GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                if let error = engine.error {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(Palette.bad)
-                        .padding(.horizontal, 16)
-                }
 
                 // While the game wants text, the system keyboard takes this half
                 // of the screen. Multi-tap on a numeric pad was the only way a
@@ -124,6 +111,25 @@ struct EmulatorView: View {
             }
         }
         .background(Palette.background)
+        // Game chết thì màn hình phải nói ra vì sao. Dòng chữ đỏ cỡ chú thích
+        // nằm cạnh bàn phím ảo trước đây chỉ ghi tên lớp ngoại lệ — thứ không
+        // người chơi nào đọc, và đọc rồi cũng không làm được gì.
+        .overlay {
+            if let crash = engine.crash {
+                CrashCard(crash: crash,
+                          stack: crash.stack ?? [],
+                          onClose: {
+                              engine.dismissCrash()
+                              client.refresh()
+                              dismiss()
+                          },
+                          onRetry: {
+                              engine.dismissCrash()
+                              engine.start(suiteId: suiteId,
+                                           settings: client.settings(suiteId))
+                          })
+            }
+        }
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
         .onAppear {
@@ -348,5 +354,76 @@ private struct GameTextField: View {
             }
         }
         .onAppear { focused = true }
+    }
+}
+
+/// Lời giải thích khi game chết.
+///
+/// Ba câu và hai nút: hỏng cái gì, vì sao, làm gì tiếp — rồi đóng lại hoặc
+/// chơi lại. Phần kỹ thuật gấp sẵn: người chơi không cần nó, người sửa game
+/// thì cần, và để nó bung ra sẵn thì câu đáng đọc bị đẩy xuống dưới.
+private struct CrashCard: View {
+
+    let crash: CrashReading
+    let stack: [String]
+    let onClose: () -> Void
+    let onRetry: () -> Void
+
+    @State private var showDetail = false
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.65).ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 12) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.title2)
+                    .foregroundStyle(Palette.bad)
+                Text(crash.title ?? "Game dừng đột ngột")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Palette.text)
+                Text(crash.reason ?? "")
+                    .font(.body)
+                    .foregroundStyle(Palette.text)
+                if let advice = crash.advice, !advice.isEmpty {
+                    HStack(alignment: .top, spacing: 10) {
+                        Rectangle()
+                            .fill(Palette.accent)
+                            .frame(width: 3)
+                        Text(advice)
+                            .font(.footnote)
+                            .foregroundStyle(Palette.textDim)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                Button(showDetail ? "Ẩn chi tiết kỹ thuật" : "Chi tiết kỹ thuật") {
+                    showDetail.toggle()
+                }
+                .font(.footnote)
+                .tint(Palette.accent)
+                if showDetail {
+                    // Nguyên văn tiếng Anh: đây là phần để tra cứu, dịch ra
+                    // thì không tra được nữa.
+                    ScrollView {
+                        Text(([crash.technical ?? ""] + stack).joined(separator: "\n"))
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(Palette.textDim)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: 140)
+                }
+                HStack(spacing: 12) {
+                    Button("Đóng", action: onClose)
+                        .buttonStyle(.bordered)
+                        .tint(Palette.textDim)
+                    Button("Chơi lại", action: onRetry)
+                        .buttonStyle(.borderedProminent)
+                        .tint(Palette.accent)
+                }
+                .padding(.top, 4)
+            }
+            .padding(20)
+            .background(Palette.surface, in: RoundedRectangle(cornerRadius: 18))
+            .padding(.horizontal, 20)
+        }
     }
 }

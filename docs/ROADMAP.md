@@ -1565,3 +1565,52 @@ tệp .jar đó với một bản mô tả khác tên**, vì thuộc tính trong
 manifest — nhờ vậy game thứ hai chạy thật chứ không phải một lớp giả.
 
 Cầu nối: `continueJson` và `continueGame`.
+
+## Giai đoạn 43 — game hỏng thì nói vì sao
+
+Cho tới giờ, một game chết để lại đúng hai thứ: **màn hình đứng im**, và một
+dòng chữ đỏ cỡ chú thích nằm lọt giữa bàn phím ảo, ghi
+`NoClassDefFoundError: javax/microedition/m3g/World`. Dòng đó viết cho người
+làm máy ảo. Người đang chơi đọc xong vẫn không biết game hỏng vì cái gì, và
+nhất là không biết mình có làm được gì không.
+
+Nay mỗi lần hỏng được đọc thành **ba câu, đúng thứ tự người ta hỏi**: hỏng cái
+gì, vì sao, làm gì tiếp. Việc phân loại nằm ở `CrashDiagnosis` trong lõi, nên
+Android, iOS và bản xem trước không thể nói ba kiểu khác nhau về cùng một lỗi.
+
+Cùng một ngoại lệ có thể là hai chuyện hoàn toàn khác nhau, và chỗ đó mới là
+chỗ đáng làm cho đúng:
+
+- `NoClassDefFoundError` **trên lớp của thư viện điện thoại** là phần máy ảo
+  chưa làm. Tên phần thiếu được lấy từ đúng bảng tên mà thẻ "chưa chạy được"
+  trong thư viện dùng (`Compatibility.describe`), nên game được báo trước bằng
+  chữ gì thì lúc chết cũng được gọi bằng chữ ấy. Người chơi không bật nó lên
+  được, nên **không có lời khuyên giả vờ** rằng tải lại sẽ xong.
+- `NoClassDefFoundError` **trên lớp của chính game** là tệp .jar thiếu một mẩu
+  — tải dở, bị cắt. Ở đây "tải lại tệp gốc" đúng là việc phải làm.
+
+Còn lại: hết bộ nhớ, không mở được kết nối, hỏng phần lưu, đòi kiểu âm thanh
+chưa phát được, và lỗi trong chính mã game. Cái nào không đủ căn cứ thì **nhận
+là không biết** chứ không bịa một lý do nghe hợp lý.
+
+Vài chỗ cố ý:
+
+- **Thông báo gốc tiếng Anh không chen vào câu tiếng Việt.** "dùng một thứ chưa
+  được tạo ra (array access on null)" là nửa Việt nửa Anh; nguyên văn ngoại lệ
+  ở lại phần *chi tiết kỹ thuật*, gấp sẵn, cho người sửa game.
+- **Chết rồi thì không vẽ tiếp.** Một game đã chết thì khung hình sau cũng chết
+  y như vậy — trước đây nó ghi cùng một lỗi mấy chục lần mỗi giây. Lần hỏng
+  được giữ là lần đầu tiên, không bị ghi đè.
+- **Ngăn xếp phải chụp đúng lúc.** Ngăn xếp bị gỡ sạch trong lúc ngoại lệ bay
+  lên, nên chỗ bắt được nó lại là chỗ không còn gì để đọc: `Interpreter` chụp
+  lại ngay khi ngoại lệ rời khung ngoài cùng — tức là lúc chắc chắn không ai
+  trong game bắt nó — và `crashTrace()` trả về bản chụp ấy.
+- **Lời giải thích sống lâu hơn game.** Nó còn nguyên sau khi phiên chạy bị
+  dọn, vì màn hình báo lỗi chỉ hiện ra sau lúc đó.
+
+Bản mẫu `demo.CrashDemo` là một game hỏng thật: nó mở ra được, vẽ được, rồi ngã
+ở khung hình đầu tiên vì một mảng chưa ai gán — đúng kiểu game J2ME viết cho
+một đời máy rồi đem chạy trên đời máy khác. Ảnh chụp màn hình báo lỗi là chữ
+đọc thẳng từ cầu nối, không viết sẵn.
+
+Cầu nối: `crashJson`, `hasCrashed` và `dismissCrash`.

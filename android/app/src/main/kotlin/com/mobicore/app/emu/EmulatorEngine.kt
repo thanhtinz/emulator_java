@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.mobicore.core.emu.CrashDiagnosis
 import com.mobicore.core.emu.EmulatorSession
 import com.mobicore.core.emu.SaveState
 import com.mobicore.core.gfx.PngWriter
@@ -40,6 +41,20 @@ class EmulatorEngine(
     var paused by mutableStateOf(false)
         private set
 
+    /**
+     * Lần hỏng gần nhất, đã đọc thành lời.
+     *
+     * Trước đây chỗ này là một dòng chữ đỏ ghi tên lớp ngoại lệ — đúng với
+     * người viết máy ảo và vô nghĩa với người đang chơi. Bản đọc hiểu nói hỏng
+     * cái gì, vì sao và làm gì tiếp; tên ngoại lệ vẫn còn, trong phần kỹ thuật.
+     */
+    var crash by mutableStateOf<CrashDiagnosis?>(null)
+        private set
+
+    /** Ngăn xếp lúc chết, để gửi kèm báo lỗi. */
+    var crashStack by mutableStateOf("")
+        private set
+
     var lastError by mutableStateOf<String?>(null)
         private set
 
@@ -71,6 +86,8 @@ class EmulatorEngine(
     fun start(suite: SuiteLoader, profile: GameProfile) {
         stop()
         lastError = null
+        crash = null
+        crashStack = ""
         val layout = StorageLayout(StorageLayout.join(filesDir, "MobiCore"))
         val created = EmulatorSession.create(suite, profile, LocalVfs(), layout, AndroidHost())
         // Sound goes to the device rather than to the recorder the core
@@ -147,14 +164,34 @@ class EmulatorEngine(
         } catch (interrupted: InterruptedException) {
             Thread.currentThread().interrupt()
         } catch (thrown: VmThrow) {
-            lastError = "Trò chơi ném ${thrown.type()?.binaryName() ?: "một ngoại lệ"}: ${thrown.message}"
+            noteCrash(active, thrown)
         } catch (error: VmError) {
-            lastError = error.message
+            noteCrash(active, error)
         } catch (unexpected: RuntimeException) {
-            lastError = unexpected.toString()
+            noteCrash(active, unexpected)
         } finally {
             running = false
         }
+    }
+
+    /**
+     * Ghi lại một lần hỏng, kèm chỗ nó chết.
+     *
+     * Ngăn xếp phải lấy ngay tại đây: phiên chạy sắp bị dọn, và câu hỏi "chết
+     * ở đâu" chỉ trả lời được khi nó còn.
+     */
+    private fun noteCrash(active: EmulatorSession, failure: Throwable) {
+        val read = CrashDiagnosis.of(failure)
+        crash = read
+        crashStack = active.vm().interpreter().crashTrace()
+        lastError = read.reason()
+    }
+
+    /** Người chơi đã đọc xong lời báo hỏng. */
+    fun dismissCrash() {
+        crash = null
+        crashStack = ""
+        lastError = null
     }
 
     /** Copies the emulated framebuffer into the bitmap Compose draws. */

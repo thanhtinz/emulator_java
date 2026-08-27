@@ -447,6 +447,18 @@
     return [_facade noteKeypadUse];
 }
 
+- (BOOL)hasCrashed {
+    return [_facade hasCrashed];
+}
+
+- (NSString *)crashJSON {
+    return [_facade crashJson];
+}
+
+- (NSString *)dismissCrash {
+    return [_facade dismissCrash];
+}
+
 - (NSString *)continueJSON {
     return [_facade continueJson];
 }

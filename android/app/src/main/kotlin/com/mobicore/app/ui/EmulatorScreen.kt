@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -245,15 +246,7 @@ fun EmulatorScreen(
                     placement = placement,
                 )
             }
-            val landscapeError = engine.lastError
-            if (landscapeError != null) {
-                Text(
-                    text = landscapeError,
-                    color = MobiColors.Bad,
-                    fontSize = 12.sp,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-            }
+            CrashDialog(engine, library, suiteId, profile, onExit)
             return@Column
         }
 
@@ -261,15 +254,7 @@ fun EmulatorScreen(
             GameSurface(engine, library, suiteId)
         }
 
-        val error = engine.lastError
-        if (error != null) {
-            Text(
-                text = error,
-                color = MobiColors.Bad,
-                fontSize = 12.sp,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-            )
-        }
+        CrashDialog(engine, library, suiteId, profile, onExit)
 
         // While the game wants text, the phone's own keyboard takes this half
         // of the screen: multi-tap on a numeric pad was the only way a handset
@@ -598,4 +583,83 @@ private fun toGameCoordinates(
     val y = ((offset.y - viewport[1]) * screenHeight / viewport[3]).toInt()
     if (x < 0 || y < 0 || x >= screenWidth || y >= screenHeight) return null
     return x to y
+}
+
+/**
+ * Lời giải thích khi game chết.
+ *
+ * Chỗ này trước đây là một dòng chữ đỏ cỡ 12sp ghi tên lớp ngoại lệ, nằm lọt
+ * thỏm giữa bàn phím ảo — thứ mà không người chơi nào đọc và cũng chẳng ai
+ * hiểu. Game đã dừng hẳn rồi thì màn hình phải nói ra: hỏng cái gì, vì sao, và
+ * làm gì tiếp. Hai nút là hai việc thật sự làm được lúc ấy.
+ */
+@Composable
+private fun CrashDialog(
+    engine: EmulatorEngine,
+    library: LibraryRepository,
+    suiteId: String,
+    profile: GameProfile?,
+    onExit: () -> Unit,
+) {
+    val crash = engine.crash ?: return
+    var showDetail by remember(crash) { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = { },
+        containerColor = MobiColors.Surface,
+        title = {
+            Text(crash.title(), color = MobiColors.Text, fontSize = 19.sp,
+                fontWeight = FontWeight.SemiBold)
+        },
+        text = {
+            Column {
+                Text(crash.reason(), color = MobiColors.Text, fontSize = 15.sp)
+                Spacer(Modifier.height(10.dp))
+                Text(crash.advice(), color = MobiColors.TextDim, fontSize = 13.sp)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = if (showDetail) "Ẩn chi tiết kỹ thuật" else "Chi tiết kỹ thuật",
+                    color = MobiColors.Accent,
+                    fontSize = 13.sp,
+                    modifier = Modifier.clickable { showDetail = !showDetail },
+                )
+                if (showDetail) {
+                    Spacer(Modifier.height(6.dp))
+                    // Nguyên văn tiếng Anh: đây là phần dành cho người sửa
+                    // game, và dịch nó ra chỉ làm mất chỗ để tra cứu.
+                    Text(
+                        text = crash.technical() + "\n" + engine.crashStack.trim(),
+                        color = MobiColors.TextDim,
+                        fontSize = 11.sp,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Text(
+                text = "Chơi lại",
+                color = MobiColors.Accent,
+                fontSize = 15.sp,
+                modifier = Modifier.clickable {
+                    engine.dismissCrash()
+                    val active = profile ?: library.profile(suiteId)
+                    val loaded = library.load(suiteId)
+                    if (active != null) {
+                        engine.start(loaded, active)
+                    }
+                }.padding(horizontal = 8.dp, vertical = 6.dp),
+            )
+        },
+        dismissButton = {
+            Text(
+                text = "Đóng",
+                color = MobiColors.TextDim,
+                fontSize = 15.sp,
+                modifier = Modifier.clickable {
+                    engine.dismissCrash()
+                    engine.stop()
+                    onExit()
+                }.padding(horizontal = 8.dp, vertical = 6.dp),
+            )
+        },
+    )
 }

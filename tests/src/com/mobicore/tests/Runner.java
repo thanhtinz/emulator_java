@@ -29,6 +29,7 @@ public final class Runner {
         tests.add(new ShareTest(fixtures));
         tests.add(new TiltTest(fixtures));
         tests.add(new ContinueTest(fixtures));
+        tests.add(new CrashTest(fixtures));
         tests.add(new DownloadTest(fixtures));
         tests.add(new FileTest(fixtures));
         tests.add(new GifTest());

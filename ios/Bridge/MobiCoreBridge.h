@@ -226,6 +226,15 @@ NS_ASSUME_NONNULL_BEGIN
 /// A lean, in thousandths, from -1000 to 1000 on each axis.
 - (NSString *)tiltedX:(NSInteger)xMilli y:(NSInteger)yMilli;
 
+#pragma mark - Khi game hỏng
+
+/// YES khi game vừa chết và lời giải thích chưa được đọc.
+@property (nonatomic, readonly) BOOL hasCrashed;
+/// Vì sao game chết, đã đọc thành lời: tiêu đề, lý do, việc phải làm.
+- (NSString *)crashJSON;
+/// Người chơi đã đọc xong; game đã chết cũng được dọn luôn.
+- (NSString *)dismissCrash;
+
 /// Gets one picture or clip ready to leave the app, under a readable name.
 - (NSString *)shareScreenshot:(NSString *)name forSuite:(NSString *)suiteId;
 

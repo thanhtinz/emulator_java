@@ -59,7 +59,7 @@ public final class CrashReport {
         }
         NetworkMonitor monitor = session.network().monitor();
         return new CrashReport(title, detail,
-                session.vm().interpreter().stackTrace(),
+                session.vm().interpreter().crashTrace(),
                 session.log().render(),
                 session.info(),
                 session.profile().device().toString(),

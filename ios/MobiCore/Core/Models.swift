@@ -253,6 +253,23 @@ struct ContinueCard: Codable {
     let playedName: String?
 }
 
+/// Vì sao một game vừa chết, đã đọc thành lời.
+///
+/// Ba câu, đúng thứ tự người chơi hỏi: hỏng cái gì (`title`), vì sao
+/// (`reason`), làm gì tiếp (`advice`). `technical` là nguyên văn ngoại lệ,
+/// giữ nguyên tiếng Anh vì đó là phần để tra cứu chứ không phải để đọc.
+struct CrashReading: Codable {
+    let has: Bool
+    let kind: Int?
+    let title: String?
+    let reason: String?
+    let advice: String?
+    let technical: String?
+    let blamesGame: Bool?
+    let game: String?
+    let stack: [String]?
+}
+
 /// Whether tilting the phone steers one game, and how far it must lean.
 struct TiltSettings: Codable {
     let enabled: Bool
