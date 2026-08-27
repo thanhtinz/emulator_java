@@ -247,16 +247,21 @@ private struct SoftKey: View {
     private var mark: String { button == "softLeft" ? "L" : "R" }
 
     var body: some View {
-        Text(bound ? label! : "—")
+        // With no command on it, the key is simply called what it is: an "L"
+        // in the middle rather than an "L" in the corner beside a dash
+        // standing in for something that is not there.
+        Text(bound ? label! : mark)
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(bound ? Palette.text : Palette.textDim)
+            .foregroundStyle(bound ? Palette.text : Palette.accent)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
             .frame(width: key * KeyMetrics.softScaleX, alignment: .center)
             .overlay(alignment: .leading) {
-                Text(mark)
-                    .font(.caption2)
-                    .foregroundStyle(Palette.accent)
+                if bound {
+                    Text(mark)
+                        .font(.caption2)
+                        .foregroundStyle(Palette.accent)
+                }
             }
             .padding(.horizontal, 12)
             .frame(height: key * KeyMetrics.softScaleY)

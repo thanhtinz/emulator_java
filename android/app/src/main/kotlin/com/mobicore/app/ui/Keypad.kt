@@ -219,16 +219,20 @@ private fun SoftKey(
     ) {
         // L and R name the key itself, the way every J2ME emulator labels
         // these two; the text in the middle is the game's command and changes
-        // with the screen, so both are needed.
+        // with the screen. With no command on it, the key is simply called
+        // what it is — an "L" in the middle rather than an "L" in the corner
+        // beside a dash standing in for something that is not there.
+        if (bound) {
+            Text(
+                text = mark,
+                color = MobiColors.Accent,
+                fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.CenterStart),
+            )
+        }
         Text(
-            text = mark,
-            color = MobiColors.Accent,
-            fontSize = 12.sp,
-            modifier = Modifier.align(Alignment.CenterStart),
-        )
-        Text(
-            text = if (bound) label!! else "—",
-            color = if (bound) MobiColors.Text else MobiColors.TextDim,
+            text = if (bound) label!! else mark,
+            color = if (bound) MobiColors.Text else MobiColors.Accent,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,

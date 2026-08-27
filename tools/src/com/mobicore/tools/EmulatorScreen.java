@@ -419,10 +419,16 @@ public final class EmulatorScreen {
     private void softKey(Ui ui, int x, int y, int width, int height, String label, String mark) {
         boolean bound = label != null && label.length() > 0;
         ui.panel(x, y, width, height, bound ? Theme.SURFACE_ALT : Theme.BG, Theme.BORDER);
-        String text = ui.ellipsize(ui.mediumBold(), bound ? label : "—", width - 26);
         int textY = y + (height - ui.mediumBold().height()) / 2;
-        ui.textCenter(ui.mediumBold(), text, x + width / 2, textY,
-                bound ? Theme.TEXT : Theme.TEXT_DIM);
+        if (!bound) {
+            // Nothing to label it with, so the key is called what it is:
+            // "L" in the middle rather than an "L" in the corner beside a
+            // dash standing in for a command that is not there.
+            ui.textCenter(ui.mediumBold(), mark, x + width / 2, textY, Theme.ACCENT);
+            return;
+        }
+        ui.textCenter(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), label, width - 26),
+                x + width / 2, textY, Theme.TEXT);
         ui.text(ui.small(), mark, x + 10, y + (height - ui.small().height()) / 2, Theme.ACCENT);
     }
 
