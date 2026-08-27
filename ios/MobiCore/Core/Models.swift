@@ -233,3 +233,15 @@ struct SaveSlot: Codable, Identifiable, Hashable {
 struct SaveSlotsResponse: Codable {
     let slots: [SaveSlot]
 }
+
+/// One key a virtual button can be pointed at.
+struct KeyChoice: Codable, Identifiable, Hashable {
+    let keyCode: Int
+    let keyName: String
+
+    var id: Int { keyCode }
+}
+
+struct KeyChoicesResponse: Codable {
+    let keys: [KeyChoice]
+}

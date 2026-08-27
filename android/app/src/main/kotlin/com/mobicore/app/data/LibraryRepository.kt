@@ -406,6 +406,19 @@ class LibraryRepository(filesDir: String) {
      * held key is not that input: a game reading `keyPressed` sees one press
      * however long it is held.
      */
+    /**
+     * Points one virtual button at a different key code.
+     *
+     * The presets are a guess; when the guess is wrong the game simply does
+     * not respond, which reads as a broken emulator rather than a wrong key.
+     */
+    fun setKeyMapping(suiteId: String, button: String, keyCode: Int) {
+        val profile = library.profile(suiteId) ?: return
+        profile.input().setMapping(button, keyCode)
+        library.saveProfile(profile)
+        refresh()
+    }
+
     fun setTurbo(suiteId: String, button: String, intervalMs: Int) {
         val profile = library.profile(suiteId) ?: return
         profile.input().setTurbo(button, intervalMs)

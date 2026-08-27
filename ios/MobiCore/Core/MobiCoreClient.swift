@@ -323,6 +323,21 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.deleteScreenshot(forSuite: suiteId, named: name)))
     }
 
+    /// Points one virtual button at a different key code. The presets are a
+    /// guess; when the guess is wrong the game simply does not respond, which
+    /// reads as a broken emulator rather than a wrong key.
+    func setKeyMapping(_ keyCode: Int, button: String, for suiteId: String) {
+        report(decode(bridge.setKeyMapping(Int32(keyCode), forButton: button, suite: suiteId)))
+        refresh()
+    }
+
+    /// Only codes a MIDlet of the era might read: a free-text number box
+    /// would let someone map a button to a code no handset ever sent.
+    func keyChoices() -> [KeyChoice] {
+        let payload: KeyChoicesResponse? = decode(bridge.keyChoicesJSON())
+        return payload?.keys ?? []
+    }
+
     /// Auto-repeat for one button, in milliseconds between presses; 0 is off.
     /// A held key is not the same input: a game reading `keyPressed` sees one
     /// press however long it is held.

@@ -12,6 +12,7 @@ struct GameSettingsView: View {
     /// switches to learn there is nothing for them to do.
     @State private var showAdvanced = false
     @State private var presetName = ""
+    @State private var keyChoices: [KeyChoice] = []
 
     var body: some View {
         ScrollView {
@@ -160,11 +161,26 @@ struct GameSettingsView: View {
                                     .tint(current.input.preset == preset ? Palette.accent : Palette.textDim)
                                 }
                             }
+                            // Changeable, not just shown: a game written for
+                            // one handset reads the code that handset sent —
+                            // plenty read '2' and '8' for up and down — and a
+                            // wrong guess reads as a broken emulator rather
+                            // than a wrong key.
                             ForEach(GameSettings.buttonLabels, id: \.button) { entry in
-                                FieldRow(
-                                    label: entry.label,
-                                    value: String(current.input.mappings[entry.button] ?? 0)
-                                )
+                                Picker(entry.label, selection: Binding(
+                                    get: { current.input.mappings[entry.button] ?? 0 },
+                                    set: {
+                                        client.setKeyMapping($0, button: entry.button,
+                                                             for: suiteId)
+                                        reload()
+                                    }
+                                )) {
+                                    ForEach(keyChoices) { choice in
+                                        Text("\(choice.keyName)  (\(choice.keyCode))")
+                                            .tag(choice.keyCode)
+                                    }
+                                }
+                                .font(.subheadline)
                             }
                         }
                     }
@@ -250,7 +266,10 @@ struct GameSettingsView: View {
         .background(Palette.background)
         .navigationTitle("Cài đặt trò chơi")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear(perform: reload)
+        .onAppear {
+            reload()
+            keyChoices = client.keyChoices()
+        }
     }
 
     private func reload() {

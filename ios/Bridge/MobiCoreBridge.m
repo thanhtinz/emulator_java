@@ -203,6 +203,14 @@
     return [_facade takeScreenshot];
 }
 
+- (NSString *)setKeyMapping:(int32_t)keyCode forButton:(NSString *)button suite:(NSString *)suiteId {
+    return [_facade setKeyMappingWithNSString:suiteId withNSString:button withInt:keyCode];
+}
+
+- (NSString *)keyChoicesJSON {
+    return [_facade keyChoicesJson];
+}
+
 - (NSString *)setTurbo:(int32_t)intervalMs forButton:(NSString *)button suite:(NSString *)suiteId {
     return [_facade setTurboWithNSString:suiteId withNSString:button withInt:intervalMs];
 }

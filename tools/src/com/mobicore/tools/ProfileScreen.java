@@ -44,6 +44,9 @@ public final class ProfileScreen {
         profile.setVolume(65);
         // Turbo on fire, so the screenshot shows the setting doing something.
         profile.input().setTurbo("fire", 50);
+        // One key pointed somewhere else, which is what the row is for: this
+        // game reads '2' for up, as plenty of them do.
+        profile.input().setMapping("up", '2');
         profile.setFavourite(true);
         profile.markPlayed(1_700_000_000_000L);
         library.saveProfile(profile);

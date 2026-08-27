@@ -24,6 +24,7 @@
 | 20 | Nhiều ô lưu trạng thái | Xong |
 | 21 | Chỉnh tốc độ chạy game | Xong |
 | 22 | Liên thanh (turbo) | Xong |
+| 23 | Đổi gán phím từng nút | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -844,3 +845,26 @@ khoảng thời gian đã đặt.
 - Facade: `setTurbo(suiteId, button, intervalMs)`.
 
 Ảnh: `build/screenshots/04-game-settings.png` (dòng "Chọn — liên thanh 50ms").
+
+## Đổi gán phím: khi bộ mặc định đoán sai
+
+Trước đây phần "GÁN PHÍM" chỉ **hiển thị** phím nào gửi mã nào; muốn đổi thì
+chỉ có cách chọn cả một bộ khác (Nokia / Sony Ericsson / Samsung). Mà bộ nào
+cũng chỉ là **phỏng đoán**: game viết cho một máy sẽ đọc đúng mã máy đó gửi —
+rất nhiều game đọc `'2'` và `'8'` cho lên/xuống, hoặc mã riêng của hãng cho
+phím bắn. Đoán sai thì game **không phản ứng gì cả**, nhìn như trình giả lập
+hỏng chứ không phải như gán sai phím.
+
+- Chạm vào từng dòng trong "GÁN PHÍM" để chọn mã phím khác.
+- Danh sách chỉ gồm những mã một MIDlet thời đó có thể đọc: năm phím game, hai
+  phím mềm, mười chữ số, `*` và `#`. Ô nhập số tự do sẽ cho phép gán vào mã mà
+  không máy nào từng gửi — facade từ chối thẳng mã lạ.
+- Đổi một phím thì hồ sơ **thôi tự nhận là "Nokia"** và ghi là "Tuỳ chỉnh":
+  một bàn phím dán nhãn Nokia mà không phải Nokia còn tệ hơn.
+- Chọn lại một bộ có sẵn là cách quay về khi lỡ chỉnh loạn.
+- Đổi giữa ván thì game đang chạy nhận ngay.
+
+Ở lõi: `InputProfile.setMapping` / `keyChoices()`, facade `setKeyMapping` và
+`keyChoicesJson`.
+
+Ảnh: `build/screenshots/04-game-settings.png` (dòng "Lên → 2").

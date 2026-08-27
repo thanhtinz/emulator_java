@@ -1,6 +1,7 @@
 package com.mobicore.app.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -255,8 +258,7 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
                     }
                     Spacer(Modifier.height(8.dp))
                     BUTTON_LABELS.forEach { (button, label) ->
-                        val code = profile.input().keyCodeFor(button)
-                        FieldRow(label, "${MidpContext.keyName(code)}  ($code)")
+                        KeyRow(library, suiteId, profile, button, label)
                     }
                     Spacer(Modifier.height(10.dp))
                     // Turbo where it belongs: beside the keys it acts on.
@@ -303,6 +305,62 @@ fun GameSettingsScreen(library: LibraryRepository, suiteId: String, onBack: () -
         }
 
         item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+/**
+ * One virtual button and the key it sends, with the key changeable.
+ *
+ * The presets are a guess. A game written for one handset reads the code that
+ * handset sent — plenty read '2' and '8' for up and down — and when the guess
+ * is wrong the game simply does not respond, which reads as a broken emulator
+ * rather than a wrong key. The list offers only codes a MIDlet of the era
+ * might read: a free-text number box would let someone map a button to a code
+ * no handset ever sent.
+ */
+@Composable
+private fun KeyRow(
+    library: LibraryRepository,
+    suiteId: String,
+    profile: GameProfile,
+    button: String,
+    label: String,
+) {
+    var open by remember { mutableStateOf(false) }
+    val code = profile.input().keyCodeFor(button)
+    Box {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { open = true }
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, color = MobiColors.TextDim, fontSize = 14.sp,
+                modifier = Modifier.weight(1f))
+            Text(
+                text = "${MidpContext.keyName(code)}  ($code)",
+                color = MobiColors.Accent,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            InputProfile.keyChoices().forEach { choice ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "${MidpContext.keyName(choice)}  ($choice)",
+                            color = if (choice == code) MobiColors.Accent else MobiColors.Text,
+                        )
+                    },
+                    onClick = {
+                        library.setKeyMapping(suiteId, button, choice)
+                        open = false
+                    },
+                )
+            }
+        }
     }
 }
 

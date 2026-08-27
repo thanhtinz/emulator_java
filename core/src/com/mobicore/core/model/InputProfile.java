@@ -199,6 +199,61 @@ public final class InputProfile {
         return new LinkedHashMap<String, Integer>(mappings);
     }
 
+    /**
+     * Points a virtual button at a different key code.
+     *
+     * <p>Needed because the presets are a guess. A game written for one
+     * handset reads the code that handset sent — plenty of them read '2' and
+     * '8' for up and down, or a vendor's own number for fire — and when the
+     * guess is wrong the game simply does not respond, which looks like a
+     * broken emulator rather than a wrong key.</p>
+     *
+     * <p>Changing one key means the profile is no longer that preset, and it
+     * stops claiming to be: a keypad labelled "Nokia" that is not a Nokia
+     * keypad is worse than one labelled "Tuỳ chỉnh".</p>
+     */
+    public void setMapping(String button, int keyCode) {
+        Integer existing = mappings.get(button);
+        if (existing != null && existing.intValue() == keyCode) {
+            return;
+        }
+        mappings.put(button, Integer.valueOf(keyCode));
+        presetName = CUSTOM;
+    }
+
+    /** What a profile calls itself once a key has been moved. */
+    public static final String CUSTOM = "Tuỳ chỉnh";
+
+    public boolean isCustom() {
+        return CUSTOM.equals(presetName);
+    }
+
+    /**
+     * The key codes a virtual button can sensibly be pointed at.
+     *
+     * <p>Everything a MIDlet of the era might read, and nothing else: the
+     * five game keys, the two softkeys, the numbers and the two symbols. A
+     * free-text number box would let someone map a button to a code no
+     * handset ever sent.</p>
+     */
+    public static int[] keyChoices() {
+        int[] choices = new int[19];
+        int at = 0;
+        choices[at++] = MidpContext.KEY_UP;
+        choices[at++] = MidpContext.KEY_DOWN;
+        choices[at++] = MidpContext.KEY_LEFT;
+        choices[at++] = MidpContext.KEY_RIGHT;
+        choices[at++] = MidpContext.KEY_FIRE;
+        choices[at++] = MidpContext.KEY_SOFT_LEFT;
+        choices[at++] = MidpContext.KEY_SOFT_RIGHT;
+        for (int digit = 0; digit <= 9; digit++) {
+            choices[at++] = '0' + digit;
+        }
+        choices[at++] = '*';
+        choices[at++] = '#';
+        return choices;
+    }
+
     /** Auto-repeat interval in milliseconds, or 0 when turbo is off. */
     public int turboFor(String button) {
         Integer interval = turbo.get(button);

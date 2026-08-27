@@ -137,6 +137,9 @@ public final class FacadeTest extends Test {
         eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
                 "and round again");
 
+        // Pointing a button at a different key ------------------------------
+        keyMapping(facade, suiteId);
+
         // Settings worked out once, applied to the rest --------------------
         presets(facade, suiteId);
 
@@ -279,6 +282,38 @@ public final class FacadeTest extends Test {
         eq(0, Json.array(Json.readObject(facade.libraryJson()), "games").size(),
                 "the library is empty again");
     }
+    /**
+     * Remapping: the presets are a guess, and a wrong guess looks like a
+     * broken emulator rather than a wrong key.
+     */
+    private void keyMapping(MobiCoreFacade facade, String suiteId) throws Exception {
+        Map<String, Object> keys = Json.readObject(facade.keyChoicesJson());
+        eq(19, Json.array(keys, "keys").size(),
+                "the choices are what a MIDlet of the era might read, and nothing else");
+
+        Map<String, Object> mapped = Json.readObject(facade.setKeyMapping(suiteId, "up", '2'));
+        check(Json.bool(mapped, "ok", false), "a button can be pointed at another key");
+        eq("2", Json.string(mapped, "keyName", ""), "which is named for the player");
+        eq("Tuỳ chỉnh", Json.string(mapped, "preset", ""),
+                "and the keypad stops calling itself Nokia once it is not one");
+
+        Map<String, Object> input = Json.child(
+                Json.readObject(facade.profileJson(suiteId)), "input");
+        eq('2', Json.integer(Json.child(input, "mappings"), "up", 0),
+                "the change is saved with the game");
+
+        check(!Json.bool(Json.readObject(facade.setKeyMapping(suiteId, "up", 4242)), "ok", true),
+                "a code no handset ever sent is refused");
+
+        // Back to a preset, which is the way out of a mess.
+        facade.setInputPreset(suiteId, "Nokia");
+        Map<String, Object> back = Json.child(
+                Json.readObject(facade.profileJson(suiteId)), "input");
+        eq(-1, Json.integer(Json.child(back, "mappings"), "up", 0),
+                "picking a preset puts every key back");
+        eq("Nokia", Json.string(back, "preset", ""), "and names it again");
+    }
+
     /**
      * Presets: one answer to "how big, how loud, how many frames", saved
      * under a name and applied to every other game.

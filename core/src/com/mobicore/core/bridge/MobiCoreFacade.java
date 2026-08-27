@@ -16,6 +16,7 @@ import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.AppSettings;
 import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
+import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.mod.ModManager;
 import com.mobicore.core.mod.ModPackage;
@@ -459,6 +460,60 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
+    }
+
+    /**
+     * Points one virtual button at a different key code.
+     *
+     * <p>The presets are a guess, and a wrong guess looks like a broken
+     * emulator: the game simply does not respond. This is the way out, and
+     * the reason the keypad stops calling itself "Nokia" afterwards.</p>
+     */
+    public String setKeyMapping(String suiteId, String button, int keyCode) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            boolean known = false;
+            int[] choices = InputProfile.keyChoices();
+            for (int i = 0; i < choices.length; i++) {
+                known = known || choices[i] == keyCode;
+            }
+            if (!known) {
+                return error("No handset ever sent key " + keyCode);
+            }
+            profile.input().setMapping(button, keyCode);
+            library.saveProfile(profile);
+            if (session != null && suiteId.equals(activeSuiteId)) {
+                session.profile().input().setMapping(button, keyCode);
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("button", button);
+            json.put("keyCode", Integer.valueOf(keyCode));
+            json.put("keyName", MidpContext.keyName(keyCode));
+            json.put("preset", profile.input().presetName());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Every key code a button can be pointed at, with its name. */
+    public String keyChoicesJson() {
+        List<Object> choices = new ArrayList<Object>();
+        int[] codes = InputProfile.keyChoices();
+        for (int i = 0; i < codes.length; i++) {
+            Map<String, Object> choice = Json.object();
+            choice.put("keyCode", Integer.valueOf(codes[i]));
+            choice.put("keyName", MidpContext.keyName(codes[i]));
+            choices.add(choice);
+        }
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        json.put("keys", choices);
+        return Json.write(json);
     }
 
     /**
