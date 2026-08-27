@@ -226,6 +226,17 @@ NS_ASSUME_NONNULL_BEGIN
 /// A lean, in thousandths, from -1000 to 1000 on each axis.
 - (NSString *)tiltedX:(NSInteger)xMilli y:(NSInteger)yMilli;
 
+#pragma mark - Máy giả lập
+
+/// Máy mà game này được cho là đang chạy trên đó, và đúng những chuỗi nó đọc.
+- (NSString *)handsetJSONForSuite:(NSString *)suiteId;
+- (NSString *)setHandset:(NSString *)handsetId forSuite:(NSString *)suiteId;
+/// Đặt tay một dòng; giá trị rỗng thì bỏ dòng đó đi.
+- (NSString *)setSystemProperty:(NSString *)name
+                             to:(NSString *)value
+                       forSuite:(NSString *)suiteId;
+- (NSString *)resetHandsetForSuite:(NSString *)suiteId;
+
 #pragma mark - Khi game hỏng
 
 /// YES khi game vừa chết và lời giải thích chưa được đọc.

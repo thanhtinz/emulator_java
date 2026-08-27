@@ -131,18 +131,9 @@ public final class EmulatorLog {
 
             @Override
             public String property(String name) {
-                if ("microedition.platform".equals(name)) {
-                    return "MobiCore";
-                }
-                if ("microedition.configuration".equals(name)) {
-                    return "CLDC-1.1";
-                }
-                if ("microedition.profiles".equals(name)) {
-                    return "MIDP-2.0";
-                }
-                if ("microedition.encoding".equals(name)) {
-                    return "UTF-8";
-                }
+                // Máy giả trả lời câu này (xem HandsetHost); ở đây chỉ chuyển
+                // tiếp, vì nhật ký không phải chỗ quyết định game đang chạy
+                // trên máy nào.
                 return delegate.property(name);
             }
 

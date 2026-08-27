@@ -447,6 +447,26 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)handsetJSONForSuite:(NSString *)suiteId {
+    return [_facade handsetJsonWithNSString:suiteId];
+}
+
+- (NSString *)setHandset:(NSString *)handsetId forSuite:(NSString *)suiteId {
+    return [_facade setHandsetWithNSString:suiteId withNSString:handsetId];
+}
+
+- (NSString *)setSystemProperty:(NSString *)name
+                             to:(NSString *)value
+                       forSuite:(NSString *)suiteId {
+    return [_facade setSystemPropertyWithNSString:suiteId
+                                     withNSString:name
+                                     withNSString:value];
+}
+
+- (NSString *)resetHandsetForSuite:(NSString *)suiteId {
+    return [_facade resetHandsetWithNSString:suiteId];
+}
+
 - (BOOL)hasCrashed {
     return [_facade hasCrashed];
 }

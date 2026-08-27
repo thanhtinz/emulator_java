@@ -16,6 +16,8 @@ struct GameSettingsView: View {
     @State private var gamepad: GamepadSettings?
     /// Whether tilting steers this game, re-read after every change.
     @State private var tilt: TiltSettings?
+    /// Máy mà game này được cho là đang chạy trên đó.
+    @State private var handset: HandsetSettings?
     @State private var tiltSensitivity = 100
     @State private var keyChoices: [KeyChoice] = []
 
@@ -89,7 +91,50 @@ struct GameSettingsView: View {
                         }
                     }
 
-// No J2ME handset could do this, so it is not
+                    // Game J2ME hỏi nó đang chạy trên máy nào rồi mới chọn
+                    // bộ ảnh, nhánh vẽ và mã phím — nên đây là thứ đầu tiên
+                    // nên thử khi một game chạy sai mà không rõ vì sao.
+                    SectionCard(title: "MÁY GIẢ LẬP",
+                                trailing: handset?.name ?? "") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Game đọc microedition.platform rồi mới chọn cách chạy. "
+                                 + "Nghe thấy một cái tên lạ, nó rơi vào nhánh dành cho máy lạ.")
+                                .font(.caption2)
+                                .foregroundStyle(Palette.textDim)
+
+                            ForEach(handset?.handsets ?? []) { option in
+                                Button {
+                                    client.setHandset(option.id, for: suiteId)
+                                    handset = client.handset(suiteId)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(option.name)
+                                            .font(.footnote.weight(option.chosen ? .semibold : .regular))
+                                            .foregroundStyle(option.chosen ? Palette.accent : Palette.text)
+                                        Text(option.note)
+                                            .font(.caption2)
+                                            .foregroundStyle(Palette.textDim)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            // Đúng những chuỗi game đọc được: khi một game
+                            // chạy sai vì tưởng mình ở trên máy khác, đây là
+                            // thứ cần nhìn.
+                            ForEach(handset?.properties ?? []) { property in
+                                FieldRow(label: property.name, value: property.value)
+                            }
+
+                            // Game đang chạy đã đọc xong câu này từ lúc mở màn.
+                            Text("Đổi máy chỉ ăn từ lần mở game sau.")
+                                .font(.caption2)
+                                .foregroundStyle(Palette.textDim)
+                        }
+                    }
+
+                    // No J2ME handset could do this, so it is not
                     // emulation but a way to play: it suits a racing game
                     // steered left and right, and suits nothing else.
                     SectionCard(title: "NGHIÊNG MÁY",
@@ -466,6 +511,7 @@ struct GameSettingsView: View {
             gamepad = client.gamepad(suiteId)
             tilt = client.tilt(suiteId)
             tiltSensitivity = tilt?.sensitivity ?? 100
+            handset = client.handset(suiteId)
         }
     }
 

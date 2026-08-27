@@ -517,6 +517,25 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.setTiltInverted(inverted, forSuite: suiteId)))
     }
 
+    // ------------------------------------------------------------ máy giả lập
+
+    /// Máy mà một game được cho là đang chạy trên đó.
+    func handset(_ suiteId: String) -> HandsetSettings? {
+        decode(bridge.handsetJSON(forSuite: suiteId))
+    }
+
+    func setHandset(_ handsetId: String, for suiteId: String) {
+        report(decode(bridge.setHandset(handsetId, forSuite: suiteId)))
+    }
+
+    func setSystemProperty(_ name: String, to value: String, for suiteId: String) {
+        report(decode(bridge.setSystemProperty(name, to: value, forSuite: suiteId)))
+    }
+
+    func resetHandset(_ suiteId: String) {
+        report(decode(bridge.resetHandset(forSuite: suiteId)))
+    }
+
     // --------------------------------------------------------- the controller
 
     /// What a real controller's buttons do for one game.

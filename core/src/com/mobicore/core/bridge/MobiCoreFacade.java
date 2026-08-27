@@ -21,6 +21,7 @@ import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.AppSettings;
 import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
+import com.mobicore.core.model.HandsetIdentity;
 import com.mobicore.core.model.GamepadProfile;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.midp.MidpFiles;
@@ -822,6 +823,102 @@ public final class MobiCoreFacade {
             json.put("axes", Integer.valueOf(tilt.axes()));
             json.put("axesName", tilt.axesName());
             json.put("inverted", Boolean.valueOf(tilt.isInverted()));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    // ------------------------------------------------ máy mà game tưởng là
+
+    /**
+     * Game này đang được cho là chạy trên máy nào, và nó đọc được những gì.
+     *
+     * <p>Bày ra cả bảng chứ không chỉ tên máy: khi một game chạy sai vì
+     * tưởng mình đang ở trên máy khác, thứ cần nhìn là đúng những chuỗi nó
+     * đọc được.</p>
+     */
+    public String handsetJson(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            HandsetIdentity identity = profile.identity();
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("handset", identity.handsetId());
+            json.put("name", identity.handset().name());
+            json.put("platform", identity.handset().platform());
+            json.put("note", identity.handset().note());
+            json.put("custom", Boolean.valueOf(identity.isCustom()));
+            json.put("handsets", HandsetIdentity.catalogJson(identity.handsetId()));
+            List<Object> properties = new ArrayList<Object>();
+            for (Map.Entry<String, String> entry : identity.all().entrySet()) {
+                Map<String, Object> row = Json.object();
+                row.put("name", entry.getKey());
+                row.put("value", entry.getValue());
+                row.put("edited", Boolean.valueOf(
+                        identity.custom().containsKey(entry.getKey())));
+                properties.add(row);
+            }
+            json.put("properties", properties);
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Chọn máy để giả làm; xem {@link HandsetIdentity#CATALOG}. */
+    public String setHandset(String suiteId, String handsetId) {
+        return withIdentity(suiteId, handsetId, null, null, false);
+    }
+
+    /**
+     * Đặt tay một dòng trong bảng.
+     *
+     * @param value rỗng thì bỏ dòng đó đi, quay về giá trị của máy đang giả
+     */
+    public String setSystemProperty(String suiteId, String name, String value) {
+        return withIdentity(suiteId, null, name, value == null ? "" : value, false);
+    }
+
+    /** Bỏ hết những gì đã sửa tay và quay về máy mặc định. */
+    public String resetHandset(String suiteId) {
+        return withIdentity(suiteId, null, null, null, true);
+    }
+
+    /**
+     * Một đường vào cho cả ba, vì cả ba sửa một vật rồi lưu lại.
+     *
+     * <p>Game đang chạy <em>không</em> được đổi theo: nó đã đọc xong máy nó
+     * đang chạy trên đó từ lúc mở màn và đã chọn nhánh, chọn bộ ảnh theo câu
+     * trả lời ấy. Đổi giữa chừng chỉ tạo ra một game nửa nọ nửa kia.</p>
+     */
+    private String withIdentity(String suiteId, String handsetId, String name, String value,
+                                boolean reset) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            HandsetIdentity identity = profile.identity();
+            if (reset) {
+                identity.clear();
+                identity.setHandset(HandsetIdentity.DEFAULT_ID);
+            }
+            if (handsetId != null) {
+                identity.setHandset(handsetId);
+            }
+            if (name != null) {
+                identity.set(name, value);
+            }
+            library.saveProfile(profile);
+            Map<String, Object> json = Json.readObject(handsetJson(suiteId));
+            // Đang chơi thì lời sửa chỉ có tác dụng ở lần mở sau, và màn hình
+            // phải nói ra điều đó thay vì để người dùng ngồi đợi.
+            json.put("restartNeeded", Boolean.valueOf(
+                    session != null && suiteId.equals(activeSuiteId)));
             return Json.write(json);
         } catch (IOException e) {
             return error(e.getMessage());

@@ -253,6 +253,39 @@ struct ContinueCard: Codable {
     let playedName: String?
 }
 
+/// Máy mà một game được cho là đang chạy trên đó.
+///
+/// Game J2ME đọc `microedition.platform` rồi mới chọn bộ ảnh, nhánh vẽ và mã
+/// phím, nên đây là thứ đầu tiên nên thử khi một game chạy sai mà không rõ vì
+/// sao. `properties` là đúng những chuỗi game đọc được.
+struct HandsetSettings: Codable {
+    let handset: String
+    let name: String
+    let platform: String
+    let note: String
+    let custom: Bool
+    let handsets: [HandsetOption]
+    let properties: [HandsetProperty]
+    /// Đang chơi thì lời sửa chỉ ăn từ lần mở sau.
+    let restartNeeded: Bool?
+}
+
+struct HandsetOption: Codable, Identifiable {
+    let id: String
+    let name: String
+    let platform: String
+    let note: String
+    let chosen: Bool
+}
+
+struct HandsetProperty: Codable, Identifiable {
+    let name: String
+    let value: String
+    let edited: Bool
+
+    var id: String { name }
+}
+
 /// Vì sao một game vừa chết, đã đọc thành lời.
 ///
 /// Ba câu, đúng thứ tự người chơi hỏi: hỏng cái gì (`title`), vì sao

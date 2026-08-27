@@ -44,6 +44,7 @@ import com.mobicore.app.data.LibraryRepository
 import com.mobicore.core.midp.MidpContext
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.model.GamepadProfile
+import com.mobicore.core.model.HandsetIdentity
 import com.mobicore.core.model.InputProfile
 
 /** Per-game configuration: device, display, audio, input and network. */
@@ -78,6 +79,8 @@ fun GameSettingsScreen(
     var tiltSensitivity by remember { mutableIntStateOf(profile.tilt().sensitivity()) }
     var tiltAxes by remember { mutableIntStateOf(profile.tilt().axes()) }
     var tiltInverted by remember { mutableStateOf(profile.tilt().isInverted) }
+    val handset = profile.identity()
+    var handsetId by remember { mutableStateOf(handset.handsetId()) }
     // Bumped when a control is remapped: the pad profile is a plain object,
     // and Compose has no way of knowing a string inside it changed.
     var padRevision by remember { mutableIntStateOf(0) }
@@ -396,6 +399,54 @@ fun GameSettingsScreen(
                             })
                         }
                     }
+                }
+            }
+        }
+
+        item {
+            // Game J2ME hỏi nó đang chạy trên máy nào rồi mới chọn bộ ảnh,
+            // nhánh vẽ và mã phím. Đây là chỗ trả lời câu hỏi ấy, và là thứ
+            // đầu tiên nên thử khi một game chạy sai mà không rõ vì sao.
+            SectionCard(title = "MÁY GIẢ LẬP", trailing = handset.handset().name()) {
+                Column {
+                    Text(
+                        "Game đọc microedition.platform rồi mới chọn cách chạy. " +
+                            "Nghe thấy một cái tên lạ, nó rơi vào nhánh dành cho máy lạ.",
+                        color = MobiColors.TextDim,
+                        fontSize = 11.sp,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    HandsetIdentity.CATALOG.forEach { candidate ->
+                        val chosen = candidate.id() == handsetId
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .clickable {
+                                    handsetId = candidate.id()
+                                    persist { it.identity().setHandset(candidate.id()) }
+                                }
+                                .padding(vertical = 6.dp),
+                        ) {
+                            Text(
+                                candidate.name(),
+                                color = if (chosen) MobiColors.Accent else MobiColors.Text,
+                                fontSize = 14.sp,
+                                fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                            Text(candidate.note(), color = MobiColors.TextDim, fontSize = 11.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    // Đúng chuỗi game đọc được: khi một game chạy sai vì
+                    // tưởng mình ở trên máy khác, đây là thứ cần nhìn.
+                    handset.all().forEach { (name, value) ->
+                        FieldRow(name, value)
+                    }
+                    // Game đang chạy đã đọc xong câu này từ lúc mở màn.
+                    Text(
+                        "Đổi máy chỉ ăn từ lần mở game sau.",
+                        color = MobiColors.TextDim,
+                        fontSize = 11.sp,
+                    )
                 }
             }
         }
