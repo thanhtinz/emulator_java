@@ -15,6 +15,10 @@ struct HomeView: View {
     @State private var query = ""
     @State private var showingTools = false
     @State private var showingSettings = false
+    /// The link sheet, and what has been typed into it.
+    @State private var linkOpen = false
+    @State private var link = ""
+    @State private var linkResult: String?
 
     private var shown: [Game] {
         query.trimmingCharacters(in: .whitespaces).isEmpty
@@ -77,6 +81,12 @@ struct HomeView: View {
             .accessibilityLabel("Sắp xếp")
 
             Menu {
+                // These games arrive as a link before they arrive as a file.
+                Button {
+                    linkOpen = true
+                } label: {
+                    Label("Nhập từ liên kết", systemImage: "link")
+                }
                 Button {
                     client.cycleTheme()
                 } label: {
@@ -101,6 +111,28 @@ struct HomeView: View {
         .navigationDestination(for: String.self) { GameDetailView(suiteId: $0) }
         .navigationDestination(isPresented: $showingTools) { ToolsView() }
         .navigationDestination(isPresented: $showingSettings) { SettingsView() }
+        // One field and two buttons: pasting an address is the whole
+        // interaction, and anything else here would be in the way of the paste.
+        .alert("Nhập từ liên kết", isPresented: $linkOpen) {
+            TextField("https://…", text: $link)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.URL)
+            Button("Hủy", role: .cancel) { link = "" }
+            Button("Tải về") {
+                let url = link.trimmingCharacters(in: .whitespaces)
+                link = ""
+                linkResult = client.installFromUrl(url)
+            }
+        } message: {
+            Text("Dán liên kết .jar hoặc .jad của trò chơi.")
+        }
+        .alert("Nhập từ liên kết",
+               isPresented: Binding(get: { linkResult != nil },
+                                    set: { if !$0 { linkResult = nil } })) {
+            Button("Xong", role: .cancel) { linkResult = nil }
+        } message: {
+            Text(linkResult ?? "")
+        }
         .fileImporter(
             isPresented: $importing,
             allowedContentTypes: MobiCoreTypes.importable,

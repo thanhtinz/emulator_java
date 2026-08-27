@@ -39,6 +39,7 @@
 | 35 | Tự sắp xếp bàn phím ảo | Xong |
 | 36 | Tay cầm và bàn phím ngoài | Xong |
 | 37 | Tệp riêng của game (JSR-75) | Xong |
+| 38 | Cài game từ liên kết | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1358,3 +1359,48 @@ dẫn của chính game — `deleteGameFile(suiteId, "../../library.json")` khô
 
 Và vì JSR-75 nay chạy thật, nó **rời khỏi danh sách "gói còn thiếu"** trong bảng
 kiểm tra tương thích trước khi chơi.
+
+
+## Giai đoạn 38 — cài game từ liên kết
+
+Mấy game này sống trên web — trang lưu trữ, bài đăng diễn đàn, thư mục của một
+người bạn — và **cái nào cũng đến dưới dạng một liên kết trước khi đến dưới dạng
+một tệp**. Bắt người chơi mở trình duyệt tải về, tìm trong thư mục Tải xuống,
+rồi chọn ra từ hộp chọn tệp là ba bước cho một việc bộ giả lập làm được trong
+một bước.
+
+Hai loại liên kết:
+
+- **.jar** là chính game, tự nó đã đủ.
+- **.jad** là bản mô tả mà máy J2ME lẽ ra được đưa trước: nó ghi tên tệp .jar ở
+  `MIDlet-Jar-URL`, nên tệp đó được tải luôn — **tính tương đối so với bản mô
+  tả**, vì một tệp .jad trên trang web gần như luôn ghi tên .jar trần, nghĩa là
+  "nằm ngay cạnh tôi". Ghi sai chỗ này thì đi lấy .jar ở gốc trang, thường là
+  404 và thỉnh thoảng là game của người khác.
+
+**Thứ tải về được xem trước khi cài.** Liên kết sai, hết hạn, hoặc chỉ tới trang
+đăng nhập thì trả về một trang web, và một trang web cài vào làm game là một
+game hỏng muộn hơn và khó hiểu hơn. Nên các byte được nhìn tận nơi: `.jar` là
+tệp nén, bắt đầu bằng `PK`; bản mô tả thì phải phân tích được và phải ghi tên
+một MIDlet.
+
+Và **báo lỗi bằng tiếng người**, không phải bằng tiếng nhật ký:
+
+- "Không có gì ở liên kết này (404)"
+- "đây là một trang web, không phải tệp game" — câu này nói cho người chơi biết
+  cần mở liên kết trong trình duyệt trước, thường đúng là chuyện đã xảy ra
+- "Không kết nối được tới games.example" — thứ duy nhất giúp được là **địa chỉ
+  nào không trả lời**, chứ không phải cái stack trace của tầng truyền
+- "Tệp quá lớn": game J2ME nặng vài trăm KB; thứ gì lớn hơn 32 MB thì không phải
+  game, và điện thoại không nên tốn bộ nhớ để phát hiện ra điều đó
+
+**Tải qua đúng tầng mạng** mà game vẫn dùng, nên nó được ghi lại và xem lại
+được (`downloadsJson`). Nhưng đi bằng một chính sách **riêng**: game phải hỏi
+trước khi kết nối, còn một lượt tải mà người chơi tự gõ địa chỉ thì **chính việc
+gõ đó là sự cho phép**. Đổi lại, tải xong nó nói rõ đã lấy những gì và lấy ở
+đâu, chứ không giấu.
+
+Kiểm tra chạy hoàn toàn **không cần mạng**: cả bản mô tả lẫn tệp .jar được phục
+vụ từ `LoopbackTransport`, đi qua đúng cái facade mà điện thoại gọi. Bản xem
+trước cũng vậy — màn "Nhập từ liên kết" trong ảnh chụp là **một lượt cài thật**
+vừa chạy xong, không phải hình vẽ mô phỏng.

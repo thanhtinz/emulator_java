@@ -13,6 +13,7 @@ import com.mobicore.core.library.BatchImport;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryArchive;
 import com.mobicore.core.library.PresetStore;
+import com.mobicore.core.library.UrlInstaller;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.AppSettings;
@@ -27,7 +28,11 @@ import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.mod.ModManager;
 import com.mobicore.core.mod.ModPackage;
 import com.mobicore.core.model.MidletEntry;
+import com.mobicore.core.net.HttpTransport;
 import com.mobicore.core.net.NetworkMonitor;
+import com.mobicore.core.net.NetworkPolicy;
+import com.mobicore.core.net.NetworkStack;
+import com.mobicore.core.net.NetworkTransport;
 import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.tools.CrashReport;
 import com.mobicore.core.tools.JadEditor;
@@ -61,6 +66,8 @@ public final class MobiCoreFacade {
 
     private final Vfs vfs;
     private GameLibrary library;
+    /** Where downloads go through; built the first time one is asked for. */
+    private NetworkStack installerNetwork;
     private StorageLayout layout;
     private EmulatorSession session;
     private String activeSuiteId;
@@ -190,6 +197,93 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
+    }
+
+    /**
+     * Installs a game from a link.
+     *
+     * <p>These games arrive as a link before they arrive as a file. Fetching
+     * it in a browser, finding it in Downloads and picking it out of a file
+     * chooser is three steps for something the emulator can do in one.</p>
+     *
+     * <p>The download goes through the same network stack a game's own
+     * connections do, so it is recorded and can be looked at afterwards. It is
+     * allowed rather than asked about — the player typed the address, which is
+     * the permission — but what was fetched, and from where, is reported back
+     * rather than hidden.</p>
+     */
+    public String installFromUrl(String url) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        final NetworkStack downloads = installerNetwork();
+        try {
+            UrlInstaller.Download download = UrlInstaller.fetch(new UrlInstaller.Fetcher() {
+                public NetworkTransport.Response fetch(String target) throws IOException {
+                    NetworkTransport.Request request = new NetworkTransport.Request(target);
+                    // A handset asked for exactly this, and a few servers of
+                    // the era still refuse anything that does not.
+                    request.headers.put("Accept",
+                            "text/vnd.sun.j2me.app-descriptor, application/java-archive, */*");
+                    return downloads.perform(request);
+                }
+            }, url);
+
+            library.setClock(now());
+            GameLibrary.InstallResult result = library.install(download.jar(), download.jad());
+            applyDefaultPreset(result.entry().suiteId());
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("replaced", Boolean.valueOf(result.replaced()));
+            json.put("game", result.entry().toJson());
+            json.put("jarUrl", download.jarUrl());
+            json.put("notes", new ArrayList<Object>(download.notes()));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * The network the installer downloads over.
+     *
+     * <p>Separate from a game's: a game has to ask before it connects, and a
+     * download the player asked for by typing an address does not. It still
+     * goes through a policy and a monitor, so the same rules about what is
+     * recorded apply.</p>
+     */
+    private NetworkStack installerNetwork() {
+        if (installerNetwork == null) {
+            NetworkPolicy policy = new NetworkPolicy();
+            policy.setMode(GameProfile.NETWORK_ALLOWED);
+            installerNetwork = new NetworkStack(policy);
+            installerNetwork.setTransport(new HttpTransport());
+        }
+        return installerNetwork;
+    }
+
+    /**
+     * Points the installer at a different transport.
+     *
+     * <p>For tests and for the local server bridge: a game whose site is gone
+     * can be served from the device instead.</p>
+     */
+    public void setInstallerTransport(NetworkTransport transport) {
+        installerNetwork().setTransport(transport);
+    }
+
+    /** What the installer fetched, so the player can see where it came from. */
+    public String downloadsJson() {
+        Map<String, Object> root = Json.object();
+        List<Object> requests = new ArrayList<Object>();
+        if (installerNetwork != null) {
+            for (NetworkMonitor.Exchange exchange : installerNetwork.monitor().exchanges()) {
+                requests.add(exchange.toJson());
+            }
+        }
+        root.put("ok", Boolean.TRUE);
+        root.put("downloads", requests);
+        return Json.write(root);
     }
 
     public String uninstall(String suiteId, boolean keepData) {

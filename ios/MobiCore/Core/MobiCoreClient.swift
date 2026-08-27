@@ -391,6 +391,28 @@ final class MobiCoreClient: ObservableObject {
         refresh()
     }
 
+    // ------------------------------------------------------------- from a link
+
+    /// Installs a game from a link.
+    ///
+    /// These games arrive as a link before they arrive as a file. Fetching one
+    /// in Safari, finding it in Files and picking it out of a document picker
+    /// is three steps for something this does in one.
+    ///
+    /// - Returns: what happened, in words to show the player.
+    func installFromUrl(_ url: String) -> String {
+        guard let data = bridge.installFromURL(url).data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return "Không tải được"
+        }
+        refresh()
+        if json["ok"] as? Bool != true {
+            return json["error"] as? String ?? "Không tải được"
+        }
+        let game = json["game"] as? [String: Any]
+        return "Đã cài \(game?["title"] as? String ?? "trò chơi")"
+    }
+
     // ------------------------------------------------------ the game's files
 
     /// The files a game has written for itself through JSR-75.

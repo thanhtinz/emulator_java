@@ -8,7 +8,12 @@ import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.library.PresetStore
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
+import com.mobicore.core.library.UrlInstaller
 import com.mobicore.core.midp.MidpFiles
+import com.mobicore.core.net.HttpTransport
+import com.mobicore.core.net.NetworkPolicy
+import com.mobicore.core.net.NetworkStack
+import com.mobicore.core.net.NetworkTransport
 import com.mobicore.core.model.DeviceProfile
 import com.mobicore.core.model.GamepadProfile
 import com.mobicore.core.model.GameProfile
@@ -326,6 +331,44 @@ class LibraryRepository(filesDir: String) {
     /** Keeps a picture of the game; returns where it went. */
     fun writeScreenshot(suiteId: String, png: ByteArray): String =
         library.writeScreenshot(suiteId, png)
+
+    /**
+     * Installs a game from a link.
+     *
+     * These games arrive as a link before they arrive as a file. Fetching one
+     * in a browser, finding it in Downloads and picking it out of a file
+     * chooser is three steps for something this does in one.
+     *
+     * @return what happened, in words to show the player
+     */
+    fun installFromUrl(url: String): String = runCatching {
+        val download = UrlInstaller.fetch({ target ->
+            val request = NetworkTransport.Request(target)
+            // A handset asked for exactly this, and a few servers of the era
+            // still refuse anything that does not.
+            request.headers["Accept"] =
+                "text/vnd.sun.j2me.app-descriptor, application/java-archive, */*"
+            downloads.perform(request)
+        }, url)
+        library.setClock(System.currentTimeMillis())
+        val result = library.install(download.jar(), download.jad())
+        refresh()
+        "Đã cài ${result.entry().title()}"
+    }.getOrElse { "Không tải được: ${it.message}" }
+
+    /**
+     * Where downloads go through.
+     *
+     * Separate from a game's network: a game has to ask before it connects,
+     * and a download the player asked for by typing an address does not. It
+     * still goes through a policy and a monitor, so the same rules about what
+     * is recorded apply.
+     */
+    private val downloads: NetworkStack by lazy {
+        val policy = NetworkPolicy()
+        policy.setMode(GameProfile.NETWORK_ALLOWED)
+        NetworkStack(policy).also { it.setTransport(HttpTransport()) }
+    }
 
     /**
      * The files a game has written for itself through JSR-75.

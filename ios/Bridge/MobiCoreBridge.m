@@ -447,6 +447,14 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)installFromURL:(NSString *)url {
+    return [_facade installFromUrlWithNSString:url];
+}
+
+- (NSString *)downloadsJSON {
+    return [_facade downloadsJson];
+}
+
 - (NSString *)gameFilesJSONForSuite:(NSString *)suiteId {
     return [_facade gameFilesJsonWithNSString:suiteId];
 }

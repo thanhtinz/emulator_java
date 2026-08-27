@@ -60,6 +60,21 @@ public final class LoopbackTransport implements NetworkTransport {
         return this;
     }
 
+    /**
+     * A canned answer that is not text: a JAR, a picture, a save file.
+     *
+     * <p>Needed because some of what a device fetches is not a string, and
+     * turning bytes into a string and back would not survive the trip.</p>
+     */
+    public LoopbackTransport respondBytes(String urlContains, int status, byte[] body,
+                                          String contentType) {
+        Response response = new Response(status, "OK", body);
+        response.headers.put("Content-Type", contentType);
+        response.headers.put("Content-Length", String.valueOf(body == null ? 0 : body.length));
+        rules.add(new Rule(urlContains, response));
+        return this;
+    }
+
     @Override
     public Response execute(Request request) throws IOException {
         received.add(request);

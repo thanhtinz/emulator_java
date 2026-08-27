@@ -213,6 +213,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.
 - (NSString *)noteKeypadUse;
+/// Installs a game from a link; these games arrive as a link first.
+- (NSString *)installFromURL:(NSString *)url;
+/// What the installer fetched, so the player can see where a game came from.
+- (NSString *)downloadsJSON;
+
 /// The files a game has written for itself through JSR-75.
 - (NSString *)gameFilesJSONForSuite:(NSString *)suiteId;
 - (NSString *)deleteGameFile:(NSString *)path forSuite:(NSString *)suiteId;

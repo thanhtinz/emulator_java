@@ -18,6 +18,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +65,7 @@ sealed interface Route {
 @Composable
 fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
     var route by remember { mutableStateOf<Route>(Route.Library) }
+    var linkOpen by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -198,9 +204,25 @@ fun MobiCoreApp(library: LibraryRepository, filesDir: String) {
                 profiles = profiles,
                 onOpen = { route = Route.Detail(it) },
                 onImport = { importLauncher.launch(IMPORT_MIME_TYPES) },
+                onImportLink = { linkOpen = true },
                 onTools = { route = Route.Tools },
                 onSettings = { route = Route.Settings },
             )
+            if (linkOpen) {
+                // These games arrive as a link before they arrive as a file.
+                LinkDialog(
+                    onDismiss = { linkOpen = false },
+                    onInstall = { url ->
+                        linkOpen = false
+                        scope.launch {
+                            val message = withContext(Dispatchers.IO) {
+                                library.installFromUrl(url)
+                            }
+                            snackbar.showSnackbar(message)
+                        }
+                    },
+                )
+            }
         }
     }
 }
@@ -249,3 +271,42 @@ private val IMPORT_MIME_TYPES = arrayOf(
     "application/octet-stream",
     "text/plain",
 )
+
+/**
+ * Where a link is typed.
+ *
+ * One field and two buttons: pasting an address is the whole interaction, and
+ * anything else on this dialog would be in the way of the paste.
+ */
+@Composable
+private fun LinkDialog(onDismiss: () -> Unit, onInstall: (String) -> Unit) {
+    var url by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nhập từ liên kết") },
+        text = {
+            Column {
+                Text(
+                    "Dán liên kết .jar hoặc .jad của trò chơi.",
+                    color = MobiColors.TextDim,
+                    fontSize = 13.sp,
+                )
+                Spacer(Modifier.height(8.dp))
+                TextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    singleLine = true,
+                    placeholder = { Text("https://…") },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onInstall(url.trim()) }, enabled = url.isNotBlank()) {
+                Text("Tải về")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Hủy") }
+        },
+    )
+}
