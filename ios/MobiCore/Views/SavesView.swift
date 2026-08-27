@@ -8,6 +8,8 @@ struct SavesView: View {
     @EnvironmentObject private var client: MobiCoreClient
     @State private var saves: SavesResponse?
     @State private var status: String?
+    /// The files the game wrote for itself, re-read after every change.
+    @State private var files: [GameFile] = []
 
     var body: some View {
         ScrollView {
@@ -25,6 +27,40 @@ struct SavesView: View {
                             Text("Chưa lưu gì.")
                                 .font(.footnote)
                                 .foregroundStyle(Palette.textDim)
+                        }
+                    }
+                }
+
+                // JSR-75: what a game keeps that record stores are too small
+                // for. The player's, so visible and removable.
+                SectionCard(title: "TỆP CỦA GAME",
+                            trailing: files.isEmpty ? nil : "\(files.count) tệp") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if files.isEmpty {
+                            Text("Game này chưa tự ghi tệp nào.")
+                                .font(.footnote)
+                                .foregroundStyle(Palette.textDim)
+                        } else {
+                            ForEach(files) { file in
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(file.path)
+                                            .font(.footnote)
+                                            .foregroundStyle(Palette.text)
+                                        Text("\(file.bytes) B")
+                                            .font(.caption2)
+                                            .foregroundStyle(Palette.textDim)
+                                    }
+                                    Spacer()
+                                    Button("Xoá") {
+                                        client.deleteGameFile(file.path, for: suiteId)
+                                        files = client.gameFiles(suiteId)
+                                        status = "Đã xoá \(file.path)"
+                                    }
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.bad)
+                                }
+                            }
                         }
                     }
                 }
@@ -88,6 +124,7 @@ struct SavesView: View {
 
     private func reload() {
         saves = client.saves(suiteId)
+        files = client.gameFiles(suiteId)
         client.refresh()
     }
 }

@@ -88,7 +88,6 @@ public final class Compatibility {
      */
     private static final String[][] KNOWN_MISSING = {
             {"javax/microedition/pim/", "danh bạ và lịch của máy"},
-            {"javax/microedition/io/file/", "truy cập thẻ nhớ"},
             {"javax/microedition/amms/", "hiệu ứng âm thanh nâng cao"},
             {"javax/microedition/m3g/", "đồ hoạ 3D (M3G)"},
             {"javax/microedition/location/", "định vị"},

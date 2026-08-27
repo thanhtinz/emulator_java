@@ -113,13 +113,26 @@ public final class MidpNet {
     private static NativeMethod opener(final NetworkStack network) {
         return new NativeMethod() {
             public Object invoke(Vm vm, VmObject self, Object[] args) {
-                return open(vm, network, Rt.s(vm, args, 0));
+                // The mode, when the game gave one: READ is 1, and a file
+                // opened for reading must refuse to be written to.
+                int mode = args.length > 1 && args[1] instanceof Integer
+                        ? Rt.i(args, 1) : 3;
+                return open(vm, network, Rt.s(vm, args, 0), mode);
             }
         };
     }
 
     private static VmObject open(Vm vm, NetworkStack network, String url) {
+        return open(vm, network, url, 3);
+    }
+
+    private static VmObject open(Vm vm, NetworkStack network, String url, int mode) {
         String scheme = NetworkPolicy.schemeOf(url);
+        // JSR-75 comes in through the same door as everything else: a game
+        // asks Connector for a file: URL exactly as it asks for an http one.
+        if ("file".equals(scheme) && vm.findLoaded(MidpFiles.FILE_CONNECTION) != null) {
+            return MidpFiles.open(vm, url, mode);
+        }
         if (!"http".equals(scheme) && !"https".equals(scheme)) {
             // Sockets, datagrams, comm ports and the rest are not emulated;
             // saying so is better than pretending the connection succeeded.

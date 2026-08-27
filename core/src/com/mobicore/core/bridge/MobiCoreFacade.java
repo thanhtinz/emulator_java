@@ -20,6 +20,7 @@ import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.model.GamepadProfile;
 import com.mobicore.core.midp.MidpContext;
+import com.mobicore.core.midp.MidpFiles;
 import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.model.KeypadArrangement;
 import com.mobicore.core.model.MidletEntry;
@@ -2268,6 +2269,80 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
+    }
+
+    /**
+     * The files a game has written for itself, oldest folder first.
+     *
+     * <p>A game that uses JSR-75 keeps things record stores cannot hold — a
+     * saved level, a downloaded track. They are the player's, so they are
+     * visible and removable rather than hidden inside the app.</p>
+     */
+    public String gameFilesJson(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        Map<String, Object> root = Json.object();
+        List<Object> files = new ArrayList<Object>();
+        String base = gameFilesDir(suiteId);
+        collectFiles(library.storage(), base, "", files);
+        root.put("ok", Boolean.TRUE);
+        root.put("files", files);
+        root.put("bytes", Integer.valueOf(totalBytes(files)));
+        return Json.write(root);
+    }
+
+    /** Where one game's own files live, which nothing outside may reach. */
+    private String gameFilesDir(String suiteId) {
+        return StorageLayout.join(library.layout().gameDir(suiteId), "files");
+    }
+
+    private void collectFiles(Vfs vfs, String base, String prefix, List<Object> files) {
+        String dir = prefix.length() == 0 ? base : StorageLayout.join(base, prefix);
+        List<String> children = vfs.list(dir);
+        for (int i = 0; i < children.size(); i++) {
+            String name = children.get(i);
+            String relative = prefix.length() == 0 ? name : prefix + "/" + name;
+            String path = StorageLayout.join(dir, name);
+            if (vfs.isDirectory(path)) {
+                collectFiles(vfs, base, relative, files);
+                continue;
+            }
+            Map<String, Object> file = Json.object();
+            file.put("path", relative);
+            file.put("bytes", Integer.valueOf((int) vfs.size(path)));
+            file.put("modifiedAt", Long.valueOf(vfs.modifiedAt(path)));
+            files.add(file);
+        }
+    }
+
+    private static int totalBytes(List<Object> files) {
+        int total = 0;
+        for (int i = 0; i < files.size(); i++) {
+            total += Json.integer((Map<String, Object>) files.get(i), "bytes", 0);
+        }
+        return total;
+    }
+
+    /**
+     * Deletes one of a game's own files.
+     *
+     * <p>The path comes back through the bridge as a string, so it is resolved
+     * against the game's folder the same way the game's own paths are: a name
+     * from outside must never be able to name a file of its own.</p>
+     */
+    public String deleteGameFile(String suiteId, String path) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        String full = MidpFiles.resolveOrNull(gameFilesDir(suiteId), path);
+        if (full == null) {
+            return error("Đường dẫn không hợp lệ");
+        }
+        if (!library.storage().delete(full)) {
+            return error("Không có tệp này");
+        }
+        return ok("path", path);
     }
 
     /** Rewrites one record from hex, as typed into the editor. */

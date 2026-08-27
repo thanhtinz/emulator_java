@@ -391,6 +391,21 @@ final class MobiCoreClient: ObservableObject {
         refresh()
     }
 
+    // ------------------------------------------------------ the game's files
+
+    /// The files a game has written for itself through JSR-75.
+    ///
+    /// They are the player's — a saved level, a downloaded track — so they
+    /// are visible and removable rather than hidden inside the app.
+    func gameFiles(_ suiteId: String) -> [GameFile] {
+        let payload: GameFilesResponse? = decode(bridge.gameFilesJSON(forSuite: suiteId))
+        return payload?.files ?? []
+    }
+
+    func deleteGameFile(_ path: String, for suiteId: String) {
+        report(decode(bridge.deleteGameFile(path, forSuite: suiteId)))
+    }
+
     // --------------------------------------------------------- the controller
 
     /// What a real controller's buttons do for one game.

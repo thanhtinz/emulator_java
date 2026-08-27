@@ -213,6 +213,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.
 - (NSString *)noteKeypadUse;
+/// The files a game has written for itself through JSR-75.
+- (NSString *)gameFilesJSONForSuite:(NSString *)suiteId;
+- (NSString *)deleteGameFile:(NSString *)path forSuite:(NSString *)suiteId;
+
 /// What a real controller's buttons do for one game.
 - (NSString *)gamepadJSONForSuite:(NSString *)suiteId;
 - (NSString *)setPadMapping:(NSString *)pad toButton:(NSString *)button

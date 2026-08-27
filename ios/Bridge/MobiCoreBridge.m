@@ -447,6 +447,14 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)gameFilesJSONForSuite:(NSString *)suiteId {
+    return [_facade gameFilesJsonWithNSString:suiteId];
+}
+
+- (NSString *)deleteGameFile:(NSString *)path forSuite:(NSString *)suiteId {
+    return [_facade deleteGameFileWithNSString:suiteId withNSString:path];
+}
+
 - (NSString *)gamepadJSONForSuite:(NSString *)suiteId {
     return [_facade gamepadJsonWithNSString:suiteId];
 }

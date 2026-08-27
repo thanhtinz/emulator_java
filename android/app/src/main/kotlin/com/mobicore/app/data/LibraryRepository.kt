@@ -8,6 +8,7 @@ import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.library.PresetStore
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
+import com.mobicore.core.midp.MidpFiles
 import com.mobicore.core.model.DeviceProfile
 import com.mobicore.core.model.GamepadProfile
 import com.mobicore.core.model.GameProfile
@@ -325,6 +326,38 @@ class LibraryRepository(filesDir: String) {
     /** Keeps a picture of the game; returns where it went. */
     fun writeScreenshot(suiteId: String, png: ByteArray): String =
         library.writeScreenshot(suiteId, png)
+
+    /**
+     * The files a game has written for itself through JSR-75.
+     *
+     * They are the player's — a saved level, a downloaded track — so they are
+     * visible and removable rather than hidden inside the app.
+     */
+    fun gameFiles(suiteId: String): List<Pair<String, Long>> {
+        val base = StorageLayout.join(library.layout().gameDir(suiteId), "files")
+        val found = mutableListOf<Pair<String, Long>>()
+        fun walk(prefix: String) {
+            val dir = if (prefix.isEmpty()) base else StorageLayout.join(base, prefix)
+            for (name in library.storage().list(dir)) {
+                val relative = if (prefix.isEmpty()) name else "$prefix/$name"
+                val path = StorageLayout.join(dir, name)
+                if (library.storage().isDirectory(path)) {
+                    walk(relative)
+                } else {
+                    found += relative to library.storage().size(path)
+                }
+            }
+        }
+        walk("")
+        return found
+    }
+
+    /** Throws away one of a game's own files. */
+    fun deleteGameFile(suiteId: String, path: String): Boolean {
+        val base = StorageLayout.join(library.layout().gameDir(suiteId), "files")
+        val full = MidpFiles.resolveOrNull(base, path) ?: return false
+        return library.storage().delete(full)
+    }
 
     /** Keeps a recorded clip beside the pictures; returns where it went. */
     fun writeClip(suiteId: String, gif: ByteArray): String =

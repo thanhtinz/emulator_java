@@ -38,6 +38,7 @@
 | 34 | Quay màn chơi thành ảnh động GIF | Xong |
 | 35 | Tự sắp xếp bàn phím ảo | Xong |
 | 36 | Tay cầm và bàn phím ngoài | Xong |
+| 37 | Tệp riêng của game (JSR-75) | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1306,3 +1307,54 @@ Cầu nối: `gamepadJson`, `setPadMapping`, `setGamepadEnabled`, `resetGamepad`
 `pressPad`, `releasePad`. `pressPad` trả về **có bấm được hay không** chứ không
 phải "lệnh đã tới": một nút chưa gán gì không phải là lỗi, và báo "đã bấm" cho
 nó là báo một cú bấm game không hề thấy.
+
+
+## Giai đoạn 37 — tệp riêng của game (JSR-75)
+
+Kho bản ghi (RMS) là chỗ lưu **duy nhất** mà bản thân MIDP có, và nó được nghĩ
+ra cho vài trăm byte một lần — một điểm cao, một mẩu cài đặt. Game có trình sửa
+màn chơi, có nhạc tải về, có ảnh chụp thì dùng **tệp**, và trên máy J2ME nghĩa
+là JSR-75. Thiếu nó, mấy game đó **ném lỗi ngay lần lưu đầu tiên** và người chơi
+không làm gì được.
+
+Nay `javax.microedition.io.file.FileConnection` chạy thật:
+`create`, `mkdir`, `delete`, `truncate`, `rename`, `list` (kèm bộ lọc `*` của
+JSR-75), `openInputStream`/`openOutputStream` (có cả dạng ghi nối từ một vị
+trí), `fileSize`, `lastModified`, `setFileConnection` để đi trong cây thư mục,
+và `FileSystemRegistry.listRoots`. Game xin qua **đúng cái cửa cũ**:
+`Connector.open("file:///...")`.
+
+**Tất cả bị nhốt trong thư mục riêng của game.** Game J2ME xin máy
+`file:///c:/` hoặc `file:///root1/` là được cả thẻ nhớ; trên điện thoại bây giờ
+đó là **ảnh của chủ máy**. Nên:
+
+- Mọi đường dẫn được giải về **một thư mục thuộc riêng game này**, bất kể game
+  xin gốc nào. `c:/`, `root1/`, `Memory card/` đều rơi vào cùng một chỗ — game
+  vốn chỉ đang gõ cứng tên bộ nhớ của cái máy nó nhắm tới.
+- Đoạn đầu **không phải** tên bộ nhớ thì vẫn là một phần đường dẫn:
+  `file:///levels/1.dat` là tệp tên `levels/1.dat`, ăn mất thư mục đầu sẽ khiến
+  game không tìm lại được tệp của chính nó.
+- Đường dẫn leo ra ngoài bằng `..` bị **từ chối chứ không cắt bớt**: game định
+  leo ra thì phải hỏng to, chứ không phải im lặng ghi sang chỗ khác. Kiểm tra
+  trên **các đoạn đã giải**, không phải trên chuỗi ký tự.
+- Mở ở chế độ `READ` thì **không ghi được**, kể cả xoá.
+
+**Cố tình thiếu**: `setHidden`, `setReadable` và mấy hàm quyền còn lại. Trong
+một thư mục mà game làm chủ thì không có quyền nào cả, và một hàm giả vờ đặt
+quyền là một lời nói dối game có thể đọc lại sau đó.
+
+Kiểm tra bằng **bytecode thật**: `fixtures/src/demo/FileDemo.java` là một MIDlet
+được biên dịch thật, chạy bằng chính bộ thông dịch — nó tạo thư mục, ghi một màn
+chơi, đọc lại, ghi nối, liệt kê thư mục, thử ghi khi chỉ có quyền đọc, rồi thử
+leo ra ngoài. Bài kiểm tra đọc **những gì MIDlet để lại trong các trường của
+chính nó**: một hàm trả về mà không làm gì sẽ qua được bài kiểm tra chỉ xem có
+ném lỗi hay không.
+
+Tệp của game **là của người chơi**, nên chúng hiện ra chứ không giấu trong ứng
+dụng: thẻ "TỆP CỦA GAME" trong màn dữ liệu lưu liệt kê từng tệp kèm dung lượng
+và cho xoá. Tên tệp đi từ ngoài vào qua cầu nối cũng bị nhốt **đúng như** đường
+dẫn của chính game — `deleteGameFile(suiteId, "../../library.json")` không xoá
+được gì.
+
+Và vì JSR-75 nay chạy thật, nó **rời khỏi danh sách "gói còn thiếu"** trong bảng
+kiểm tra tương thích trước khi chơi.

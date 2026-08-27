@@ -58,6 +58,14 @@ public final class ProfileScreen {
         session.vm().callVirtual(session.context().midlet(), "saveScore", "(I)I", Integer.valueOf(8630));
         session.vm().callVirtual(session.context().midlet(), "saveScore", "(I)I", Integer.valueOf(4110));
         session.destroy();
+
+        // And a real file through JSR-75, so the screen below shows what a
+        // game with a level editor actually leaves behind.
+        EmulatorSession files = EmulatorSession.create(library.load(entry.suiteId()), profile,
+                vfs, layout, null);
+        files.start("demo.FileDemo");
+        files.destroy();
+
         String backupPath = library.backup(entry.suiteId());
 
         return draw(library, entry, profile, backupPath, vfs, layout);
@@ -68,7 +76,7 @@ public final class ProfileScreen {
         // This page is long: automatic setup, the screen, the keypad, display
         // and sound, presets, key mapping, the controller, saved data. On a
         // phone it scrolls; here it is drawn at full length.
-        Framebuffer frame = Preview.newScreen(1560);
+        Framebuffer frame = Preview.newScreen(1700);
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar(entry.title(), "Cài đặt");
@@ -194,6 +202,27 @@ public final class ProfileScreen {
             row += Ui.ROW;
         }
         y += padHeight + 14;
+
+        // The game's own files ------------------------------------------
+        // JSR-75: what a game keeps that record stores are too small for.
+        String filesDir = com.mobicore.core.storage.StorageLayout.join(
+                layout.gameDir(entry.suiteId()), "files");
+        java.util.List<String> gameFiles = vfs.list(
+                com.mobicore.core.storage.StorageLayout.join(filesDir, "levels"));
+        int filesHeight = ui.sectionHeight(Math.max(1, gameFiles.size()));
+        row = ui.section(margin, y, width, filesHeight, "TỆP CỦA GAME",
+                gameFiles.isEmpty() ? null : gameFiles.size() + " tệp");
+        if (gameFiles.isEmpty()) {
+            ui.text(ui.small(), "Game này chưa tự ghi tệp nào.", fieldX, row, Theme.TEXT_DIM);
+        }
+        for (int i = 0; i < gameFiles.size(); i++) {
+            String name = gameFiles.get(i);
+            String path = com.mobicore.core.storage.StorageLayout.join(
+                    com.mobicore.core.storage.StorageLayout.join(filesDir, "levels"), name);
+            ui.field("levels/" + name, vfs.size(path) + " B", fieldX, row, fieldWidth);
+            row += Ui.ROW;
+        }
+        y += filesHeight + 14;
 
         // Saves ----------------------------------------------------------
         RecordStoreManager records = library.records(entry.suiteId());

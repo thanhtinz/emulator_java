@@ -241,6 +241,20 @@ struct Screenshot: Codable, Identifiable, Hashable {
     var isClip: Bool { clip ?? false }
 }
 
+/// One file a game wrote for itself through JSR-75.
+struct GameFile: Codable, Identifiable, Hashable {
+    let path: String
+    let bytes: Int
+    let modifiedAt: Int64
+
+    var id: String { path }
+}
+
+struct GameFilesResponse: Codable {
+    let files: [GameFile]
+    let bytes: Int
+}
+
 /// Everything a control on a pad can be pointed at.
 ///
 /// Wider than the keypad's own list: a pad has more buttons than a game has

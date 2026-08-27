@@ -9,6 +9,7 @@ import com.mobicore.core.vm.JarClassSource;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.midp.Midp;
 import com.mobicore.core.midp.MidpContext;
+import com.mobicore.core.midp.MidpFiles;
 import com.mobicore.core.midp.MidpGfx;
 import com.mobicore.core.midp.MidpUi;
 import com.mobicore.core.midp.ScreenInput;
@@ -181,6 +182,9 @@ public final class EmulatorSession {
         TimerClasses.Queue timers = Cldc.install(vm);
         Midp.install(vm, context);
         MidpRms.install(vm, rms, context);
+        // Files before the connector: a game asks for a file: URL through
+        // Connector, and the connector only offers what is installed.
+        MidpFiles.install(vm, vfs, paths, profile.suiteId());
         MidpNet.install(vm, network);
 
         JarClassSource source = new JarClassSource(suite.archive());
@@ -261,6 +265,17 @@ public final class EmulatorSession {
 
     public RecordStoreManager rms() {
         return rms;
+    }
+
+    /**
+     * The MIDlet object itself.
+     *
+     * <p>Exposed for tests, which run a fixture MIDlet as real bytecode and
+     * then read what it left in its own fields — the only way to check that a
+     * call really did what the game asked, rather than that it returned.</p>
+     */
+    public VmObject midlet() {
+        return midlet;
     }
 
     public GameProfile profile() {

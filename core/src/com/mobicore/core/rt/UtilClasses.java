@@ -78,6 +78,17 @@ public final class UtilClasses {
         return (Hashtable<Key, Object>) self.host;
     }
 
+    /**
+     * An Enumeration over host values, for anything that hands a game a list.
+     *
+     * <p>Public because JSR-75's file listing and root listing return one, and
+     * building a second kind of enumeration for them would give the game two
+     * classes that behave alike but are not the same.</p>
+     */
+    public static VmObject enumerationOf(Vm vm, List<Object> values) {
+        return newEnumeration(vm, values.iterator());
+    }
+
     private static VmObject newEnumeration(Vm vm, Iterator<Object> iterator) {
         VmObject instance = vm.newInstance("java/util/EnumerationImpl");
         instance.host = iterator;

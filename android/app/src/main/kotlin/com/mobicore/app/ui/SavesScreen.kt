@@ -40,6 +40,7 @@ fun SavesScreen(library: LibraryRepository, suiteId: String, onBack: () -> Unit)
     val records = remember(suiteId, revision) { library.records(suiteId) }
     val stores = remember(suiteId, revision) { records.listStoreNames() }
     val backups = remember(suiteId, revision) { library.backupsFor(suiteId) }
+    val gameFiles = remember(suiteId, revision) { library.gameFiles(suiteId) }
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -66,6 +67,44 @@ fun SavesScreen(library: LibraryRepository, suiteId: String, onBack: () -> Unit)
                                 label = name,
                                 value = "${store?.size() ?: 0} bản ghi · ${store?.byteSize() ?: 0} B",
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            // JSR-75: what a game keeps that record stores are too small for.
+            SectionCard(
+                title = "TỆP CỦA GAME",
+                trailing = if (gameFiles.isEmpty()) null else "${gameFiles.size} tệp",
+            ) {
+                Column {
+                    if (gameFiles.isEmpty()) {
+                        Text("Game này chưa tự ghi tệp nào.",
+                            color = MobiColors.TextDim, fontSize = 13.sp)
+                    } else {
+                        gameFiles.forEach { (path, bytes) ->
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(path, color = MobiColors.Text, fontSize = 14.sp)
+                                    Text("$bytes B", color = MobiColors.TextDim, fontSize = 11.sp)
+                                }
+                                Text(
+                                    "Xoá",
+                                    color = MobiColors.Bad,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.clickable {
+                                        if (library.deleteGameFile(suiteId, path)) {
+                                            status = "Đã xoá $path"
+                                            revision++
+                                        }
+                                    },
+                                )
+                            }
                         }
                     }
                 }
