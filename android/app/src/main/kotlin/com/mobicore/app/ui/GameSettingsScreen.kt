@@ -32,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.mobicore.app.data.LibraryRepository
 import com.mobicore.core.midp.MidpContext
 import com.mobicore.core.model.GameProfile
+import com.mobicore.core.model.GamepadProfile
 import com.mobicore.core.model.InputProfile
 
 /** Per-game configuration: device, display, audio, input and network. */
@@ -71,6 +73,10 @@ fun GameSettingsScreen(
     var keyOpacity by remember { mutableIntStateOf(profile.keypadOpacity()) }
     var keyShape by remember { mutableIntStateOf(profile.keypadShape()) }
     var keyFade by remember { mutableIntStateOf(profile.keypadFadeDelay()) }
+    var gamepadOn by remember { mutableStateOf(profile.gamepad().isEnabled) }
+    // Bumped when a control is remapped: the pad profile is a plain object,
+    // and Compose has no way of knowing a string inside it changed.
+    var padRevision by remember { mutableIntStateOf(0) }
 
     // Everything below the automatic card is hidden until asked for: a
     // player who just wants to play should not have to scroll past a page of
@@ -279,6 +285,50 @@ fun GameSettingsScreen(
                             vibration = it
                             persist { profile -> profile.setVibration(it) }
                         })
+                    }
+                }
+            }
+        }
+
+        item {
+            // A controller gives back the one thing glass cannot: an edge to
+            // feel for, so the player looks at the game instead of at their
+            // thumbs.
+            SectionCard(
+                title = "TAY CẦM",
+                trailing = if (gamepadOn) "Đang bật" else "Đang tắt",
+            ) {
+                Column {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Dùng tay cầm", color = MobiColors.TextDim, fontSize = 14.sp)
+                            Text(
+                                "Tay cầm Bluetooth, tay cầm kẹp máy, hoặc bàn phím ngoài",
+                                color = MobiColors.TextDim,
+                                fontSize = 11.sp,
+                            )
+                        }
+                        Switch(checked = gamepadOn, onCheckedChange = {
+                            gamepadOn = it
+                            library.setGamepadEnabled(suiteId, it)
+                            padRevision++
+                        })
+                    }
+                    if (gamepadOn) {
+                        key(padRevision) {
+                            GamepadProfile.PADS.forEach { pad ->
+                                PadRow(library, suiteId, profile, pad) { padRevision++ }
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        SecondaryButton(label = "Đặt lại tay cầm") {
+                            library.resetGamepad(suiteId)
+                            padRevision++
+                        }
                     }
                 }
             }
@@ -517,4 +567,76 @@ private fun PresetChip(name: String, selected: String, onSelect: () -> Unit) {
         fontSize = 12.sp,
         modifier = Modifier.clickable(onClick = onSelect),
     )
+}
+
+/**
+ * One control on a real pad, and what it presses.
+ *
+ * The same shape as a key row, because it is the same question asked about a
+ * different device: this control, that button. "Không dùng" is on the list on
+ * purpose — a pad has buttons a J2ME game has no use for, and leaving one
+ * doing nothing is better than leaving it doing something surprising.
+ */
+@Composable
+private fun PadRow(
+    library: LibraryRepository,
+    suiteId: String,
+    profile: GameProfile,
+    pad: String,
+    onChanged: () -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    val button = profile.gamepad().mapping(pad)
+    Box {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { open = true }
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(GamepadProfile.padName(pad), color = MobiColors.TextDim, fontSize = 14.sp,
+                modifier = Modifier.weight(1f))
+            Text(
+                text = padButtonLabel(button),
+                color = if (button.isEmpty()) MobiColors.TextDim else MobiColors.Accent,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            (listOf("") + InputProfile.BUTTONS.toList()).forEach { choice ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            padButtonLabel(choice),
+                            color = if (choice == button) MobiColors.Accent else MobiColors.Text,
+                        )
+                    },
+                    onClick = {
+                        library.setPadMapping(suiteId, pad, choice)
+                        onChanged()
+                        open = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** What the settings screen calls one of the emulator's own buttons. */
+private fun padButtonLabel(button: String): String = when {
+    button.isEmpty() -> "Không dùng"
+    button == "up" -> "Lên"
+    button == "down" -> "Xuống"
+    button == "left" -> "Trái"
+    button == "right" -> "Phải"
+    button == "fire" -> "Bắn"
+    button == "softLeft" -> "Phím mềm trái"
+    button == "softRight" -> "Phím mềm phải"
+    button == "star" -> "Phím *"
+    button == "hash" -> "Phím #"
+    button == "clear" -> "Xoá"
+    button.startsWith("num") -> "Phím ${button.removePrefix("num")}"
+    else -> button
 }

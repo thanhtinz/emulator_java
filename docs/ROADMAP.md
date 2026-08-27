@@ -37,6 +37,7 @@
 | 33 | Chỉnh bàn phím ảo: độ rõ, hình phím, tự mờ | Xong |
 | 34 | Quay màn chơi thành ảnh động GIF | Xong |
 | 35 | Tự sắp xếp bàn phím ảo | Xong |
+| 36 | Tay cầm và bàn phím ngoài | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1250,3 +1251,58 @@ Cầu nối: `keypadArrangementJson`, `moveKey` (độ lệch tính bằng **ph�
 một phím**, không phải điểm ảnh — một phím là số điểm ảnh khác nhau khi dọc, khi
 ngang và trên từng máy), `setKeyScale`, `resetKeypad`. Sửa xong là game đang
 chạy nhận ngay, vì phím được kéo trong lúc đang nhìn chính game đó.
+
+
+## Giai đoạn 36 — tay cầm và bàn phím ngoài
+
+Chơi trên mặt kính là thứ **duy nhất bộ giả lập không sửa được**: không có gờ
+phím để rà ngón, nên người chơi phải nhìn xuống thay vì nhìn game. Tay cầm trả
+lại chỗ gờ đó, và phần lớn người còn chơi mấy game này đều có sẵn một cái — tay
+cầm kẹp điện thoại, tay cầm máy chơi game nối Bluetooth, hay bàn phím rời trên
+máy tính bảng.
+
+**Tên nút là tên của bộ giả lập, không phải của nền tảng nào.** Android gọi một
+nút mặt là `KEYCODE_BUTTON_A`, iOS gọi là `buttonA`, bàn phím thì gọi là
+`Space`; mỗi bên tự dịch sự kiện của mình thành một trong 14 cái tên
+(`padUp`…`padSelect`), và **mọi thứ sau đó xảy ra đúng một lần**, trong
+`core/model/GamepadProfile.java`, cho cả hai nền.
+
+Cách gán mặc định theo đúng cái game J2ME cần:
+
+- **D-pad và cần analog** đều lái bốn hướng — game thời này có bốn hướng và
+  không có gì khác, nên cần analog được đọc như d-pad chứ không phải như trục.
+- **A là Bắn**, vì đó là nút nằm sẵn dưới ngón cái.
+- **B là phím 5**, hàng xóm của phím bắn trên bàn phím máy J2ME — rất nhiều game
+  đặt hành động thứ hai ở đó.
+- **L1/R1 và Start/Select là hai phím mềm**, chỗ người chơi vốn đã với tới để
+  tìm "menu" và "quay lại".
+- **L2/R2 để trống**: game J2ME không có việc gì cho chúng, và một nút không làm
+  gì thì tốt hơn một nút làm điều bất ngờ.
+
+Số thì vẫn ở bàn phím cảm ứng: tay cầm không có chỗ cho mười hai phím số, và
+game nào cần số thì cần số **có nhãn**.
+
+Gán lại được từng nút, và **tắt hẳn tay cầm** được. Tắt nghĩa là tắt ở đúng lúc
+bấm nút — nhưng màn cài đặt vẫn hiện đầy đủ nút nào đang gán vào đâu, vì tắt tay
+cầm không phải là gỡ gán từng nút một.
+
+Hai chỗ dễ sai đã xử lý:
+
+- **Cần analog gửi vị trí, không gửi lượt bấm.** Nếu cứ thấy vị trí là bấm thì
+  game đọc phím-đang-giữ sẽ thấy một lần bấm rồi thôi. Nên phần đổi trạng thái
+  được tính ra: hướng nào mới đẩy thì bấm, hướng nào thôi đẩy thì nhả. Vùng chết
+  để rộng 0,5 — cần mòn nằm nghỉ ở 0,2 thì sẽ đẩy nhân vật vào tường suốt buổi.
+- **Nút giữ thì tự lặp.** Android gửi lại sự kiện `ACTION_DOWN` liên tục khi
+  giữ; game đã biết là đang giữ, nên các lần lặp bị bỏ qua thay vì thành một
+  tràng bấm.
+
+Bên Android sự kiện tay cầm đến **Activity** chứ không đến ô nào trên màn hình —
+tay cầm không biết gì về tiêu điểm — nên `dispatchKeyEvent` gửi chúng cho game
+đang chạy, và khi không có game thì trả lại cho Android để d-pad vẫn đi được
+trong danh sách game. Bên iOS thì tay cầm đến qua thông báo của `GameController`,
+nên máy nghe khi vào màn chơi.
+
+Cầu nối: `gamepadJson`, `setPadMapping`, `setGamepadEnabled`, `resetGamepad`,
+`pressPad`, `releasePad`. `pressPad` trả về **có bấm được hay không** chứ không
+phải "lệnh đã tới": một nút chưa gán gì không phải là lỗi, và báo "đã bấm" cho
+nó là báo một cú bấm game không hề thấy.

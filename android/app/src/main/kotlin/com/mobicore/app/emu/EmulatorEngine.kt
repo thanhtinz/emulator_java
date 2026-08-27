@@ -226,6 +226,54 @@ class EmulatorEngine(
         return runCatching { PngWriter.encode(active.screen()) }.getOrNull()
     }
 
+    // ------------------------------------------------------------- gamepad
+
+    /**
+     * A control on a real pad was pressed.
+     *
+     * The name is the emulator's own; the profile decides what it does, so a
+     * remapped pad is remapped for the phone and the preview alike.
+     *
+     * @return true when the control was bound to something
+     */
+    fun pressPad(pad: String): Boolean {
+        val active = session ?: return false
+        if (active.profile().gamepad().buttonFor(pad).isEmpty()) {
+            return false
+        }
+        active.pressPad(pad)
+        commandRevision++
+        return true
+    }
+
+    fun releasePad(pad: String) {
+        session?.releasePad(pad)
+    }
+
+    /** Directions a stick is pushing, so a change can be told from a repeat. */
+    private var stickHeld = emptySet<String>()
+
+    /**
+     * A stick moved.
+     *
+     * Android reports a stick as a stream of positions, not as presses, so the
+     * change is worked out here: what is newly pushed gets pressed, what is no
+     * longer pushed gets released. Without that a game reading held keys would
+     * see one press and then nothing.
+     */
+    fun stickMoved(directions: Set<String>) {
+        if (directions == stickHeld) {
+            return
+        }
+        for (gone in stickHeld - directions) {
+            releasePad(gone)
+        }
+        for (fresh in directions - stickHeld) {
+            pressPad(fresh)
+        }
+        stickHeld = directions
+    }
+
     // ------------------------------------------------------------ recording
 
     /**

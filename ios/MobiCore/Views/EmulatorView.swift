@@ -123,6 +123,9 @@ struct EmulatorView: View {
         .persistentSystemOverlays(.hidden)
         .onAppear {
             engine.start(suiteId: suiteId, settings: client.settings(suiteId))
+            // A controller belongs to whatever is on screen, and while a game
+            // is on screen that is the game.
+            engine.watchForControllers()
             // Where the player dragged the keys. Read once: an arrangement
             // only changes on the screen that edits it, which this is not.
             placement = keyPlacement()

@@ -391,6 +391,28 @@ final class MobiCoreClient: ObservableObject {
         refresh()
     }
 
+    // --------------------------------------------------------- the controller
+
+    /// What a real controller's buttons do for one game.
+    func gamepad(_ suiteId: String) -> GamepadSettings? {
+        decode(bridge.gamepadJSON(forSuite: suiteId))
+    }
+
+    /// Points one control at an emulator button; an empty button unbinds it.
+    func setPadMapping(_ pad: String, to button: String, for suiteId: String) {
+        report(decode(bridge.setPadMapping(pad, toButton: button, forSuite: suiteId)))
+    }
+
+    /// Whether controller input reaches the game at all.
+    func setGamepadEnabled(_ enabled: Bool, for suiteId: String) {
+        report(decode(bridge.setGamepadEnabled(enabled, forSuite: suiteId)))
+    }
+
+    /// Puts the pad back to the arrangement a J2ME game expects.
+    func resetGamepad(_ suiteId: String) {
+        report(decode(bridge.resetGamepad(forSuite: suiteId)))
+    }
+
     // ------------------------------------------------------ where the keys are
 
     /// Where the keys have been dragged to, and how big they are drawn.

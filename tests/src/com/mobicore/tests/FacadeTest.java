@@ -143,6 +143,9 @@ public final class FacadeTest extends Test {
         // And where its keys are ------------------------------------------
         keypadArrangement(facade, suiteId);
 
+        // What a real controller does -------------------------------------
+        gamepad(facade, suiteId);
+
         // How long a game has held someone ----------------------------------
         playTime(facade, suiteId);
 
@@ -259,6 +262,14 @@ public final class FacadeTest extends Test {
                 "and one can be thrown away");
         eq(0, Json.array(Json.readObject(facade.screenshotsJson(suiteId)), "screenshots").size(),
                 "after which the gallery is empty");
+
+        // A pad press has to reach the running game, which is the point of
+        // the whole feature.
+        check(Json.bool(Json.readObject(facade.pressPad("padA")), "pressed", false),
+                "a pad press crosses the bridge to the running game");
+        facade.releasePad("padA");
+        check(!Json.bool(Json.readObject(facade.pressPad("padL2")), "pressed", true),
+                "and a control bound to nothing presses nothing");
 
         // A picture says where the player got to; a clip says how.
         clip(facade, suiteId);
@@ -438,6 +449,61 @@ public final class FacadeTest extends Test {
         check(!Json.bool(reset, "custom", true), "and it can all be put back");
         eq(0, Json.array(reset, "keys").size(), "with every key where the layout has it");
         eq(100, Json.integer(reset, "scale", 0), "and the standard size");
+    }
+
+    /**
+     * What a real controller's buttons do.
+     *
+     * <p>Playing on glass is the one thing an emulator cannot fix: there is
+     * no edge to feel for, so a player looks down instead of at the game. A
+     * controller gives the edges back.</p>
+     */
+    private void gamepad(MobiCoreFacade facade, String suiteId) throws Exception {
+        Map<String, Object> pad = Json.readObject(facade.gamepadJson(suiteId));
+        check(Json.bool(pad, "enabled", false), "a pad works as soon as it is connected");
+        check(!Json.bool(pad, "custom", true), "with the arrangement a J2ME game expects");
+        eq(14, Json.array(pad, "pads").size(),
+                "and every control is listed, bound or not");
+        Map<String, Object> first = (Map<String, Object>) Json.array(pad, "pads").get(0);
+        eq("Lên", Json.string(first, "padName", ""), "each named for the screen");
+        eq("Lên", Json.string(first, "buttonName", ""), "along with what it presses");
+
+        Map<String, Object> mapped =
+                Json.readObject(facade.setPadMapping(suiteId, "padL2", "num7"));
+        check(Json.bool(mapped, "custom", false), "any control can be pointed anywhere");
+        eq("Phím 7", padButtonName(mapped, "padL2"), "and the screen says what it now does");
+
+        eq("Không dùng", padButtonName(
+                        Json.readObject(facade.setPadMapping(suiteId, "padY", "")), "padY"),
+                "a control can be left doing nothing");
+
+        // Off means off at the moment a button is pressed, but the screen
+        // still shows what everything is mapped to.
+        Map<String, Object> off = Json.readObject(facade.setGamepadEnabled(suiteId, false));
+        check(!Json.bool(off, "enabled", true), "the whole pad can be switched off");
+        eq("Bắn", padButtonName(off, "padA"), "without forgetting what its buttons do");
+        facade.setGamepadEnabled(suiteId, true);
+
+        check(!Json.bool(Json.readObject(facade.pressPad("padA")), "ok", true),
+                "with no game running there is nothing for a pad to press");
+        check(!Json.bool(Json.readObject(facade.setPadMapping("khong co", "padA", "fire")),
+                "ok", true), "a game that is not installed maps nothing");
+
+        Map<String, Object> back = Json.readObject(facade.resetGamepad(suiteId));
+        check(!Json.bool(back, "custom", true), "and it can all be put back");
+        eq("Bắn", padButtonName(back, "padA"), "with A back on fire");
+    }
+
+    /** What one control on the pad is said to do, out of the pad listing. */
+    private String padButtonName(Map<String, Object> pad, String name) {
+        List<Object> pads = Json.array(pad, "pads");
+        for (int i = 0; i < pads.size(); i++) {
+            Map<String, Object> entry = (Map<String, Object>) pads.get(i);
+            if (name.equals(Json.string(entry, "pad", ""))) {
+                return Json.string(entry, "buttonName", "");
+            }
+        }
+        return "";
     }
 
     /**

@@ -213,6 +213,16 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.
 - (NSString *)noteKeypadUse;
+/// What a real controller's buttons do for one game.
+- (NSString *)gamepadJSONForSuite:(NSString *)suiteId;
+- (NSString *)setPadMapping:(NSString *)pad toButton:(NSString *)button
+                   forSuite:(NSString *)suiteId;
+- (NSString *)setGamepadEnabled:(BOOL)enabled forSuite:(NSString *)suiteId;
+- (NSString *)resetGamepadForSuite:(NSString *)suiteId;
+/// A control on a real pad was pressed or let go, by the emulator's own name.
+- (NSString *)pressPad:(NSString *)pad;
+- (NSString *)releasePad:(NSString *)pad;
+
 /// Where the keys have been dragged to, and how big they are drawn.
 - (NSString *)keypadArrangementJSONForSuite:(NSString *)suiteId;
 /// Offsets are in thousandths of a key, not points: one arrangement has to

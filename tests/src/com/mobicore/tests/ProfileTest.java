@@ -4,6 +4,7 @@ import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.GameProfile;
+import com.mobicore.core.model.GamepadProfile;
 import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.model.KeypadArrangement;
 import com.mobicore.core.jar.AttributeSet;
@@ -152,6 +153,44 @@ public final class ProfileTest extends Test {
         keys.reset();
         check(!keys.isCustom(), "and it can all be put back");
         eq(100, keys.scale(), "size included");
+    }
+
+    /**
+     * What a real controller's buttons do.
+     *
+     * <p>The names are the emulator's own: Android, iOS and a keyboard each
+     * have their own number for the same button, and each front end turns its
+     * event into one of these before anything else happens.</p>
+     */
+    private void gamepad(GameProfile profile) {
+        GamepadProfile pad = profile.gamepad();
+        check(!pad.isCustom(), "a new pad is the arrangement a J2ME game expects");
+        eq("fire", pad.buttonFor("padA"), "A is fire, the button under the thumb at rest");
+        eq("up", pad.buttonFor("padUp"), "and the pad drives the four directions");
+        eq("softLeft", pad.buttonFor("padL1"), "the shoulders are the softkeys");
+        eq("", pad.buttonFor("padL2"), "and what a J2ME game has no use for stays free");
+
+        pad.map("padL2", "num7");
+        eq("num7", pad.buttonFor("padL2"), "any control can be pointed at any button");
+        check(pad.isCustom(), "and the pad stops claiming to be the standard one");
+
+        pad.map("padA", "");
+        eq("", pad.buttonFor("padA"), "a control can be left doing nothing");
+
+        // Off means off at the moment a button is pressed, but the screen
+        // that maps them still shows what everything is mapped to.
+        pad.setEnabled(false);
+        eq("", pad.buttonFor("padUp"), "a pad switched off presses nothing");
+        eq("up", pad.mapping("padUp"), "but has not forgotten what its buttons do");
+        pad.setEnabled(true);
+
+        GameProfile restored = GameProfile.fromJson(
+                Json.readObject(Json.write(profile.toJson())));
+        eq("num7", restored.gamepad().buttonFor("padL2"), "a mapping survives a restart");
+        eq("", restored.gamepad().buttonFor("padA"), "including one left doing nothing");
+
+        profile.setGamepad(GamepadProfile.defaults());
+        eq("fire", profile.gamepad().buttonFor("padA"), "and it can all be put back");
     }
 
     /** A PNG header of the given size, which is all the detector reads. */
@@ -316,6 +355,7 @@ public final class ProfileTest extends Test {
         profile.setKeypadFadeDelay(0);
 
         arrangement(profile);
+        gamepad(profile);
 
         profile.setVolume(150);
         eq(100, profile.volume(), "volume is clamped to 100");

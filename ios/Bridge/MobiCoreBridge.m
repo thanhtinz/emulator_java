@@ -447,6 +447,33 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)gamepadJSONForSuite:(NSString *)suiteId {
+    return [_facade gamepadJsonWithNSString:suiteId];
+}
+
+- (NSString *)setPadMapping:(NSString *)pad toButton:(NSString *)button
+                   forSuite:(NSString *)suiteId {
+    return [_facade setPadMappingWithNSString:suiteId
+                                 withNSString:pad
+                                 withNSString:button];
+}
+
+- (NSString *)setGamepadEnabled:(BOOL)enabled forSuite:(NSString *)suiteId {
+    return [_facade setGamepadEnabledWithNSString:suiteId withBoolean:enabled];
+}
+
+- (NSString *)resetGamepadForSuite:(NSString *)suiteId {
+    return [_facade resetGamepadWithNSString:suiteId];
+}
+
+- (NSString *)pressPad:(NSString *)pad {
+    return [_facade pressPadWithNSString:pad];
+}
+
+- (NSString *)releasePad:(NSString *)pad {
+    return [_facade releasePadWithNSString:pad];
+}
+
 - (NSString *)keypadArrangementJSONForSuite:(NSString *)suiteId {
     return [_facade keypadArrangementJsonWithNSString:suiteId];
 }

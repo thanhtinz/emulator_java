@@ -241,6 +241,41 @@ struct Screenshot: Codable, Identifiable, Hashable {
     var isClip: Bool { clip ?? false }
 }
 
+/// Everything a control on a pad can be pointed at.
+///
+/// Wider than the keypad's own list: a pad has more buttons than a game has
+/// game keys, and the spare ones are worth pointing at a number the game
+/// reads — plenty of these games put "jump" on 5 and "menu" on 0.
+enum PadTarget {
+    static let all: [(button: String, label: String)] = [
+        ("up", "Lên"), ("down", "Xuống"), ("left", "Trái"), ("right", "Phải"),
+        ("fire", "Bắn"),
+        ("softLeft", "Phím mềm trái"), ("softRight", "Phím mềm phải"),
+        ("num0", "Phím 0"), ("num1", "Phím 1"), ("num2", "Phím 2"),
+        ("num3", "Phím 3"), ("num4", "Phím 4"), ("num5", "Phím 5"),
+        ("num6", "Phím 6"), ("num7", "Phím 7"), ("num8", "Phím 8"),
+        ("num9", "Phím 9"),
+        ("star", "Phím *"), ("hash", "Phím #"), ("clear", "Xoá"),
+    ]
+}
+
+/// One control on a real pad, and what it presses.
+struct PadMapping: Codable, Hashable, Identifiable {
+    let pad: String
+    let padName: String
+    let button: String
+    let buttonName: String
+
+    var id: String { pad }
+}
+
+/// What a real controller's buttons do for one game.
+struct GamepadSettings: Codable {
+    let enabled: Bool
+    let custom: Bool
+    let pads: [PadMapping]
+}
+
 /// One key the player has dragged, in thousandths of a key.
 struct KeyOffset: Codable, Hashable, Identifiable {
     let button: String

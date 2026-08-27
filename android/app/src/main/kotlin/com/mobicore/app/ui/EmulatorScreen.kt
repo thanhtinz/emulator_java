@@ -60,6 +60,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.mobicore.app.data.LibraryRepository
 import com.mobicore.app.emu.EmulatorEngine
+import com.mobicore.app.emu.GamepadRouter
 import com.mobicore.core.model.DeviceProfile
 import com.mobicore.core.model.GameProfile
 
@@ -109,6 +110,14 @@ fun EmulatorScreen(
         onDispose {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
+    }
+
+    // A controller belongs to whatever is on screen, and while a game is on
+    // screen that is the game. Cleared on the way out so the d-pad goes back
+    // to walking the library.
+    DisposableEffect(engine) {
+        GamepadRouter.engine = engine
+        onDispose { GamepadRouter.engine = null }
     }
 
     // Immersive while playing, restored on the way out.

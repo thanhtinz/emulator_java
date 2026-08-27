@@ -18,6 +18,7 @@ import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.AppSettings;
 import com.mobicore.core.model.AutoSetup;
 import com.mobicore.core.model.GameProfile;
+import com.mobicore.core.model.GamepadProfile;
 import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.model.KeypadArrangement;
@@ -506,6 +507,155 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
+    }
+
+    /**
+     * What a real controller's buttons do for one game.
+     *
+     * <p>Every control comes back, bound or not: the screen that maps them
+     * shows the whole pad, because a player looking for "where is fire" needs
+     * to see the button that is not fire too.</p>
+     */
+    public String gamepadJson(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            GamepadProfile pad = profile.gamepad();
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("enabled", Boolean.valueOf(pad.isEnabled()));
+            json.put("custom", Boolean.valueOf(pad.isCustom()));
+            List<Object> pads = new ArrayList<Object>();
+            for (int i = 0; i < GamepadProfile.PADS.length; i++) {
+                String name = GamepadProfile.PADS[i];
+                Map<String, Object> entry = Json.object();
+                entry.put("pad", name);
+                entry.put("padName", GamepadProfile.padName(name));
+                // What it is mapped to, not what it would press right now:
+                // switching the pad off should not read as every button
+                // having been unbound one at a time.
+                String button = pad.mapping(name);
+                entry.put("button", button);
+                entry.put("buttonName", buttonName(button));
+                pads.add(entry);
+            }
+            json.put("pads", pads);
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** What the settings screen calls one of the emulator's own buttons. */
+    private static String buttonName(String button) {
+        if (button == null || button.length() == 0) {
+            return "Không dùng";
+        }
+        if ("up".equals(button)) return "Lên";
+        if ("down".equals(button)) return "Xuống";
+        if ("left".equals(button)) return "Trái";
+        if ("right".equals(button)) return "Phải";
+        if ("fire".equals(button)) return "Bắn";
+        if ("softLeft".equals(button)) return "Phím mềm trái";
+        if ("softRight".equals(button)) return "Phím mềm phải";
+        if ("star".equals(button)) return "Phím *";
+        if ("hash".equals(button)) return "Phím #";
+        if ("clear".equals(button)) return "Xoá";
+        if (button.startsWith("num")) {
+            return "Phím " + button.substring(3);
+        }
+        return button;
+    }
+
+    /** Points one control at an emulator button, or at nothing to unbind it. */
+    public String setPadMapping(String suiteId, String pad, String button) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.gamepad().map(pad, button);
+            library.saveProfile(profile);
+            applyGamepad(suiteId, profile);
+            return gamepadJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Whether controller input reaches the game at all. */
+    public String setGamepadEnabled(String suiteId, boolean enabled) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.gamepad().setEnabled(enabled);
+            library.saveProfile(profile);
+            applyGamepad(suiteId, profile);
+            return gamepadJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Puts the pad back to the arrangement a J2ME game expects. */
+    public String resetGamepad(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            GamepadProfile fresh = GamepadProfile.defaults();
+            fresh.setEnabled(profile.gamepad().isEnabled());
+            profile.setGamepad(fresh);
+            library.saveProfile(profile);
+            applyGamepad(suiteId, profile);
+            return gamepadJson(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * A control on a real pad was pressed.
+     *
+     * <p>The front end names the control it saw — Android, iOS and a keyboard
+     * each have their own numbers for the same button — and the profile says
+     * what it does.</p>
+     */
+    public String pressPad(String pad) {
+        if (session == null) {
+            return error("No game is running");
+        }
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        json.put("pad", pad);
+        // Whether anything happened, rather than whether the call arrived: a
+        // control bound to nothing is not an error, and a front end showing
+        // "pressed" for it would be showing a press the game never saw.
+        json.put("pressed", Boolean.valueOf(
+                session.profile().gamepad().buttonFor(pad).length() > 0));
+        session.pressPad(pad);
+        return Json.write(json);
+    }
+
+    public String releasePad(String pad) {
+        if (session == null) {
+            return error("No game is running");
+        }
+        session.releasePad(pad);
+        return ok("pad", pad);
+    }
+
+    /** Hands the running game a pad mapping that was just edited. */
+    private void applyGamepad(String suiteId, GameProfile edited) {
+        if (session == null || !suiteId.equals(activeSuiteId)) {
+            return;
+        }
+        session.profile().setGamepad(GamepadProfile.fromJson(edited.gamepad().toJson()));
     }
 
     /**

@@ -1,6 +1,7 @@
 import Combine
 import CoreGraphics
 import Foundation
+import GameController
 import QuartzCore
 import SwiftUI
 
@@ -162,6 +163,114 @@ final class EmulatorEngine: ObservableObject {
     /// editing, and what the game should see is the result.
     func commitText(_ value: String) {
         bridge.setTextInput(value)
+    }
+
+    // ---------------------------------------------------------- the controller
+
+    /// True while a controller is connected, so the game can say so.
+    @Published private(set) var padConnected = false
+
+    /// Which directions the stick is pushing, so a change can be told apart
+    /// from the stream of positions a stick actually sends.
+    private var stickHeld: Set<String> = []
+
+    /**
+     Starts listening for a controller.
+
+     iOS hands out controllers through notifications rather than events, so
+     this watches for one arriving and binds its buttons when it does. Bound
+     to the emulator's own names — `padA`, `padUp` — because what those do is
+     the profile's decision, made once for iOS and Android alike.
+     */
+    func watchForControllers() {
+        NotificationCenter.default.addObserver(
+            forName: .GCControllerDidConnect, object: nil, queue: .main
+        ) { [weak self] note in
+            guard let controller = note.object as? GCController else { return }
+            Task { @MainActor in self?.bind(controller) }
+        }
+        NotificationCenter.default.addObserver(
+            forName: .GCControllerDidDisconnect, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.padConnected = !GCController.controllers().isEmpty
+            }
+        }
+        for controller in GCController.controllers() {
+            bind(controller)
+        }
+    }
+
+    private func bind(_ controller: GCController) {
+        guard let pad = controller.extendedGamepad else { return }
+        padConnected = true
+
+        func hold(_ name: String) -> GCControllerButtonValueChangedHandler {
+            { [weak self] _, _, pressed in
+                Task { @MainActor in
+                    if pressed {
+                        self?.pressPad(name)
+                    } else {
+                        self?.releasePad(name)
+                    }
+                }
+            }
+        }
+
+        pad.buttonA.pressedChangedHandler = hold("padA")
+        pad.buttonB.pressedChangedHandler = hold("padB")
+        pad.buttonX.pressedChangedHandler = hold("padX")
+        pad.buttonY.pressedChangedHandler = hold("padY")
+        pad.leftShoulder.pressedChangedHandler = hold("padL1")
+        pad.rightShoulder.pressedChangedHandler = hold("padR1")
+        pad.leftTrigger.pressedChangedHandler = hold("padL2")
+        pad.rightTrigger.pressedChangedHandler = hold("padR2")
+        pad.buttonMenu.pressedChangedHandler = hold("padStart")
+        pad.buttonOptions?.pressedChangedHandler = hold("padSelect")
+
+        pad.dpad.up.pressedChangedHandler = hold("padUp")
+        pad.dpad.down.pressedChangedHandler = hold("padDown")
+        pad.dpad.left.pressedChangedHandler = hold("padLeft")
+        pad.dpad.right.pressedChangedHandler = hold("padRight")
+
+        // A J2ME game has four directions and nothing else, so the stick is
+        // read as a d-pad. The dead zone is wide on purpose: a worn stick
+        // resting at 0.2 would otherwise walk the player into a wall for as
+        // long as the game is open.
+        pad.leftThumbstick.valueChangedHandler = { [weak self] _, x, y in
+            var held: Set<String> = []
+            if x <= -0.5 { held.insert("padLeft") }
+            if x >= 0.5 { held.insert("padRight") }
+            if y >= 0.5 { held.insert("padUp") }
+            if y <= -0.5 { held.insert("padDown") }
+            Task { @MainActor in self?.stickMoved(held) }
+        }
+    }
+
+    /// A control on a real pad was pressed. The profile decides what it does.
+    func pressPad(_ pad: String) {
+        _ = bridge.pressPad(pad)
+        refreshSoftKeys()
+    }
+
+    func releasePad(_ pad: String) {
+        _ = bridge.releasePad(pad)
+    }
+
+    /// What the stick is pushing now, as presses and releases.
+    ///
+    /// A stick sends positions, not presses, so the change is worked out here.
+    /// Without it a game reading held keys would see one press and then
+    /// nothing.
+    private func stickMoved(_ directions: Set<String>) {
+        guard directions != stickHeld else { return }
+        for gone in stickHeld.subtracting(directions) {
+            releasePad(gone)
+        }
+        for fresh in directions.subtracting(stickHeld) {
+            pressPad(fresh)
+        }
+        stickHeld = directions
     }
 
     func press(_ button: String) {

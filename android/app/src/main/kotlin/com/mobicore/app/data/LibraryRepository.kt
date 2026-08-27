@@ -9,6 +9,7 @@ import com.mobicore.core.library.PresetStore
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
 import com.mobicore.core.model.DeviceProfile
+import com.mobicore.core.model.GamepadProfile
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.model.MidletEntry
 import com.mobicore.core.rms.RecordStoreManager
@@ -458,6 +459,32 @@ class LibraryRepository(filesDir: String) {
     fun setKeyMapping(suiteId: String, button: String, keyCode: Int) {
         val profile = library.profile(suiteId) ?: return
         profile.input().setMapping(button, keyCode)
+        library.saveProfile(profile)
+        refresh()
+    }
+
+    /** Points one control on a real pad at an emulator button. */
+    fun setPadMapping(suiteId: String, pad: String, button: String) {
+        val profile = library.profile(suiteId) ?: return
+        profile.gamepad().map(pad, button)
+        library.saveProfile(profile)
+        refresh()
+    }
+
+    /** Whether controller input reaches the game at all. */
+    fun setGamepadEnabled(suiteId: String, enabled: Boolean) {
+        val profile = library.profile(suiteId) ?: return
+        profile.gamepad().setEnabled(enabled)
+        library.saveProfile(profile)
+        refresh()
+    }
+
+    /** Puts the pad back to the arrangement a J2ME game expects. */
+    fun resetGamepad(suiteId: String) {
+        val profile = library.profile(suiteId) ?: return
+        val fresh = GamepadProfile.defaults()
+        fresh.setEnabled(profile.gamepad().isEnabled)
+        profile.setGamepad(fresh)
         library.saveProfile(profile)
         refresh()
     }

@@ -65,7 +65,10 @@ public final class ProfileScreen {
 
     private Framebuffer draw(GameLibrary library, LibraryEntry entry, GameProfile profile,
                              String backupPath, Vfs vfs, StorageLayout layout) throws Exception {
-        Framebuffer frame = Preview.newScreen();
+        // This page is long: automatic setup, the screen, the keypad, display
+        // and sound, presets, key mapping, the controller, saved data. On a
+        // phone it scrolls; here it is drawn at full length.
+        Framebuffer frame = Preview.newScreen(1560);
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
         ui.appBar(entry.title(), "Cài đặt");
@@ -176,6 +179,22 @@ public final class ProfileScreen {
         }
         y += mappingHeight + 14;
 
+        // The controller -------------------------------------------------
+        // Playing on glass is the one thing an emulator cannot fix: no edge
+        // to feel for, so the player looks down instead of at the game.
+        String[] pads = {"padUp", "padA", "padB", "padL1", "padR1"};
+        int padHeight = ui.sectionHeight(pads.length);
+        row = ui.section(margin, y, width, padHeight, "TAY CẦM",
+                profile.gamepad().isEnabled() ? "Đang bật" : "Đang tắt");
+        for (String pad : pads) {
+            String button = profile.gamepad().mapping(pad);
+            ui.field(com.mobicore.core.model.GamepadProfile.padName(pad),
+                    button.length() == 0 ? "Không dùng" : padTarget(button),
+                    fieldX, row, fieldWidth);
+            row += Ui.ROW;
+        }
+        y += padHeight + 14;
+
         // Saves ----------------------------------------------------------
         RecordStoreManager records = library.records(entry.suiteId());
         List<String> stores = records.listStoreNames();
@@ -199,6 +218,19 @@ public final class ProfileScreen {
                 row + Ui.ROW, Theme.TEXT_DIM);
 
         return frame;
+    }
+
+    /** What the settings screen calls one of the emulator's own buttons. */
+    private static String padTarget(String button) {
+        if ("up".equals(button)) return "Lên";
+        if ("down".equals(button)) return "Xuống";
+        if ("left".equals(button)) return "Trái";
+        if ("right".equals(button)) return "Phải";
+        if ("fire".equals(button)) return "Bắn";
+        if ("softLeft".equals(button)) return "Phím mềm trái";
+        if ("softRight".equals(button)) return "Phím mềm phải";
+        if (button.startsWith("num")) return "Phím " + button.substring(3);
+        return button;
     }
 
     private static String scaleName(GameProfile profile) {

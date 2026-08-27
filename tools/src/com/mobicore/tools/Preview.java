@@ -134,7 +134,18 @@ public final class Preview {
     }
 
     static Framebuffer newScreen() {
-        Framebuffer frame = new Framebuffer(SCREEN_WIDTH, SCREEN_HEIGHT);
+        return newScreen(SCREEN_HEIGHT);
+    }
+
+    /**
+     * A screen taller than a phone's, for a settings page that scrolls.
+     *
+     * <p>The preview cannot scroll, so a page that would be scrolled on a
+     * phone is drawn at full length instead — a screenshot cut off at the
+     * fold shows less than the page has.</p>
+     */
+    static Framebuffer newScreen(int height) {
+        Framebuffer frame = new Framebuffer(SCREEN_WIDTH, height);
         // The interface is drawn with the same primitives a game uses, so it
         // gets the same treatment: rounded corners and chips should not have
         // staircase edges.

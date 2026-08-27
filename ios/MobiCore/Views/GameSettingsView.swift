@@ -12,6 +12,8 @@ struct GameSettingsView: View {
     /// switches to learn there is nothing for them to do.
     @State private var showAdvanced = false
     @State private var presetName = ""
+    /// What a real controller's buttons do, read back after every change.
+    @State private var gamepad: GamepadSettings?
     @State private var keyChoices: [KeyChoice] = []
 
     var body: some View {
@@ -80,6 +82,62 @@ struct GameSettingsView: View {
                                 Text(current.device.name)
                                     .font(.footnote)
                                     .foregroundStyle(Palette.textDim)
+                            }
+                        }
+                    }
+
+                    // A controller gives back the one thing glass cannot: an
+                    // edge to feel for, so the player looks at the game
+                    // instead of at their thumbs.
+                    SectionCard(title: "TAY CẦM",
+                                trailing: (gamepad?.enabled ?? true) ? "Đang bật" : "Đang tắt") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle(isOn: Binding(
+                                get: { gamepad?.enabled ?? true },
+                                set: {
+                                    client.setGamepadEnabled($0, for: suiteId)
+                                    gamepad = client.gamepad(suiteId)
+                                }
+                            )) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Dùng tay cầm")
+                                        .font(.footnote)
+                                        .foregroundStyle(Palette.text)
+                                    Text("Tay cầm Bluetooth, tay cầm kẹp máy, hoặc bàn phím ngoài")
+                                        .font(.caption2)
+                                        .foregroundStyle(Palette.textDim)
+                                }
+                            }
+
+                            if gamepad?.enabled ?? true {
+                                ForEach(gamepad?.pads ?? []) { mapping in
+                                    Picker(mapping.padName, selection: Binding(
+                                        get: { mapping.button },
+                                        set: {
+                                            client.setPadMapping(mapping.pad, to: $0,
+                                                                 for: suiteId)
+                                            gamepad = client.gamepad(suiteId)
+                                        }
+                                    )) {
+                                        // "Không dùng" is on the list on
+                                        // purpose: a pad has buttons a J2ME
+                                        // game has no use for, and one doing
+                                        // nothing beats one doing something
+                                        // surprising.
+                                        Text("Không dùng").tag("")
+                                        ForEach(PadTarget.all, id: \.button) { entry in
+                                            Text(entry.label).tag(entry.button)
+                                        }
+                                    }
+                                    .font(.footnote)
+                                }
+
+                                Button("Đặt lại tay cầm") {
+                                    client.resetGamepad(suiteId)
+                                    gamepad = client.gamepad(suiteId)
+                                }
+                                .font(.subheadline)
+                                .foregroundStyle(Palette.accent)
                             }
                         }
                     }
@@ -334,6 +392,7 @@ struct GameSettingsView: View {
         .onAppear {
             reload()
             keyChoices = client.keyChoices()
+            gamepad = client.gamepad(suiteId)
         }
     }
 

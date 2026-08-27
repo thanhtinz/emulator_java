@@ -369,6 +369,32 @@ public final class EmulatorSession {
         return false;
     }
 
+    /**
+     * A control on a real pad was pressed.
+     *
+     * <p>The front end names the control — {@code padA}, {@code padUp} — and
+     * the profile says what that does. Resolving it here rather than in each
+     * front end means a remapped pad is remapped everywhere at once, and a
+     * pad press is a keypad press in every other respect: it wakes the fading
+     * keypad, it works the softkeys, it feeds turbo.</p>
+     *
+     * @return true when the press ran one of the screen's commands
+     */
+    public boolean pressPad(String pad) {
+        String button = profile.gamepad().buttonFor(pad);
+        if (button.length() == 0) {
+            return false;
+        }
+        return pressButton2(button);
+    }
+
+    public void releasePad(String pad) {
+        String button = profile.gamepad().buttonFor(pad);
+        if (button.length() > 0) {
+            releaseButton(button);
+        }
+    }
+
     public void releaseButton(String button) {
         if ("softLeft".equals(button) || "softRight".equals(button)) {
             return;
