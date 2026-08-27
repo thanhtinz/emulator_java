@@ -35,6 +35,7 @@
 | 31 | API Siemens, Samsung, Motorola | Xong |
 | 32 | Một loại màn hình duy nhất | Xong |
 | 33 | Chỉnh bàn phím ảo: độ rõ, hình phím, tự mờ | Xong |
+| 34 | Quay màn chơi thành ảnh động GIF | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1162,3 +1163,47 @@ theo hai kiểu khác nhau.
 Cầu nối: `keypadJson`, `setKeypadOpacity`, `cycleKeypadShape`, `setKeypadShape`,
 `setKeypadFadeDelay`, `keypadDrawOpacity` (một con số, không phải JSON — hỏi
 mỗi khung hình thì không phải chỗ để phân tích văn bản) và `noteKeypadUse`.
+
+
+## Giai đoạn 34 — quay màn chơi thành ảnh động
+
+Ảnh chụp nói được người chơi **đến đâu**, không nói được **bằng cách nào**: cú
+nhảy vừa ăn, đường đạn của con trùm, con bọ đáng báo lại. Vài giây game thật thì
+nói được, và **GIF chạy được ở mọi nơi ảnh chạy được** — trong tin nhắn, trong
+bài đăng, trong thư viện ảnh của máy. Không ai phải cài thêm gì để xem.
+
+Bộ mã hoá tự viết, vì bộ giả lập **không có nền tảng nào để nhờ**: cùng một mã
+chạy trên JVM của Android và, qua J2ObjC, trên iOS. Nghĩa là phải tự viết bộ
+giảm màu và bộ nén LZW — đó là toàn bộ `core/gfx/GifEncoder.java`.
+
+- **Bảng màu**: GIF chứa 256 màu, và game thời này hiếm khi dùng hơn — máy J2ME
+  có màn 12 hoặc 16 bit và hoạ sĩ vẽ cho đúng cái đó. Nếu cả đoạn quay có từ 256
+  màu trở xuống thì bảng màu **chính là những màu đó**, và ảnh trả về **đúng
+  từng điểm ảnh**. Quá 256 mới đến lượt median cut: cắt hộp màu theo cạnh dài
+  nhất, cắt mãi đến khi đủ 256 hộp. Cắt theo cạnh rộng nhất là thứ giữ cho vài
+  màu sáng hiếm hoi — thanh máu, vụ nổ — không bị trung bình hoá vào nền.
+- **LZW**: đúng bộ nén GIF quy định, mã rộng dần, đổ đi khi từ điển đầy 4096.
+- **Lặp mãi**: khối NETSCAPE2.0, vì một đoạn chơi dài vài giây được xem bằng
+  cách xem đi xem lại.
+
+**Giới hạn cố ý: 10 giây, 10 hình/giây.** Khung hình phải giữ trong bộ nhớ đến
+khi đoạn quay xong, vì bảng màu chọn từ cả đoạn cùng lúc; ở 240×320 mỗi khung là
+300 KB, nên 10 giây là khoảng 30 MB và dài hơn nữa là một cách làm hết bộ nhớ
+điện thoại bằng cách giữ một nút. 10 hình/giây cũng là mức trình xem GIF chịu
+nghe: định dạng đếm thời gian theo phần trăm giây và phần lớn trình xem lặng lẽ
+từ chối nhanh hơn 50 hình/giây.
+
+Khung hình lấy theo **đồng hồ của game**, nên game chạy chậm lại thì đoạn quay
+cũng chậm lại, chứ không phải bị bỏ cách khung. Và lấy từ **khung vừa vẽ xong**
+chứ không phải khung sắp vẽ — nhờ vậy game đang không vẽ lại (menu, tạm dừng,
+màn thua) vẫn quay được thời gian đang trôi thay vì quay ra không có gì.
+
+Kiểm tra bằng cách **đọc ngược lại**: `tests/.../GifTest.java` có một bộ giải mã
+GIF đầy đủ, và mọi khung hình bộ mã hoá tạo ra đều được giải mã rồi so từng điểm
+ảnh. Một bài kiểm tra chỉ nhìn phần đầu tệp sẽ vẫn xanh trên một tệp không trình
+xem nào mở được.
+
+Đoạn quay nằm **chung thư mục với ảnh chụp**: với người chơi, đoạn quay là một
+tấm ảnh biết chạy, và tách làm hai thư viện nghĩa là phải chọn mở cái nào trước
+khi kịp nhớ mình đã lưu kiểu gì. Trong thư viện, đoạn quay có nhãn riêng và
+phần đầu ghi rõ "3 ảnh, 1 đoạn quay".

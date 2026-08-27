@@ -355,6 +355,28 @@ public final class GameLibrary {
         return path;
     }
 
+    /**
+     * Keeps a recorded clip beside the pictures, under the same kind of name.
+     *
+     * <p>The same folder on purpose: to a player a clip is a screenshot that
+     * moves, and splitting them into two galleries would mean choosing which
+     * one to open before remembering which one they took.</p>
+     *
+     * @return where it was written
+     */
+    public String writeClip(String suiteId, byte[] gif) throws IOException {
+        if (!entries.containsKey(suiteId)) {
+            throw new IOException("No installed suite with id " + suiteId);
+        }
+        if (gif == null || gif.length == 0) {
+            throw new IOException("Nothing to save");
+        }
+        vfs.mkdirs(layout.screenshotDir(suiteId));
+        String path = StorageLayout.join(layout.screenshotDir(suiteId), clock + ".gif");
+        vfs.write(path, gif);
+        return path;
+    }
+
     /** Every picture taken of one game, oldest first. */
     public List<String> screenshotsFor(String suiteId) throws IOException {
         String dir = layout.screenshotDir(suiteId);

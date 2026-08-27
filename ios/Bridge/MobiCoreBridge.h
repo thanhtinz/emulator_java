@@ -203,6 +203,12 @@ NS_ASSUME_NONNULL_BEGIN
 /// Labels the running screen has mapped to the two softkeys, as JSON.
 - (NSString *)softKeysJSON;
 
+/// Records the screen as an animation; saved beside the screenshots.
+- (NSString *)startRecording;
+- (NSString *)stopRecording;
+- (NSString *)cancelRecording;
+- (NSString *)recordingJSON;
+
 /// How solid the running game's keypad should be drawn now, in percent.
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.

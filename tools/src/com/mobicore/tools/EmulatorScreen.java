@@ -191,6 +191,7 @@ public final class EmulatorScreen {
 
         String[][] items = {
                 {Icons.CAMERA, "Chụp màn hình", ""},
+                {Icons.RECORD, "Quay màn hình", "tối đa 10 giây"},
                 {Icons.TUNE, "Bàn phím", "Đầy đủ"},
                 {Icons.ROTATE, "Màn hình", "Dọc"},
                 {Icons.UNDO, "Tua lại 1 giây", "12s"},

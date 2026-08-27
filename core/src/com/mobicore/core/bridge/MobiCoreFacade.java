@@ -1,7 +1,8 @@
 package com.mobicore.core.bridge;
 
-import com.mobicore.core.emu.EmulatorLog;
 import com.mobicore.core.audio.AudioSink;
+import com.mobicore.core.emu.ClipRecorder;
+import com.mobicore.core.emu.EmulatorLog;
 import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.emu.SaveState;
 import com.mobicore.core.emu.SpeedClock;
@@ -357,6 +358,75 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
+    }
+
+    /**
+     * Starts recording the screen as an animation.
+     *
+     * <p>A screenshot says where the player got to; it cannot say how. A few
+     * seconds of the game can, and a GIF plays wherever a picture plays, so
+     * nobody has to install anything to watch it.</p>
+     */
+    public String startRecording() {
+        if (session == null) {
+            return error("No game is running");
+        }
+        session.clip().start(session.vm().host().currentTimeMillis());
+        return recordingJson();
+    }
+
+    /**
+     * Ends the recording and saves it beside the screenshots.
+     *
+     * <p>Encoding happens here, not while playing: the colour table is chosen
+     * from the whole clip at once, so there is nothing to encode until the
+     * clip is whole.</p>
+     */
+    public String stopRecording() {
+        if (session == null || library == null || activeSuiteId == null) {
+            return error("No game is running");
+        }
+        try {
+            byte[] gif = session.clip().stop();
+            if (gif == null) {
+                return error("Chưa quay được khung hình nào");
+            }
+            String path = library.writeClip(activeSuiteId, gif);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("path", path);
+            json.put("bytes", Integer.valueOf(gif.length));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Throws a recording away without saving it. */
+    public String cancelRecording() {
+        if (session == null) {
+            return error("No game is running");
+        }
+        session.clip().cancel();
+        return recordingJson();
+    }
+
+    /**
+     * Whether a clip is being recorded, and how long it has got.
+     *
+     * <p>Asked on every drawn frame while recording, because a red dot that
+     * does not count up is a red dot nobody trusts.</p>
+     */
+    public String recordingJson() {
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        ClipRecorder clip = session == null ? null : session.clip();
+        json.put("recording", Boolean.valueOf(clip != null && clip.isRecording()));
+        json.put("frames", Integer.valueOf(clip == null ? 0 : clip.frameCount()));
+        json.put("tenths", Integer.valueOf(clip == null ? 0 : clip.tenths()));
+        json.put("full", Boolean.valueOf(clip != null && clip.isFull()));
+        json.put("maxSeconds", Integer.valueOf(ClipRecorder.MAX_SECONDS));
+        return Json.write(json);
     }
 
     /**
@@ -725,6 +795,9 @@ public final class MobiCoreFacade {
                 shot.put("takenAt", Long.valueOf(takenAt(name)));
                 byte[] png = library.readScreenshot(suiteId, name);
                 shot.put("bytes", Integer.valueOf(png == null ? 0 : png.length));
+                // A clip is a screenshot that moves, and lives in the same
+                // gallery; the viewer needs to know which it is holding.
+                shot.put("clip", Boolean.valueOf(name.endsWith(".gif")));
                 shots.add(shot);
             }
             Map<String, Object> root = Json.object();

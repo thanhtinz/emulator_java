@@ -325,6 +325,10 @@ class LibraryRepository(filesDir: String) {
     fun writeScreenshot(suiteId: String, png: ByteArray): String =
         library.writeScreenshot(suiteId, png)
 
+    /** Keeps a recorded clip beside the pictures; returns where it went. */
+    fun writeClip(suiteId: String, gif: ByteArray): String =
+        library.writeClip(suiteId, gif)
+
     /** Every picture taken of one game, newest first. */
     fun screenshots(suiteId: String): List<String> =
         library.screenshotsFor(suiteId).reversed()

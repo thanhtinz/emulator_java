@@ -78,6 +78,9 @@ public final class EmulatorSession {
     /** When the virtual keypad was last touched; 0 until it first is. */
     private long lastKeypadUse;
 
+    /** A few seconds of play, kept so they can be saved as an animation. */
+    private final ClipRecorder clip = new ClipRecorder();
+
     /**
      * The last few seconds of play, kept so they can be taken back.
      *
@@ -522,6 +525,11 @@ public final class EmulatorSession {
         // History is kept off the game's own clock, so rewinding covers the
         // same amount of play whatever speed it is running at.
         rewind.tick(this, vm.host().currentTimeMillis());
+        // The clip is taken from the last finished frame rather than from the
+        // one about to be painted, so a game that is not repainting — a menu,
+        // a pause, a game over screen — still records the seconds passing
+        // instead of recording nothing.
+        clip.tick(context.screen(), vm.host().currentTimeMillis());
         context.drainCallbacks();
         VmObject current = context.current();
         if (current == null) {
@@ -585,6 +593,17 @@ public final class EmulatorSession {
             return false;
         }
         return invokeCommand(command);
+    }
+
+    /**
+     * The clip being recorded, if one is.
+     *
+     * <p>Handed out rather than wrapped: what the front end wants to know —
+     * whether it is running, how long it has got, whether it is full — is
+     * what the recorder already answers.</p>
+     */
+    public ClipRecorder clip() {
+        return clip;
     }
 
     /**

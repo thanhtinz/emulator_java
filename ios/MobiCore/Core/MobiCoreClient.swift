@@ -300,6 +300,24 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.takeScreenshot()))
     }
 
+    /// Starts recording the screen as an animation.
+    ///
+    /// A picture says where the player got to; a clip says how, and a GIF
+    /// plays wherever a picture plays.
+    func startRecording() {
+        report(decode(bridge.startRecording()))
+    }
+
+    /// Ends the recording and saves it beside the screenshots.
+    func stopRecording() {
+        report(decode(bridge.stopRecording()))
+    }
+
+    /// Whether a clip is being recorded, and how long it has got.
+    func recording() -> Recording? {
+        decode(bridge.recordingJSON())
+    }
+
     /// Every picture taken of one game, newest first. A screenshot nothing
     /// can show again is a dead end.
     func screenshots(_ suiteId: String) -> [Screenshot] {

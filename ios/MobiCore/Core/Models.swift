@@ -234,8 +234,20 @@ struct Screenshot: Codable, Identifiable, Hashable {
     let name: String
     let takenAt: Int64
     let bytes: Int
+    /// True for a recorded clip, which shares the gallery with the pictures.
+    let clip: Bool?
 
     var id: String { name }
+    var isClip: Bool { clip ?? false }
+}
+
+/// Whether a clip is being recorded, and how long it has got.
+struct Recording: Codable {
+    let recording: Bool
+    let frames: Int
+    let tenths: Int
+    let full: Bool
+    let maxSeconds: Int
 }
 
 struct ScreenshotsResponse: Codable {

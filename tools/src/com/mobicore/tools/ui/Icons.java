@@ -41,6 +41,9 @@ public final class Icons {
     public static final String EDIT = "edit";
     public static final String PHOTO = "photo_library";
     public static final String CAMERA = "photo_camera";
+    /** Recording a few seconds of play, and stopping again. */
+    public static final String RECORD = "videocam";
+    public static final String STOP = "stop_circle";
     public static final String UNDO = "undo";
     public static final String CHECK = "check_circle";
     /** The sun and the moon: what a theme toggle looks like everywhere. */

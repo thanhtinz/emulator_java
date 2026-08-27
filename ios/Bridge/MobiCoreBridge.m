@@ -423,6 +423,22 @@
     return [_facade softKeysJson];
 }
 
+- (NSString *)startRecording {
+    return [_facade startRecording];
+}
+
+- (NSString *)stopRecording {
+    return [_facade stopRecording];
+}
+
+- (NSString *)cancelRecording {
+    return [_facade cancelRecording];
+}
+
+- (NSString *)recordingJSON {
+    return [_facade recordingJson];
+}
+
 - (NSInteger)keypadDrawOpacity {
     return [_facade keypadDrawOpacity];
 }

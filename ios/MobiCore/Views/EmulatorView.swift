@@ -12,6 +12,8 @@ struct EmulatorView: View {
     @EnvironmentObject private var client: MobiCoreClient
     @Environment(\.dismiss) private var dismiss
     @StateObject private var engine = EmulatorEngine()
+    /// True while a clip is being recorded, so the menu can offer the stop.
+    @State private var recording = false
 
     private var settings: GameSettings? { client.game(suiteId)?.settings }
 
@@ -143,6 +145,20 @@ private extension EmulatorView {
                 client.takeScreenshot()
             } label: {
                 Label("Chụp màn hình", systemImage: "camera")
+            }
+            // A picture says where the player got to; a clip says how. Ten
+            // seconds at most: the frames are held in memory until the clip
+            // is whole.
+            Button {
+                if recording {
+                    client.stopRecording()
+                } else {
+                    client.startRecording()
+                }
+                recording = client.recording()?.recording ?? false
+            } label: {
+                Label(recording ? "Dừng quay" : "Quay màn hình",
+                      systemImage: recording ? "stop.circle" : "video")
             }
             Button {
                 client.cycleKeypadLayout(suiteId)

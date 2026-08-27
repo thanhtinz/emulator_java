@@ -13,12 +13,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,14 +68,14 @@ fun ScreenshotsScreen(
                 modifier = Modifier.clickable(onClick = onBack),
             )
             Spacer(Modifier.weight(1f))
-            Text("${names.size} ảnh", color = MobiColors.TextDim, fontSize = 13.sp)
+            Text(galleryCount(names), color = MobiColors.TextDim, fontSize = 13.sp)
         }
 
         if (names.isEmpty()) {
             EmptyState(
                 icon = Icons.Filled.PhotoCamera,
                 title = "Chưa có ảnh nào",
-                body = "Trong lúc chơi, mở Menu rồi chọn \"Chụp màn hình\".",
+                body = "Trong lúc chơi, mở Menu rồi chọn \"Chụp màn hình\" hoặc \"Quay màn hình\".",
             )
             return@Column
         }
@@ -103,6 +106,29 @@ fun ScreenshotsScreen(
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
+                    // A clip and a picture sit in the same gallery, so the
+                    // clip says which it is. The thumbnail is its first
+                    // frame, which is what a still of it would have been.
+                    if (name.endsWith(".gif")) {
+                        Row(
+                            Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(6.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MobiColors.Background.copy(alpha = 0.75f))
+                                .padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Filled.Videocam,
+                                contentDescription = "Đoạn quay",
+                                tint = MobiColors.Accent,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text("Đoạn quay", color = MobiColors.Text, fontSize = 11.sp)
+                        }
+                    }
                     if (opened == name) {
                         // The one action a picture needs, shown on the picture
                         // rather than behind a long press nobody discovers.
@@ -123,4 +149,22 @@ fun ScreenshotsScreen(
             item { Spacer(Modifier.height(24.dp)) }
         }
     }
+}
+
+/**
+ * "3 ảnh, 1 đoạn quay" — the two kinds counted separately.
+ *
+ * They share a folder, but a player looking for the clip they recorded should
+ * be able to see from the heading that it is in here.
+ */
+private fun galleryCount(names: List<String>): String {
+    val clips = names.count { it.endsWith(".gif") }
+    val stills = names.size - clips
+    if (clips == 0) {
+        return "$stills ảnh"
+    }
+    if (stills == 0) {
+        return "$clips đoạn quay"
+    }
+    return "$stills ảnh, $clips đoạn quay"
 }
