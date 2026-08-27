@@ -19,11 +19,20 @@ struct HomeView: View {
     @State private var linkOpen = false
     @State private var link = ""
     @State private var linkResult: String?
+    /// Which shelf the library is filtered to, or empty for all of them.
+    @State private var shelf = ""
+
+    private var shelves: [Collection] { client.collections() }
 
     private var shown: [Game] {
-        query.trimmingCharacters(in: .whitespaces).isEmpty
+        let found = query.trimmingCharacters(in: .whitespaces).isEmpty
             ? client.sorted(client.games, by: client.librarySort)
             : client.search(query, sort: client.librarySort)
+        if shelf.isEmpty {
+            return found
+        }
+        let ids = Set(client.gamesOn(shelf).map { $0.suiteId })
+        return found.filter { ids.contains($0.suiteId) }
     }
 
     var body: some View {
@@ -31,6 +40,23 @@ struct HomeView: View {
             if client.games.isEmpty {
                 EmptyLibraryView(onImport: { importing = true })
             } else {
+                // Shelves only appear once there are some: a row of one chip
+                // saying "Tất cả" tells nobody anything.
+                if !shelves.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ShelfChip(label: "Tất cả", selected: shelf.isEmpty) { shelf = "" }
+                            ForEach(shelves) { collection in
+                                ShelfChip(label: collection.name,
+                                          selected: collection.name == shelf) {
+                                    shelf = collection.name == shelf ? "" : collection.name
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                    }
+                }
                 List(shown) { game in
                     GameRowLink(game: game)
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -231,4 +257,22 @@ enum MobiCoreTypes {
     /// JAR and JAD have no system-declared types on iOS, so the picker accepts
     /// archives and plain data and the importer sniffs the bytes.
     static let importable: [UTType] = [.zip, .data, .plainText]
+}
+
+/// One shelf, as a chip over the list.
+private struct ShelfChip: View {
+    let label: String
+    let selected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Text(label)
+            .font(.footnote)
+            .foregroundStyle(selected ? Palette.background : Palette.text)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(selected ? Palette.accent : Palette.surfaceAlt,
+                        in: RoundedRectangle(cornerRadius: 14))
+            .onTapGesture(perform: onTap)
+    }
 }

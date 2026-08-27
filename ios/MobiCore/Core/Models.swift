@@ -241,6 +241,31 @@ struct Screenshot: Codable, Identifiable, Hashable {
     var isClip: Bool { clip ?? false }
 }
 
+/// One shelf the player has put games on.
+struct Collection: Codable, Identifiable, Hashable {
+    let name: String
+    let games: Int
+    /// True when the game this listing was asked about is on this shelf.
+    let holds: Bool
+
+    var id: String { name }
+}
+
+struct CollectionsResponse: Codable {
+    let collections: [Collection]
+}
+
+/// Which games are on one shelf. Only the ids are read: the entries
+/// themselves are already in hand, and reading them twice lets them drift.
+struct CollectionGames: Codable {
+    struct Row: Codable {
+        let suiteId: String
+    }
+
+    let name: String
+    let games: [Row]
+}
+
 /// One file a game wrote for itself through JSR-75.
 struct GameFile: Codable, Identifiable, Hashable {
     let path: String

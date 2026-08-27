@@ -213,6 +213,15 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.
 - (NSString *)noteKeypadUse;
+/// Shelves the player puts their games on.
+- (NSString *)collectionsJSONForSuite:(NSString *)suiteId;
+- (NSString *)createCollection:(NSString *)name;
+- (NSString *)toggleCollection:(NSString *)name forSuite:(NSString *)suiteId;
+- (NSString *)renameCollection:(NSString *)from to:(NSString *)to;
+- (NSString *)deleteCollection:(NSString *)name;
+/// The games on one shelf, in the library's own listing shape.
+- (NSString *)collectionJSON:(NSString *)name;
+
 /// Installs a game from a link; these games arrive as a link first.
 - (NSString *)installFromURL:(NSString *)url;
 /// What the installer fetched, so the player can see where a game came from.

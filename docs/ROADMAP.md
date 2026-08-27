@@ -40,6 +40,7 @@
 | 36 | Tay cầm và bàn phím ngoài | Xong |
 | 37 | Tệp riêng của game (JSR-75) | Xong |
 | 38 | Cài game từ liên kết | Xong |
+| 39 | Bộ sưu tập trong thư viện | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -1404,3 +1405,44 @@ Kiểm tra chạy hoàn toàn **không cần mạng**: cả bản mô tả lẫn
 vụ từ `LoopbackTransport`, đi qua đúng cái facade mà điện thoại gọi. Bản xem
 trước cũng vậy — màn "Nhập từ liên kết" trong ảnh chụp là **một lượt cài thật**
 vừa chạy xong, không phải hình vẽ mô phỏng.
+
+
+## Giai đoạn 39 — bộ sưu tập trong thư viện
+
+Tìm kiếm chỉ tìm được **game mà người ta còn nhớ tên**. Một thư viện tám mươi
+game thì phần lớn là những game không nhớ tên: "cái game đua xe ấy", "mấy game
+hay chơi lúc đi xe buýt", "mấy game thằng em để lại trong máy". Một cái kệ là
+cách tìm ra chúng — bằng việc chính mình đã xếp chúng vào đâu đó.
+
+`core/library/CollectionStore.java`. Vài quyết định đáng nói:
+
+- **Kệ nằm cạnh chỉ mục thư viện, không nằm trong hồ sơ từng game.** Cái kệ là
+  một chuyện về *bộ sưu tập*, không phải chuyện về một game: dọn sạch một kệ
+  không nên có nghĩa là ghi lại tám mươi tệp, và gỡ một game khỏi máy không nên
+  mang theo cả cái kệ.
+- **Xếp game vào một chỗ mới thì kệ tự sinh ra.** Đó là việc người ta thật sự
+  làm: không ai tạo một cái kệ rỗng rồi mới đi xếp.
+- **Tên chính là khoá**, nên nó được cắt khoảng trắng đúng một lần trong lớp
+  này chứ không phải ở từng chỗ gọi: "Đua xe" và "Đua xe " là cùng một cái kệ
+  với người vừa gõ chúng.
+- **Đổi tên thì dựng lại danh sách** chứ không xoá-rồi-thêm, để kệ vừa đổi tên
+  giữ nguyên chỗ của nó trong hàng thay vì nhảy xuống cuối.
+- **Gỡ game thì mọi kệ quên nó đi**: một cái kệ còn ghi tên thứ đã biến mất là
+  một con số không ai bấm tới được.
+- Đọc hỏng thì **không làm sập ứng dụng**: game vẫn còn nguyên đó, chỉ là không
+  nằm trên kệ nào.
+
+Trên màn hình chính, kệ hiện thành một hàng chip trên danh sách, và **"Tất cả"
+đứng đầu như một cái kệ nữa** — "không lọc gì" là thứ người chơi chọn nhiều
+nhất, không nên bắt họ đi tìm một dấu × để bấm. Hàng chip chỉ xuất hiện khi đã
+có kệ: một hàng chỉ có mỗi chip "Tất cả" thì chẳng nói với ai điều gì.
+
+Trong trang từng game có thẻ "BỘ SƯU TẬP" để xếp vào hoặc lấy ra, kèm ô tạo kệ
+mới ngay tại chỗ — vì lúc nghĩ ra cái kệ mình cần thường là đúng lúc đang nhìn
+một game chưa biết xếp vào đâu.
+
+Cầu nối: `collectionsJson` (mỗi kệ kèm số game **và** kệ đó có chứa game đang
+xem hay không — màn hình xếp game cần cả hai), `createCollection`,
+`toggleCollection`, `renameCollection`, `deleteCollection`, `collectionJson`
+(trả về game theo **đúng hình dạng** mà cả thư viện trả về, nên màn hình vẽ danh
+sách game không cần cách vẽ thứ hai).

@@ -37,6 +37,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -83,8 +87,11 @@ fun HomeScreen(
     var query by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
     val sortMode by library.librarySort.collectAsState()
-    val shown = remember(games, profiles, query, sortMode) {
-        library.sorted(if (query.isBlank()) games else library.search(query), sortMode)
+    val shelves by library.collections.collectAsState()
+    val shelf by library.shelf.collectAsState()
+    val shown = remember(games, profiles, query, sortMode, shelf, shelves) {
+        val found = if (query.isBlank()) games else library.search(query)
+        library.sorted(library.onShelf(shelf, found), sortMode)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -101,6 +108,12 @@ fun HomeScreen(
             onTools = onTools,
             onSettings = onSettings,
         )
+
+        // Shelves only appear once there are some: a row of one chip saying
+        // "Tất cả" is a row that tells nobody anything.
+        if (shelves.isNotEmpty() && !searching) {
+            ShelfRow(shelves, shelf) { library.setShelf(it) }
+        }
 
         if (games.isEmpty()) {
             EmptyState(
@@ -127,7 +140,8 @@ fun HomeScreen(
                 if (shown.isEmpty()) {
                     item {
                         Text(
-                            "Không tìm thấy. Thử một từ khoá khác.",
+                            if (shelf.isEmpty()) "Không tìm thấy. Thử một từ khoá khác."
+                            else "Chưa có trò chơi nào trong \"$shelf\".",
                             color = MobiColors.TextDim,
                             fontSize = 14.sp,
                             modifier = Modifier.padding(16.dp),
@@ -349,4 +363,39 @@ fun GameRow(
             }
         }
     }
+}
+
+/**
+ * The shelves, as a row of chips over the list.
+ *
+ * "Tất cả" is first and is a shelf like the others, because "no filter" is
+ * what a player picks most often and reaching it should not mean finding a
+ * cross to tap.
+ */
+@Composable
+private fun ShelfRow(shelves: List<String>, selected: String, onPick: (String) -> Unit) {
+    LazyRow(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item { ShelfChip("Tất cả", selected.isEmpty()) { onPick("") } }
+        items(shelves) { name ->
+            ShelfChip(name, name == selected) { onPick(if (name == selected) "" else name) }
+        }
+    }
+}
+
+@Composable
+private fun ShelfChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = label,
+        color = if (selected) MobiColors.Background else MobiColors.Text,
+        fontSize = 13.sp,
+        maxLines = 1,
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) MobiColors.Accent else MobiColors.SurfaceAlt)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
 }

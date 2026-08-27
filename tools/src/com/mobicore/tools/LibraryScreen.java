@@ -2,6 +2,7 @@ package com.mobicore.tools;
 
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.gfx.PngReader;
+import com.mobicore.core.library.CollectionStore;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.GameProfile;
@@ -29,6 +30,8 @@ import java.util.Map;
 public final class LibraryScreen {
 
     private final String fixtureDir;
+    /** The shelves the sample library has, drawn as a row over the list. */
+    private CollectionStore shelves;
 
     public LibraryScreen(String fixtureDir) {
         this.fixtureDir = fixtureDir;
@@ -45,6 +48,14 @@ public final class LibraryScreen {
         installExtra(library, "Tile Rush", "MobiCore Samples", "1.0.4", "puzzle.TileRush");
         installExtra(library, "Night Racer", "Blue Fox Games", "2.1", "racer.NightRacer");
         installExtra(library, "Dungeon Bell", "Iron Lantern", "0.9", "rpg.DungeonBell");
+
+        // Real shelves, through the same store the app writes to, so the
+        // screenshot cannot show a feature that does not work.
+        CollectionStore shelves = new CollectionStore(vfs, layout);
+        shelves.add("Chơi trên xe buýt", "mobicore-samples.sky-runner.1-2-0");
+        shelves.add("Chơi trên xe buýt", "mobicore-samples.tile-rush.1-0-4");
+        shelves.add("Đua xe", "blue-fox-games.night-racer.2-1");
+        this.shelves = shelves;
 
         Map<String, GameProfile> profiles = library.allProfiles();
         long now = 1_700_000_000_000L;
@@ -128,6 +139,7 @@ public final class LibraryScreen {
         ui.background(Theme.BG);
 
         int y = toolBar(ui);
+        y = shelfRow(ui, y);
         List<LibraryEntry> games = library.sort(library.all(), GameLibrary.SORT_TITLE, profiles);
         for (int i = 0; i < games.size(); i++) {
             LibraryEntry entry = games.get(i);
@@ -144,6 +156,29 @@ public final class LibraryScreen {
         // screen — always the same corner, never over the list.
         ui.fab(Icons.ADD, 0);
         return frame;
+    }
+
+    /**
+     * The shelves, as a row of chips over the list.
+     *
+     * <p>"Tất cả" is first and is a shelf like the others, because "no
+     * filter" is what a player picks most often and reaching it should not
+     * mean finding a cross to tap. The row appears only once there are
+     * shelves: one chip saying "Tất cả" tells nobody anything.</p>
+     */
+    private int shelfRow(Ui ui, int y) {
+        java.util.List<String> names = shelves == null
+                ? new java.util.ArrayList<String>() : shelves.names();
+        if (names.isEmpty()) {
+            return y;
+        }
+        int top = y + 8;
+        int x = 12;
+        x += ui.chip("Tất cả", x, top, Theme.BG, Theme.ACCENT) + 8;
+        for (int i = 0; i < names.size(); i++) {
+            x += ui.chip(names.get(i), x, top, Theme.TEXT, Theme.SURFACE_ALT) + 8;
+        }
+        return top + ui.chipHeight() + 8;
     }
 
     /**

@@ -10,6 +10,7 @@ import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.library.BatchImport;
+import com.mobicore.core.library.CollectionStore;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryArchive;
 import com.mobicore.core.library.PresetStore;
@@ -68,6 +69,8 @@ public final class MobiCoreFacade {
     private GameLibrary library;
     /** Where downloads go through; built the first time one is asked for. */
     private NetworkStack installerNetwork;
+    /** The player's shelves; read the first time they are asked for. */
+    private CollectionStore collectionStore;
     private StorageLayout layout;
     private EmulatorSession session;
     private String activeSuiteId;
@@ -200,6 +203,119 @@ public final class MobiCoreFacade {
     }
 
     /**
+     * The shelves the player has put their games on.
+     *
+     * <p>Every shelf comes back with how many games are on it, and — when a
+     * game is named — whether that game is on it: the screen that shows this
+     * is the one where a game is put on a shelf, and it has to show both.</p>
+     *
+     * @param suiteId a game to report membership for, or empty for none
+     */
+    public String collectionsJson(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        CollectionStore shelves = collections();
+        List<Object> out = new ArrayList<Object>();
+        List<String> names = shelves.names();
+        for (int i = 0; i < names.size(); i++) {
+            String name = names.get(i);
+            List<String> games = shelves.gamesOn(name);
+            Map<String, Object> shelf = Json.object();
+            shelf.put("name", name);
+            shelf.put("games", Integer.valueOf(games.size()));
+            shelf.put("holds", Boolean.valueOf(suiteId != null && games.contains(suiteId)));
+            out.add(shelf);
+        }
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        json.put("collections", out);
+        return Json.write(json);
+    }
+
+    /** Makes a shelf, empty, for games to be put on. */
+    public String createCollection(String name) {
+        try {
+            return collections().create(name)
+                    ? ok("name", name.trim())
+                    : error("Tên này đã có rồi, hoặc chưa đặt tên");
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Puts a game on a shelf, or takes it off if it is already there. */
+    public String toggleCollection(String name, String suiteId) {
+        try {
+            boolean added = collections().toggle(name, suiteId);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("name", name.trim());
+            json.put("holds", Boolean.valueOf(added));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String renameCollection(String from, String to) {
+        try {
+            return collections().rename(from, to)
+                    ? ok("name", to.trim())
+                    : error("Không đổi được tên: tên mới đã có hoặc chưa đặt");
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Throws away a shelf. The games on it stay installed. */
+    public String deleteCollection(String name) {
+        try {
+            return collections().delete(name)
+                    ? ok("name", name.trim())
+                    : error("Không có bộ sưu tập này");
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * The games on one shelf, in the library's own listing shape.
+     *
+     * <p>The same shape the whole library comes back in, so the screen that
+     * draws a list of games does not need a second way to draw one.</p>
+     */
+    public String collectionJson(String name) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            List<String> ids = collections().gamesOn(name);
+            List<Object> games = new ArrayList<Object>();
+            for (int i = 0; i < ids.size(); i++) {
+                LibraryEntry entry = library.find(ids.get(i));
+                if (entry != null) {
+                    games.add(entry.toJson());
+                }
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("name", name.trim());
+            json.put("games", games);
+            return Json.write(json);
+        } catch (RuntimeException e) {
+            return error(String.valueOf(e.getMessage()));
+        }
+    }
+
+    private CollectionStore collections() {
+        if (collectionStore == null) {
+            collectionStore = new CollectionStore(library.storage(), library.layout());
+        }
+        return collectionStore;
+    }
+
+    /**
      * Installs a game from a link.
      *
      * <p>These games arrive as a link before they arrive as a file. Fetching
@@ -291,6 +407,9 @@ public final class MobiCoreFacade {
             return error("The library is not open");
         }
         try {
+            // A shelf holding the name of something that is gone shows a
+            // count nobody can reach.
+            collections().forget(suiteId);
             return ok("removed", String.valueOf(library.uninstall(suiteId, keepData)));
         } catch (IOException e) {
             return error(e.getMessage());

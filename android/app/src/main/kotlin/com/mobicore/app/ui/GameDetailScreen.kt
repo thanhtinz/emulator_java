@@ -30,6 +30,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +49,7 @@ import com.mobicore.app.data.Artwork
 import com.mobicore.app.data.LibraryRepository
 
 /** Cover, metadata and the actions available for one installed game. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun GameDetailScreen(
     library: LibraryRepository,
@@ -89,6 +94,10 @@ fun GameDetailScreen(
     val profile = profiles[suiteId]
     val artwork = remember(suiteId, coverRevision) { decodeArtwork(library.artwork(suiteId)) }
     val stores = remember(suiteId) { library.records(suiteId).listStoreNames() }
+    // Bumped when a shelf changes: the store is a plain object and Compose
+    // has no way of knowing a list inside it moved.
+    var shelfRevision by remember { mutableIntStateOf(0) }
+    var newShelf by remember { mutableStateOf("") }
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -226,6 +235,74 @@ fun GameDetailScreen(
                         Spacer(Modifier.height(8.dp))
                         Text(coverError!!, color = MobiColors.Bad, fontSize = 13.sp)
                     }
+                }
+            }
+        }
+
+        item {
+            // A shelf is how a person finds a game whose name they do not
+            // remember, so putting one on a shelf belongs here, on the game.
+            val shelves by library.collections.collectAsState()
+            val onShelves = remember(suiteId, shelfRevision) { library.shelvesOf(suiteId) }
+            SectionCard(
+                title = "BỘ SƯU TẬP",
+                trailing = if (onShelves.isEmpty()) null else "${onShelves.size}",
+            ) {
+                Column {
+                    if (shelves.isEmpty()) {
+                        Text(
+                            "Chưa có bộ sưu tập nào. Tạo một cái để xếp game vào.",
+                            color = MobiColors.TextDim,
+                            fontSize = 13.sp,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        shelves.forEach { name ->
+                            val holds = onShelves.contains(name)
+                            Text(
+                                text = name,
+                                color = if (holds) MobiColors.Background else MobiColors.Text,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .padding(vertical = 3.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        if (holds) MobiColors.Accent else MobiColors.SurfaceAlt
+                                    )
+                                    .clickable {
+                                        library.toggleCollection(name, suiteId)
+                                        shelfRevision++
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newShelf,
+                        onValueChange = { newShelf = it },
+                        singleLine = true,
+                        placeholder = { Text("Tên bộ sưu tập mới") },
+                        trailingIcon = {
+                            Text(
+                                "Thêm",
+                                color = if (newShelf.isBlank()) MobiColors.TextDim
+                                else MobiColors.Accent,
+                                fontSize = 14.sp,
+                                modifier = Modifier
+                                    .clickable(enabled = newShelf.isNotBlank()) {
+                                        if (library.createCollection(newShelf)) {
+                                            library.toggleCollection(newShelf, suiteId)
+                                            newShelf = ""
+                                            shelfRevision++
+                                        }
+                                    }
+                                    .padding(horizontal = 12.dp),
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }

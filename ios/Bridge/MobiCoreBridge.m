@@ -447,6 +447,30 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)collectionsJSONForSuite:(NSString *)suiteId {
+    return [_facade collectionsJsonWithNSString:suiteId];
+}
+
+- (NSString *)createCollection:(NSString *)name {
+    return [_facade createCollectionWithNSString:name];
+}
+
+- (NSString *)toggleCollection:(NSString *)name forSuite:(NSString *)suiteId {
+    return [_facade toggleCollectionWithNSString:name withNSString:suiteId];
+}
+
+- (NSString *)renameCollection:(NSString *)from to:(NSString *)to {
+    return [_facade renameCollectionWithNSString:from withNSString:to];
+}
+
+- (NSString *)deleteCollection:(NSString *)name {
+    return [_facade deleteCollectionWithNSString:name];
+}
+
+- (NSString *)collectionJSON:(NSString *)name {
+    return [_facade collectionJsonWithNSString:name];
+}
+
 - (NSString *)installFromURL:(NSString *)url {
     return [_facade installFromUrlWithNSString:url];
 }

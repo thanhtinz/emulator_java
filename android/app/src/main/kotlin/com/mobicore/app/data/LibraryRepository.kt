@@ -8,6 +8,7 @@ import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.library.PresetStore
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
+import com.mobicore.core.library.CollectionStore
 import com.mobicore.core.library.UrlInstaller
 import com.mobicore.core.midp.MidpFiles
 import com.mobicore.core.net.HttpTransport
@@ -58,6 +59,7 @@ class LibraryRepository(filesDir: String) {
     private fun refresh() {
         _games.value = library.all()
         _profiles.value = library.allProfiles()
+        refreshCollections()
     }
 
     fun storageLayout(): StorageLayout = layout
@@ -331,6 +333,63 @@ class LibraryRepository(filesDir: String) {
     /** Keeps a picture of the game; returns where it went. */
     fun writeScreenshot(suiteId: String, png: ByteArray): String =
         library.writeScreenshot(suiteId, png)
+
+    // ------------------------------------------------------------ collections
+
+    /**
+     * Shelves the player puts their games on.
+     *
+     * Search finds a game whose name is remembered; a library of eighty games
+     * is mostly games whose names are not. A shelf is how a person finds
+     * those — by having put them somewhere themselves.
+     */
+    private val shelves by lazy { CollectionStore(library.storage(), library.layout()) }
+
+    private val _collections = MutableStateFlow<List<String>>(emptyList())
+    val collections: StateFlow<List<String>> = _collections
+
+    /** Which shelf the library is filtered to, or empty for all of them. */
+    private val _shelf = MutableStateFlow("")
+    val shelf: StateFlow<String> = _shelf
+
+    fun setShelf(name: String) {
+        _shelf.value = name
+    }
+
+    fun createCollection(name: String): Boolean {
+        val made = shelves.create(name)
+        refreshCollections()
+        return made
+    }
+
+    fun toggleCollection(name: String, suiteId: String): Boolean {
+        val added = shelves.toggle(name, suiteId)
+        refreshCollections()
+        return added
+    }
+
+    fun deleteCollection(name: String) {
+        shelves.delete(name)
+        if (_shelf.value == name) {
+            _shelf.value = ""
+        }
+        refreshCollections()
+    }
+
+    fun shelvesOf(suiteId: String): List<String> = shelves.shelvesOf(suiteId)
+
+    /** The games on one shelf, still in library order. */
+    fun onShelf(name: String, games: List<LibraryEntry>): List<LibraryEntry> {
+        if (name.isEmpty()) {
+            return games
+        }
+        val ids = shelves.gamesOn(name).toSet()
+        return games.filter { ids.contains(it.suiteId()) }
+    }
+
+    private fun refreshCollections() {
+        _collections.value = shelves.names()
+    }
 
     /**
      * Installs a game from a link.

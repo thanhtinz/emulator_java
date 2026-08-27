@@ -391,6 +391,44 @@ final class MobiCoreClient: ObservableObject {
         refresh()
     }
 
+    // ------------------------------------------------------------ collections
+
+    /// Shelves the player puts their games on.
+    ///
+    /// Search finds a game whose name is remembered; a library of eighty games
+    /// is mostly games whose names are not.
+    ///
+    /// - Parameter suiteId: a game to report membership for, or empty.
+    func collections(for suiteId: String = "") -> [Collection] {
+        let payload: CollectionsResponse? = decode(bridge.collectionsJSON(forSuite: suiteId))
+        return payload?.collections ?? []
+    }
+
+    func createCollection(_ name: String) {
+        report(decode(bridge.createCollection(name)))
+    }
+
+    func toggleCollection(_ name: String, for suiteId: String) {
+        report(decode(bridge.toggleCollection(name, forSuite: suiteId)))
+    }
+
+    func deleteCollection(_ name: String) {
+        report(decode(bridge.deleteCollection(name)))
+    }
+
+    /// The games on one shelf, out of the library already in hand.
+    ///
+    /// Filtered here rather than fetched again: the listing is the same list
+    /// of games, and asking for it twice would let the two drift apart.
+    func gamesOn(_ name: String) -> [Game] {
+        if name.isEmpty {
+            return games
+        }
+        let payload: CollectionGames? = decode(bridge.collectionJSON(name))
+        let ids = Set((payload?.games ?? []).map { $0.suiteId })
+        return games.filter { ids.contains($0.suiteId) }
+    }
+
     // ------------------------------------------------------------- from a link
 
     /// Installs a game from a link.

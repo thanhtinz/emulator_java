@@ -7,6 +7,11 @@ struct GameDetailView: View {
     let suiteId: String
 
     @EnvironmentObject private var client: MobiCoreClient
+    /// The shelves, re-read after every change so the ticks follow.
+    @State private var shelves: [Collection] = []
+    @State private var newShelf = ""
+
+    private var onShelves: [Collection] { shelves.filter { $0.holds } }
     @Environment(\.dismiss) private var dismiss
     @State private var confirmUninstall = false
     @State private var playing = false
@@ -147,7 +152,52 @@ struct GameDetailView: View {
                     NavigationLink {
                         SavesView(suiteId: suiteId)
                     } label: {
-                        SectionCard(title: "DỮ LIỆU LƯU", trailing: "\(game.stores) kho") {
+                        // A shelf is how a person finds a game whose name they do
+                    // not remember, so putting one on a shelf belongs here.
+                    SectionCard(title: "BỘ SƯU TẬP",
+                                trailing: onShelves.isEmpty ? nil : "\(onShelves.count)") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if shelves.isEmpty {
+                                Text("Chưa có bộ sưu tập nào. Tạo một cái để xếp game vào.")
+                                    .font(.footnote)
+                                    .foregroundStyle(Palette.textDim)
+                            }
+                            ForEach(shelves) { collection in
+                                HStack {
+                                    Text(collection.name)
+                                        .font(.footnote)
+                                        .foregroundStyle(Palette.text)
+                                    Spacer()
+                                    Image(systemName: collection.holds
+                                          ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(collection.holds
+                                                         ? Palette.accent : Palette.textDim)
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    client.toggleCollection(collection.name, for: suiteId)
+                                    shelves = client.collections(for: suiteId)
+                                }
+                            }
+                            HStack {
+                                TextField("Tên bộ sưu tập mới", text: $newShelf)
+                                    .font(.footnote)
+                                Button("Thêm") {
+                                    let name = newShelf.trimmingCharacters(in: .whitespaces)
+                                    guard !name.isEmpty else { return }
+                                    client.createCollection(name)
+                                    client.toggleCollection(name, for: suiteId)
+                                    newShelf = ""
+                                    shelves = client.collections(for: suiteId)
+                                }
+                                .font(.footnote)
+                                .foregroundStyle(newShelf.trimmingCharacters(in: .whitespaces)
+                                                 .isEmpty ? Palette.textDim : Palette.accent)
+                            }
+                        }
+                    }
+
+                    SectionCard(title: "DỮ LIỆU LƯU", trailing: "\(game.stores) kho") {
                             Text(game.stores == 0
                                  ? "Trò chơi này chưa lưu gì."
                                  : "Quản lý kho bản ghi và bản sao lưu")
@@ -230,7 +280,10 @@ struct GameDetailView: View {
             }
         }
         .background(Palette.background)
-        .onAppear { midlets = client.midlets(suiteId) }
+        .onAppear {
+            midlets = client.midlets(suiteId)
+            shelves = client.collections(for: suiteId)
+        }
         .navigationTitle(game?.title ?? "Trò chơi")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
