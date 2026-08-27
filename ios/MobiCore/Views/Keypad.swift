@@ -42,6 +42,11 @@ struct Keypad: View {
 
     /// Square, and sized off the screen the way J2ME Loader does it.
     var key: CGFloat = KeyMetrics.upright
+    /// Which keys to show; see `GameProfile.KEYPAD_*` in the core.
+    var layout: Int = 0
+
+    private var arrows: Bool { layout == 0 || layout == 1 }
+    private var numbers: Bool { layout == 0 || layout == 2 }
 
     var body: some View {
         VStack(spacing: KeyMetrics.gap * 3) {
@@ -54,10 +59,18 @@ struct Keypad: View {
                 SoftKey(label: rightSoftKey, button: "softRight", key: key,
                         onPress: onPress, onRelease: onRelease)
             }
+            // A pad left on its own takes the middle: no reason to keep a
+            // hole where the other half of the keypad used to be.
             HStack(alignment: .center) {
-                numericPad
-                Spacer(minLength: 12)
-                directionalPad
+                if numbers {
+                    numericPad
+                }
+                if arrows && numbers {
+                    Spacer(minLength: 12)
+                }
+                if arrows {
+                    directionalPad
+                }
             }
         }
     }

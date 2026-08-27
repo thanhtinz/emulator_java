@@ -318,6 +318,41 @@ public final class GameLibrary {
         }
     }
 
+    /**
+     * Keeps a picture of the game, named by when it was taken.
+     *
+     * <p>Every emulator of this kind has this, and for the same reason: a
+     * J2ME game has no way of showing anyone what happened in it. The file
+     * sits in the app's own folder under a readable name rather than being
+     * pushed into the phone's gallery, which is a decision about someone
+     * else's photo library.</p>
+     *
+     * @return where it was written
+     */
+    public String writeScreenshot(String suiteId, byte[] png) throws IOException {
+        if (!entries.containsKey(suiteId)) {
+            throw new IOException("No installed suite with id " + suiteId);
+        }
+        if (png == null || png.length == 0) {
+            throw new IOException("Nothing to save");
+        }
+        vfs.mkdirs(layout.screenshotDir(suiteId));
+        String path = StorageLayout.join(layout.screenshotDir(suiteId), clock + ".png");
+        vfs.write(path, png);
+        return path;
+    }
+
+    /** Every picture taken of one game, oldest first. */
+    public List<String> screenshotsFor(String suiteId) throws IOException {
+        String dir = layout.screenshotDir(suiteId);
+        if (!vfs.exists(dir)) {
+            return new ArrayList<String>();
+        }
+        List<String> names = vfs.list(dir);
+        java.util.Collections.sort(names);
+        return names;
+    }
+
     public byte[] readSaveState(String suiteId) throws IOException {
         String path = layout.saveStatePath(suiteId);
         return vfs.exists(path) ? vfs.read(path) : null;

@@ -38,13 +38,11 @@ struct EmulatorView: View {
                     .font(.caption)
                     .foregroundStyle(Palette.textDim)
                 Spacer()
-                Button(landscape ? "Dọc" : "Ngang") {
-                    client.toggleOrientation(suiteId)
-                }
-                Spacer()
                 Button(engine.isPaused ? "Tiếp tục" : "Tạm ngưng") {
                     engine.isPaused ? engine.resume() : engine.pause()
                 }
+                Spacer(minLength: 12)
+                gameMenu
             }
             .tint(Palette.accent)
             .padding(.horizontal, 16)
@@ -96,7 +94,8 @@ struct EmulatorView: View {
                         onPress: { engine.press($0) },
                         onRelease: { engine.release($0) },
                         leftSoftKey: engine.leftSoftKeyLabel,
-                        rightSoftKey: engine.rightSoftKeyLabel
+                        rightSoftKey: engine.rightSoftKeyLabel,
+                        layout: settings?.keypadLayout ?? 0
                     )
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
@@ -117,6 +116,53 @@ struct EmulatorView: View {
             // upright.
             turnDevice(to: false)
         }
+    }
+}
+
+private extension EmulatorView {
+
+    /// The menu behind the toolbar, and the reason it exists.
+    ///
+    /// J2ME Loader keeps exactly this set behind its overflow — a screenshot,
+    /// which keys the keypad shows, which way the screen is held, the way out
+    /// — because these are the things a player wants *while* a game is
+    /// running and cannot reach from a settings page they would have to quit
+    /// to get to.
+    var gameMenu: some View {
+        Menu {
+            Button {
+                client.takeScreenshot()
+            } label: {
+                Label("Chụp màn hình", systemImage: "camera")
+            }
+            Button {
+                client.cycleKeypadLayout(suiteId)
+            } label: {
+                Label("Bàn phím: \(settings?.keypadLayoutName ?? "Đầy đủ")",
+                      systemImage: "slider.horizontal.3")
+            }
+            Button {
+                client.toggleOrientation(suiteId)
+            } label: {
+                Label(landscape ? "Màn hình: Ngang" : "Màn hình: Dọc",
+                      systemImage: "rotate.right")
+            }
+            Button {
+                client.saveState()
+            } label: {
+                Label("Lưu trạng thái", systemImage: "square.and.arrow.down")
+            }
+            Button(role: .destructive) {
+                engine.stop()
+                client.refresh()
+                dismiss()
+            } label: {
+                Label("Thoát", systemImage: "rectangle.portrait.and.arrow.right")
+            }
+        } label: {
+            Text("Menu")
+        }
+        .tint(Palette.accent)
     }
 }
 

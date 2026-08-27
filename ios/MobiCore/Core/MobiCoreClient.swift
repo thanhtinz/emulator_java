@@ -160,6 +160,11 @@ final class MobiCoreClient: ObservableObject {
         return Image(uiImage: image)
     }
 
+    /// Saves where the player is now, without leaving the game.
+    func saveState() {
+        report(decode(bridge.saveState()))
+    }
+
     func deleteSaveState(_ suiteId: String) {
         report(decode(bridge.deleteSaveState(forSuite: suiteId)))
         refresh()
@@ -215,6 +220,18 @@ final class MobiCoreClient: ObservableObject {
     func toggleOrientation(_ suiteId: String) {
         report(decode(bridge.toggleOrientation(forSuite: suiteId)))
         refresh()
+    }
+
+    /// Which keys the keypad shows, cycled the way J2ME Loader's "switch
+    /// layout" does it: full, arrows only, numbers only, hidden.
+    func cycleKeypadLayout(_ suiteId: String) {
+        report(decode(bridge.cycleKeypadLayout(forSuite: suiteId)))
+        refresh()
+    }
+
+    /// Keeps a picture of what the running game is showing.
+    func takeScreenshot() {
+        report(decode(bridge.takeScreenshot()))
     }
 
     func setInputPreset(_ preset: String, for suiteId: String) {

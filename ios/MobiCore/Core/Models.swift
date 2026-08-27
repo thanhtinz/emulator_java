@@ -29,6 +29,7 @@ struct GameSettings: Codable, Hashable {
     var input: InputSettings
     var scaleMode: Int
     var orientation: Int
+    var keypadLayout: Int
     var frameLimit: Int
     var volume: Int
     var muted: Bool
@@ -52,6 +53,19 @@ struct GameSettings: Codable, Hashable {
 
     static let scaleModeNames = ["Vừa khung", "Bội số nguyên", "Kéo đầy", "Nguyên cỡ"]
     static let networkModeNames = ["Chặn", "Hỏi trước", "Cho phép"]
+
+    /// What the in-game menu shows beside "Bàn phím".
+    var keypadLayoutName: String {
+        switch keypadLayout {
+        case 1: return "Chỉ phím hướng"
+        case 2: return "Chỉ phím số"
+        case 3: return "Ẩn bàn phím"
+        default: return "Đầy đủ"
+        }
+    }
+
+    var showsArrows: Bool { keypadLayout == 0 || keypadLayout == 1 }
+    var showsNumbers: Bool { keypadLayout == 0 || keypadLayout == 2 }
 
     var scaleModeName: String { Self.scaleModeNames[safe: scaleMode] ?? "Bội số nguyên" }
     var networkModeName: String { Self.networkModeNames[safe: networkMode] ?? "Hỏi trước" }

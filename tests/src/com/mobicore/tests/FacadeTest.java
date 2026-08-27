@@ -123,6 +123,20 @@ public final class FacadeTest extends Test {
         check(!Json.bool(Json.readObject(facade.toggleOrientation("nope")), "ok", true),
                 "a game that is not there cannot be turned");
 
+        // Which keys the keypad shows -------------------------------------
+        eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
+                "the whole keypad is there to begin with");
+        Map<String, Object> cycled = Json.readObject(facade.cycleKeypadLayout(suiteId));
+        eq(1, Json.integer(cycled, "keypadLayout", -1), "and switches to the pad alone");
+        eq("Chỉ phím hướng", Json.string(cycled, "name", ""), "with a name for the menu");
+        facade.cycleKeypadLayout(suiteId);
+        facade.cycleKeypadLayout(suiteId);
+        eq(3, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
+                "then the numbers alone, then out of the way entirely");
+        facade.cycleKeypadLayout(suiteId);
+        eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
+                "and round again");
+
         // Searching across the bridge --------------------------------------
         facade.renameGame(suiteId, "Người Chạy Trên Mây");
         Map<String, Object> hit = Json.readObject(facade.searchJson("nguoi chay", 0));
@@ -210,6 +224,12 @@ public final class FacadeTest extends Test {
         facade.pointerPressed(10, 10);
         facade.pointerReleased(10, 10);
         check(facade.screenshotPng().length > 100, "a screenshot crosses the bridge as PNG bytes");
+
+        // Keeping one is the point: a MIDlet cannot show anyone what it did.
+        Map<String, Object> shot = Json.readObject(facade.takeScreenshot());
+        check(Json.bool(shot, "ok", false), "and can be kept");
+        check(Json.string(shot, "path", "").indexOf("screenshots") >= 0,
+                "under the game's own folder: " + Json.string(shot, "path", ""));
 
         facade.pauseGame();
         facade.resumeGame();

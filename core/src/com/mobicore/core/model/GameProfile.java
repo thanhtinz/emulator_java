@@ -20,6 +20,20 @@ public final class GameProfile {
     public static final int SCALE_STRETCH = 2;
     public static final int SCALE_ORIGINAL = 3;
 
+    /**
+     * Which keys the virtual keypad shows.
+     *
+     * <p>Straight from J2ME Loader, whose keypad can be switched between a
+     * full phone layout, numbers with arrows, either one alone, or hidden
+     * altogether. It is not a cosmetic choice: a game that only reads the pad
+     * gains the whole bottom of the screen by dropping the numbers, and a
+     * touch game wants the keypad out of the way entirely.</p>
+     */
+    public static final int KEYPAD_FULL = 0;
+    public static final int KEYPAD_ARROWS = 1;
+    public static final int KEYPAD_NUMBERS = 2;
+    public static final int KEYPAD_HIDDEN = 3;
+
     public static final int NETWORK_BLOCKED = 0;
     public static final int NETWORK_ASK = 1;
     public static final int NETWORK_ALLOWED = 2;
@@ -29,6 +43,7 @@ public final class GameProfile {
     private InputProfile input;
     private int scaleMode = SCALE_FIT;
     private int orientation = DeviceProfile.ORIENTATION_PORTRAIT;
+    private int keypadLayout = KEYPAD_FULL;
     private int frameLimit = 30;
     private int volume = 70;
     private boolean muted;
@@ -145,6 +160,34 @@ public final class GameProfile {
 
     public void setOrientation(int orientation) {
         this.orientation = orientation;
+    }
+
+    public int keypadLayout() {
+        return keypadLayout;
+    }
+
+    public void setKeypadLayout(int layout) {
+        this.keypadLayout = layout < KEYPAD_FULL || layout > KEYPAD_HIDDEN ? KEYPAD_FULL : layout;
+    }
+
+    /** What the menu shows for the current layout. */
+    public String keypadLayoutName() {
+        switch (keypadLayout) {
+            case KEYPAD_ARROWS: return "Chỉ phím hướng";
+            case KEYPAD_NUMBERS: return "Chỉ phím số";
+            case KEYPAD_HIDDEN: return "Ẩn bàn phím";
+            default: return "Đầy đủ";
+        }
+    }
+
+    /** True when the pad half of the keypad is drawn. */
+    public boolean showsArrows() {
+        return keypadLayout == KEYPAD_FULL || keypadLayout == KEYPAD_ARROWS;
+    }
+
+    /** True when the 3x4 grid is drawn. */
+    public boolean showsNumbers() {
+        return keypadLayout == KEYPAD_FULL || keypadLayout == KEYPAD_NUMBERS;
     }
 
     public int frameLimit() {
@@ -292,6 +335,7 @@ public final class GameProfile {
         json.put("input", input.toJson());
         json.put("scaleMode", Integer.valueOf(scaleMode));
         json.put("orientation", Integer.valueOf(orientation));
+        json.put("keypadLayout", Integer.valueOf(keypadLayout));
         json.put("frameLimit", Integer.valueOf(frameLimit));
         json.put("volume", Integer.valueOf(volume));
         json.put("muted", Boolean.valueOf(muted));
@@ -316,6 +360,7 @@ public final class GameProfile {
                 InputProfile.fromJson(Json.child(json, "input")));
         profile.scaleMode = Json.integer(json, "scaleMode", SCALE_FIT);
         profile.orientation = Json.integer(json, "orientation", DeviceProfile.ORIENTATION_PORTRAIT);
+        profile.keypadLayout = Json.integer(json, "keypadLayout", KEYPAD_FULL);
         profile.frameLimit = Json.integer(json, "frameLimit", 30);
         profile.volume = Json.integer(json, "volume", 70);
         profile.muted = Json.bool(json, "muted", false);

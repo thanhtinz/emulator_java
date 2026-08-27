@@ -16,6 +16,7 @@
 | 12 | Giao diện sáng / tối | Xong |
 | 13 | Tìm game không dấu | Xong |
 | 14 | Đánh dấu phím mềm L/R và màn hình ngang | Xong |
+| 15 | Menu trong game và bàn phím đổi kiểu | Xong |
 
 ## Giai đoạn 1 — đã hoàn thành
 
@@ -641,3 +642,32 @@ PHONE_KEY_SCALE_X = 2.0f;  PHONE_KEY_SCALE_Y = 0.75f;   // riêng phím mềm
   khoá xoay màn hình, và một game từ chối chạy vì lý do đó thì tệ hơn nhiều.
 
 Ảnh: `build/screenshots/18-landscape.png`.
+
+## Menu trong game và bàn phím đổi kiểu
+
+Xem J2ME Loader làm gì trong lúc chơi: nó có một menu ngay trên thanh công cụ,
+gồm `action_take_screenshot`, `action_lock_orientation`, `action_ime_keyboard`,
+`action_limit_fps`, `action_layout_switch`, `action_hide_buttons`,
+`action_exit_midlet`. App này trước đó chỉ có nút "Thư viện" và "Tạm ngưng" —
+mọi thứ khác phải thoát game mới chỉnh được.
+
+Nay màn chơi có **Menu** với đúng những việc người ta cần *trong lúc* chơi:
+
+- **Chụp màn hình** — game J2ME không có cách nào tự khoe nó vừa làm gì. Ảnh
+  vào thư mục `screenshots/<game>/` của app, không đẩy vào thư viện ảnh của máy
+  (đó là album của người ta, không phải của app).
+- **Bàn phím** — đổi vòng: Đầy đủ → Chỉ phím hướng → Chỉ phím số → Ẩn bàn phím,
+  đúng kiểu `layout_switch` + `hide_buttons` bên đó. Không phải thứ trang trí:
+  game chỉ đọc phím hướng thì bỏ bàn phím số đi là game được thêm cả một vùng
+  màn hình; game cảm ứng thì ẩn hẳn. Khi chỉ còn một bàn phím, nó nằm giữa chứ
+  không để trống một bên.
+- **Màn hình** — dọc/ngang (giữ từ phần trước).
+- **Lưu trạng thái** — lưu ngay mà không cần thoát.
+- **Thoát** — vẫn lưu trước khi ra, như cũ.
+
+Bộ biểu tượng thêm `screen_rotation`, `speed`, `exit_to_app`. Để tô được
+`speed`, `codegen/IconGen.java` học thêm lệnh cung `A`/`a` của SVG (chuyển từ
+dạng "điểm cuối" sang tâm — theo phụ lục cài đặt của đặc tả SVG) — trước đó gặp
+cung là ném lỗi, mà phần lớn biểu tượng Material có hình tròn đều dùng cung.
+
+Ảnh: `build/screenshots/19-keypad-arrows.png`, `build/screenshots/20-game-menu.png`.

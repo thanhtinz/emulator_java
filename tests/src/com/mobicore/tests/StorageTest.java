@@ -19,13 +19,15 @@ public final class StorageTest extends Test {
         eq("/data/MobiCore/rms/demo", layout.rmsDir("demo"), "RMS is sandboxed per suite");
         eq("/data/MobiCore/profiles/demo.json", layout.profilePath("demo"), "profile path");
         eq("/data/MobiCore/library.json", layout.libraryIndexPath(), "library index at the root");
-        eq(9, StorageLayout.TOP_LEVEL.length, "all documented directories are declared");
+        eq("/data/MobiCore/screenshots/demo", layout.screenshotDir("demo"),
+                "pictures of a game live under its own name");
+        eq(10, StorageLayout.TOP_LEVEL.length, "all documented directories are declared");
 
         Vfs vfs = new MemoryVfs();
         for (String dir : StorageLayout.TOP_LEVEL) {
             vfs.mkdirs(layout.dir(dir));
         }
-        eq(9, vfs.list(layout.root()).size(), "every top level directory is created");
+        eq(10, vfs.list(layout.root()).size(), "every top level directory is created");
         check(vfs.isDirectory(layout.dir(StorageLayout.GAMES)), "games is a directory");
 
         vfs.write(layout.jarPath("demo"), new byte[]{1, 2, 3});

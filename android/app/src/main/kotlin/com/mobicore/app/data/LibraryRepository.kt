@@ -266,6 +266,24 @@ class LibraryRepository(filesDir: String) {
         return turned
     }
 
+    /**
+     * Which keys the keypad shows, cycled the way J2ME Loader's "switch
+     * layout" does it: full, arrows only, numbers only, hidden. A player
+     * works out mid-game that a game only reads the pad, and dropping the
+     * numbers hands that space straight back to the game.
+     */
+    fun cycleKeypadLayout(suiteId: String): String {
+        val profile = library.profile(suiteId) ?: return ""
+        profile.setKeypadLayout((profile.keypadLayout() + 1) % 4)
+        library.saveProfile(profile)
+        refresh()
+        return profile.keypadLayoutName()
+    }
+
+    /** Keeps a picture of the game; returns where it went. */
+    fun writeScreenshot(suiteId: String, png: ByteArray): String =
+        library.writeScreenshot(suiteId, png)
+
     fun toggleFavourite(suiteId: String) {
         val profile = library.profile(suiteId) ?: return
         profile.isFavourite = !profile.isFavourite

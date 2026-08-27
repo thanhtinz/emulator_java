@@ -117,6 +117,12 @@ NS_ASSUME_NONNULL_BEGIN
 /** Portrait to landscape and back, remembered with the game. */
 - (NSString *)toggleOrientationForSuite:(NSString *)suiteId;
 
+/** Full keypad, arrows only, numbers only, hidden — and round again. */
+- (NSString *)cycleKeypadLayoutForSuite:(NSString *)suiteId;
+
+/** Saves a picture of what the running game is showing. */
+- (NSString *)takeScreenshot;
+
 #pragma mark - Saves
 
 - (NSString *)savesJSONForSuite:(NSString *)suiteId;

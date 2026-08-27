@@ -356,6 +356,73 @@ public final class MobiCoreFacade {
                 ? DeviceProfile.ORIENTATION_LANDSCAPE : DeviceProfile.ORIENTATION_PORTRAIT);
     }
 
+    /**
+     * Saves a picture of what is on screen right now.
+     *
+     * <p>The one thing a player wants mid-game that the game itself cannot
+     * do: a J2ME MIDlet has no way of showing anyone what just happened in
+     * it.</p>
+     */
+    public String takeScreenshot() {
+        if (library == null || session == null || activeSuiteId == null) {
+            return error("No game is running");
+        }
+        try {
+            String path = library.writeScreenshot(activeSuiteId, session.screenshotPng());
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("path", path);
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Which keys the keypad shows, cycled the way J2ME Loader's "switch
+     * layout" does it: full, arrows only, numbers only, hidden.
+     *
+     * <p>Worth a place in the in-game menu rather than a settings page: a
+     * player works out that a game only uses the pad while playing it, and
+     * dropping the numbers hands that space back to the game there and
+     * then.</p>
+     */
+    public String cycleKeypadLayout(String suiteId) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.setKeypadLayout((profile.keypadLayout() + 1) % 4);
+            library.saveProfile(profile);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("keypadLayout", Integer.valueOf(profile.keypadLayout()));
+            json.put("name", profile.keypadLayoutName());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String setKeypadLayout(String suiteId, int layout) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.setKeypadLayout(layout);
+            library.saveProfile(profile);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("keypadLayout", Integer.valueOf(profile.keypadLayout()));
+            json.put("name", profile.keypadLayoutName());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
     /** Portrait to landscape and back: what the rotate button calls. */
     public String toggleOrientation(String suiteId) {
         try {

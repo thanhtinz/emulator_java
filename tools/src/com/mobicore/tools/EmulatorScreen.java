@@ -45,6 +45,8 @@ public final class EmulatorScreen {
     private final String midletClass;
     private final int gameWidth;
     private final int gameHeight;
+    private int keypadLayout = com.mobicore.core.model.GameProfile.KEYPAD_FULL;
+    private boolean menuOpen;
 
     public EmulatorScreen(String fixtureDir) {
         this(fixtureDir, null);
@@ -72,6 +74,18 @@ public final class EmulatorScreen {
 
     public EmulatorSession session() {
         return session;
+    }
+
+    /** Which keys the keypad shows; see {@code GameProfile.KEYPAD_*}. */
+    public EmulatorScreen withKeypad(int layout) {
+        this.keypadLayout = layout;
+        return this;
+    }
+
+    /** Draws the in-game menu over the screen, as if "Menu" was tapped. */
+    public EmulatorScreen withMenu() {
+        this.menuOpen = true;
+        return this;
     }
 
     /** Boots the suite and advances it far enough to be worth looking at. */
@@ -122,13 +136,78 @@ public final class EmulatorScreen {
 
         topBar(ui, barHeight, frame.width());
         controls(ui, top, controlHeight, key);
+        if (menuOpen) {
+            gameMenu(ui, barHeight);
+        }
         return frame;
     }
 
-    /** Softkey bar, then the two pads, at J2ME Loader's proportions. */
+    /**
+     * The in-game menu, which J2ME Loader puts behind the toolbar's overflow
+     * and which this app had nowhere at all.
+     *
+     * <p>Its items are the ones a player reaches for mid-game and cannot
+     * reach from a settings page they would have to quit to: a screenshot,
+     * how much of the keypad is in the way, which way the phone is held, and
+     * the way out that saves first.</p>
+     */
+    private void gameMenu(Ui ui, int barHeight) {
+        Framebuffer frame = ui.frame();
+        // The screen behind is dimmed rather than covered: the game is still
+        // there, and this is a menu over it, not another screen.
+        frame.setColor(0xB0000000);
+        frame.fillRect(0, 0, frame.width(), frame.height());
+
+        String[][] items = {
+                {Icons.CAMERA, "Chụp màn hình", ""},
+                {Icons.TUNE, "Bàn phím", "Đầy đủ"},
+                {Icons.ROTATE, "Màn hình", "Dọc"},
+                {Icons.SPEED, "Khung hình", "30/giây"},
+                {Icons.SAVE, "Lưu trạng thái", ""},
+                {Icons.EXIT, "Thoát", ""},
+        };
+        int width = 320;
+        int rowHeight = ui.medium().height() + 26;
+        int height = rowHeight * items.length + 16;
+        int x = frame.width() - width - Ui.PAD;
+        int y = barHeight + 6;
+        ui.panel(x, y, width, height, Theme.SURFACE, Theme.BORDER);
+
+        int glyph = ui.medium().height() + 4;
+        for (int i = 0; i < items.length; i++) {
+            int rowY = y + 8 + i * rowHeight;
+            Icons.draw(frame, items[i][0], x + 16, rowY + (rowHeight - glyph) / 2, glyph,
+                    Theme.ACCENT);
+            ui.text(ui.medium(), items[i][1], x + 16 + glyph + 14,
+                    rowY + (rowHeight - ui.medium().height()) / 2, Theme.TEXT);
+            if (items[i][2].length() > 0) {
+                ui.textRight(ui.small(), items[i][2], x + width - 16,
+                        rowY + (rowHeight - ui.small().height()) / 2, Theme.TEXT_DIM);
+            }
+        }
+    }
+
+    /** Softkey bar, then whichever pads the layout shows. */
     private int controlHeight(Ui ui, int key) {
         int soft = (int) (key * SOFT_SCALE_Y);
-        return 12 + soft + 14 + key * 4 + GAP * 3 + 12;
+        int rows = 0;
+        if (showsNumbers()) {
+            rows = 4;
+        } else if (showsArrows()) {
+            rows = 3;
+        }
+        int pads = rows == 0 ? 0 : 14 + key * rows + GAP * (rows - 1);
+        return 12 + soft + pads + 12;
+    }
+
+    private boolean showsArrows() {
+        return keypadLayout == com.mobicore.core.model.GameProfile.KEYPAD_FULL
+                || keypadLayout == com.mobicore.core.model.GameProfile.KEYPAD_ARROWS;
+    }
+
+    private boolean showsNumbers() {
+        return keypadLayout == com.mobicore.core.model.GameProfile.KEYPAD_FULL
+                || keypadLayout == com.mobicore.core.model.GameProfile.KEYPAD_NUMBERS;
     }
 
     /**
@@ -262,8 +341,16 @@ public final class EmulatorScreen {
         }
 
         int padTop = y + softHeight + 14;
-        numericPad(ui, margin, padTop, key);
-        directionalPad(ui, frame.width() - margin - padWidth, padTop + (key + GAP) / 2, key);
+        boolean both = showsArrows() && showsNumbers();
+        if (showsNumbers()) {
+            numericPad(ui, both ? margin : (frame.width() - padWidth) / 2, padTop, key);
+        }
+        if (showsArrows()) {
+            // Alone, a pad takes the middle: there is no reason to leave a
+            // hole where the other half of the keypad used to be.
+            int x = both ? frame.width() - margin - padWidth : (frame.width() - padWidth) / 2;
+            directionalPad(ui, x, padTop + (both ? (key + GAP) / 2 : 0), key);
+        }
     }
 
     /**

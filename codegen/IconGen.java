@@ -1,4 +1,6 @@
 import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Arc2D;
 import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -164,6 +166,23 @@ public final class IconGen {
                     y = ey;
                     break;
                 }
+                case 'A': {
+                    // Elliptical arc. Material icons use these for anything
+                    // with a genuine circle in it, and a parser that stops at
+                    // the first one would keep sending someone back here for
+                    // every other icon.
+                    double rx = in.number();
+                    double ry = in.number();
+                    double rotation = in.number();
+                    boolean largeArc = in.number() != 0;
+                    boolean sweep = in.number() != 0;
+                    double ex = relative ? x + in.number() : in.number();
+                    double ey = relative ? y + in.number() : in.number();
+                    arcTo(path, x, y, rx, ry, rotation, largeArc, sweep, ex, ey);
+                    x = ex;
+                    y = ey;
+                    break;
+                }
                 case 'Z': {
                     path.closePath();
                     x = startX;
@@ -176,6 +195,74 @@ public final class IconGen {
             previous = command;
         }
         return path;
+    }
+
+    /**
+     * Appends an SVG elliptical arc to {@code path}.
+     *
+     * <p>SVG states an arc by where it ends; Java2D wants its centre, so this
+     * is the endpoint-to-centre conversion from the SVG specification's
+     * implementation notes, followed by an {@link Arc2D} appended to the
+     * path.</p>
+     */
+    private static void arcTo(Path2D.Double path, double x, double y, double rx, double ry,
+                              double rotation, boolean largeArc, boolean sweep,
+                              double ex, double ey) {
+        if (rx == 0 || ry == 0) {
+            path.lineTo(ex, ey);
+            return;
+        }
+        rx = Math.abs(rx);
+        ry = Math.abs(ry);
+        double angle = Math.toRadians(rotation % 360.0);
+        double cos = Math.cos(angle);
+        double sin = Math.sin(angle);
+
+        double dx2 = (x - ex) / 2.0;
+        double dy2 = (y - ey) / 2.0;
+        double x1 = cos * dx2 + sin * dy2;
+        double y1 = -sin * dx2 + cos * dy2;
+
+        // An arc whose radii cannot span the two points is scaled up until it
+        // can, which is what the specification asks for rather than an error.
+        double lambda = (x1 * x1) / (rx * rx) + (y1 * y1) / (ry * ry);
+        if (lambda > 1) {
+            double scale = Math.sqrt(lambda);
+            rx *= scale;
+            ry *= scale;
+        }
+
+        double sign = largeArc == sweep ? -1 : 1;
+        double numerator = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1;
+        double denominator = rx * rx * y1 * y1 + ry * ry * x1 * x1;
+        double coefficient = sign * Math.sqrt(Math.max(0, numerator / denominator));
+        double cx1 = coefficient * rx * y1 / ry;
+        double cy1 = -coefficient * ry * x1 / rx;
+        double cx = cos * cx1 - sin * cy1 + (x + ex) / 2.0;
+        double cy = sin * cx1 + cos * cy1 + (y + ey) / 2.0;
+
+        double startAngle = angleBetween(1, 0, (x1 - cx1) / rx, (y1 - cy1) / ry);
+        double extent = angleBetween((x1 - cx1) / rx, (y1 - cy1) / ry,
+                (-x1 - cx1) / rx, (-y1 - cy1) / ry);
+        if (!sweep && extent > 0) {
+            extent -= 2 * Math.PI;
+        } else if (sweep && extent < 0) {
+            extent += 2 * Math.PI;
+        }
+
+        // Java2D measures angles the other way round the circle.
+        Arc2D.Double arc = new Arc2D.Double();
+        arc.setArc(cx - rx, cy - ry, rx * 2, ry * 2,
+                -Math.toDegrees(startAngle), -Math.toDegrees(extent), Arc2D.OPEN);
+        AffineTransform spin = AffineTransform.getRotateInstance(angle, cx, cy);
+        path.append(spin.createTransformedShape(arc), true);
+    }
+
+    private static double angleBetween(double ux, double uy, double vx, double vy) {
+        double dot = ux * vx + uy * vy;
+        double length = Math.sqrt(ux * ux + uy * uy) * Math.sqrt(vx * vx + vy * vy);
+        double value = Math.acos(Math.max(-1, Math.min(1, dot / length)));
+        return ux * vy - uy * vx < 0 ? -value : value;
     }
 
     /** Splits path data into commands and numbers. */

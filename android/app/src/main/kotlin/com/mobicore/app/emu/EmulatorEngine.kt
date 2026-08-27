@@ -254,8 +254,6 @@ class EmulatorEngine(
 
     fun rightSoftKeyLabel(): String? = session?.rightSoftKeyLabel()
 
-    fun screenshot(): ByteArray? = session?.screenshotPng()
-
     fun logLines(): List<String> =
         session?.log()?.entries()?.map { it.toString() } ?: emptyList()
 }

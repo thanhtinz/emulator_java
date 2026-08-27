@@ -51,6 +51,10 @@ public final class Icons {
     public static final String DOWN_RIGHT = "south_east";
     /** Shown when the game wants text and the phone's keyboard can be used. */
     public static final String KEYBOARD = "keyboard";
+    /** In-game menu: turn the screen, cap the frame rate, leave the game. */
+    public static final String ROTATE = "screen_rotation";
+    public static final String SPEED = "speed";
+    public static final String EXIT = "exit_to_app";
     public static final String LIGHT_MODE = "brightness_high";
     public static final String DARK_MODE = "brightness_4";
 

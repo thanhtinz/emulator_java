@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mobicore.core.model.GameProfile
 
 /**
  * Key metrics taken from J2ME Loader's on-screen keypad, which is the one
@@ -84,7 +85,11 @@ fun Keypad(
     leftSoftKey: String?,
     rightSoftKey: String?,
     modifier: Modifier = Modifier,
+    /** Which keys to show; see `GameProfile.KEYPAD_*`. */
+    layout: Int = GameProfile.KEYPAD_FULL,
 ) {
+    val arrows = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_ARROWS
+    val numbers = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_NUMBERS
     val key = uprightKeySize()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(GAP * 3)) {
         // Directly under the screen, so they line up with the labels the
@@ -96,13 +101,20 @@ fun Keypad(
             SoftKey(leftSoftKey, "softLeft", onPress, onRelease, key)
             SoftKey(rightSoftKey, "softRight", onPress, onRelease, key)
         }
+        // A pad left on its own takes the middle: there is no reason to keep
+        // a hole where the other half of the keypad used to be.
         Row(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement =
+                if (arrows && numbers) Arrangement.SpaceBetween else Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            NumericPad(onPress, onRelease, key)
-            DirectionalPad(onPress, onRelease, key)
+            if (numbers) {
+                NumericPad(onPress, onRelease, key)
+            }
+            if (arrows) {
+                DirectionalPad(onPress, onRelease, key)
+            }
         }
     }
 }

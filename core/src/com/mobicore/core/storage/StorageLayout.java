@@ -28,11 +28,12 @@ public final class StorageLayout {
     public static final String SKINS = "skins";
     public static final String MODS = "mods";
     public static final String BACKUPS = "backups";
+    public static final String SCREENSHOTS = "screenshots";
     public static final String LOGS = "logs";
     public static final String CACHE = "cache";
 
     public static final String[] TOP_LEVEL = {
-            GAMES, PROFILES, RMS, SAVES, SKINS, MODS, BACKUPS, LOGS, CACHE
+            GAMES, PROFILES, RMS, SAVES, SKINS, MODS, BACKUPS, SCREENSHOTS, LOGS, CACHE
     };
 
     private final String root;
@@ -109,6 +110,11 @@ public final class StorageLayout {
     /** The screen as it looked when the state was saved. */
     public String saveStateThumbnailPath(String suiteId) {
         return join(saveDir(suiteId), "state.png");
+    }
+
+    /** Where a picture of the game goes when the player asks for one. */
+    public String screenshotDir(String suiteId) {
+        return join(dir(SCREENSHOTS), suiteId);
     }
 
     public String modDir(String suiteId) {

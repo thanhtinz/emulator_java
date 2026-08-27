@@ -19,6 +19,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +57,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.mobicore.app.data.LibraryRepository
 import com.mobicore.app.emu.EmulatorEngine
 import com.mobicore.core.model.DeviceProfile
+import com.mobicore.core.model.GameProfile
 
 /**
  * Màn hình chơi: khung hình của trò chơi và bàn phím ảo.
@@ -140,12 +150,6 @@ fun EmulatorScreen(
                 fontSize = 12.sp,
             )
             Text(
-                text = if (landscape) "Dọc" else "Ngang",
-                color = MobiColors.Accent,
-                fontSize = 15.sp,
-                modifier = Modifier.clickable { library.toggleOrientation(suiteId) },
-            )
-            Text(
                 text = if (engine.paused) "Tiếp tục" else "Tạm ngưng",
                 color = MobiColors.Accent,
                 fontSize = 15.sp,
@@ -153,6 +157,7 @@ fun EmulatorScreen(
                     if (engine.paused) engine.resume() else engine.pause()
                 },
             )
+            GameMenu(engine, library, suiteId, profile, landscape, onExit)
         }
 
         // Reading the revision ties the softkey labels to the running screen: a
@@ -223,9 +228,107 @@ fun EmulatorScreen(
                 leftSoftKey = engine.leftSoftKeyLabel(),
                 rightSoftKey = engine.rightSoftKeyLabel(),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                layout = profile?.keypadLayout() ?: GameProfile.KEYPAD_FULL,
             )
         }
         Spacer(Modifier.height(6.dp))
+    }
+}
+
+/**
+ * The menu behind the toolbar, and the reason it exists.
+ *
+ * J2ME Loader keeps exactly this set behind its overflow — a screenshot,
+ * which keys the keypad shows, which way the screen is locked, the way out —
+ * because these are the things a player wants **while** a game is running and
+ * cannot reach from a settings page they would have to quit to get to.
+ */
+@Composable
+private fun GameMenu(
+    engine: EmulatorEngine,
+    library: LibraryRepository,
+    suiteId: String,
+    profile: com.mobicore.core.model.GameProfile?,
+    landscape: Boolean,
+    onExit: () -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf<String?>(null) }
+    Box {
+        Text(
+            text = "Menu",
+            color = MobiColors.Accent,
+            fontSize = 15.sp,
+            modifier = Modifier.clickable { open = true },
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text("Chụp màn hình") },
+                leadingIcon = { Icon(Icons.Filled.PhotoCamera, contentDescription = null) },
+                onClick = {
+                    val png = engine.screenshot()
+                    note = if (png != null) {
+                        library.writeScreenshot(suiteId, png)
+                        "Đã lưu ảnh chụp"
+                    } else {
+                        "Chưa có khung hình nào để chụp"
+                    }
+                    open = false
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Bàn phím") },
+                trailingIcon = {
+                    Text(
+                        profile?.keypadLayoutName() ?: "Đầy đủ",
+                        color = MobiColors.TextDim,
+                        fontSize = 13.sp,
+                    )
+                },
+                leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
+                onClick = { library.cycleKeypadLayout(suiteId) },
+            )
+            DropdownMenuItem(
+                text = { Text("Màn hình") },
+                trailingIcon = {
+                    Text(
+                        if (landscape) "Ngang" else "Dọc",
+                        color = MobiColors.TextDim,
+                        fontSize = 13.sp,
+                    )
+                },
+                leadingIcon = { Icon(Icons.Filled.ScreenRotation, contentDescription = null) },
+                onClick = { library.toggleOrientation(suiteId) },
+            )
+            DropdownMenuItem(
+                text = { Text("Lưu trạng thái") },
+                leadingIcon = { Icon(Icons.Filled.Save, contentDescription = null) },
+                onClick = {
+                    engine.captureState()?.let { state ->
+                        library.writeSaveState(suiteId, state, engine.screenshot())
+                    }
+                    note = "Đã lưu trạng thái"
+                    open = false
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Thoát") },
+                leadingIcon = { Icon(Icons.Filled.ExitToApp, contentDescription = null) },
+                onClick = {
+                    open = false
+                    onExit()
+                },
+            )
+        }
+    }
+    // Leaving the game saves it anyway, so nothing here needs a confirmation;
+    // what it needs is to say it happened.
+    note?.let { message ->
+        LaunchedEffect(message) {
+            kotlinx.coroutines.delay(2000)
+            note = null
+        }
+        Text(message, color = MobiColors.TextDim, fontSize = 12.sp)
     }
 }
 

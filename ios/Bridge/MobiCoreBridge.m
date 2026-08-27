@@ -195,6 +195,14 @@
     return [_facade toggleOrientationWithNSString:suiteId];
 }
 
+- (NSString *)cycleKeypadLayoutForSuite:(NSString *)suiteId {
+    return [_facade cycleKeypadLayoutWithNSString:suiteId];
+}
+
+- (NSString *)takeScreenshot {
+    return [_facade takeScreenshot];
+}
+
 - (NSString *)toggleFavouriteForSuite:(NSString *)suiteId {
     return [_facade toggleFavouriteWithNSString:suiteId];
 }
