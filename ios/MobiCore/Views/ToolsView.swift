@@ -17,6 +17,12 @@ struct ToolsView: View {
     @State private var round = 0
     @State private var typed = ""
     @State private var note = ""
+    /// Bảng vật phẩm và ô tìm kiếm của nó.
+    @State private var table: ItemTable?
+    @State private var query = ""
+    @State private var amount = ""
+    @State private var chosen: String?
+    @State private var newName = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -94,27 +100,86 @@ struct ToolsView: View {
         selected = suiteId
         inspection = client.inspect(suiteId)
         box = client.resources(suiteId)
+        table = client.items(suiteId, matching: query)
     }
 
-    /// Tìm số vàng trong phần lưu — hai lần tìm, như người ta vẫn làm.
+    /// Bảng vật phẩm: tìm theo tên, gõ số lượng, gửi vào game.
     ///
-    /// Phần lưu là một dãy byte không nhãn: không chỗ nào ghi "đây là số
-    /// vàng". Nhưng người chơi biết mình đang có bao nhiêu, nên đi ngược: gõ
-    /// con số đang thấy, chơi cho nó đổi, gõ lại — chỗ nào đổi theo đúng như
-    /// vậy mới là chỗ thật.
+    /// Phần lưu không có nhãn, nên tìm ra một con số là việc mất công — làm
+    /// một lần rồi đặt tên và cất đi, từ đó chỉ còn gõ số lượng.
     private var treasureTab: some View {
         VStack(alignment: .leading, spacing: 14) {
-            SectionCard(title: round == 0 ? "SỐ ĐANG THẤY TRONG GAME"
-                                          : "SỐ MỚI SAU KHI CHƠI TIẾP",
+            SectionCard(title: "VẬT PHẨM ĐÃ TÌM ĐƯỢC",
+                        trailing: "\(table?.count ?? 0) thứ") {
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Tìm vật phẩm…", text: $query)
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: query) { _ in reloadItems() }
+
+                    if (table?.items.isEmpty ?? true) {
+                        Text("Chưa có vật phẩm nào. Dùng phần dưới để tìm số vàng, số thuốc… "
+                             + "rồi đặt tên cho nó.")
+                            .font(.caption2)
+                            .foregroundStyle(Palette.textDim)
+                    }
+                    ForEach(table?.items ?? []) { item in
+                        Button {
+                            chosen = item.id
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text(item.name)
+                                        .font(.subheadline.weight(
+                                            item.id == chosen ? .semibold : .regular))
+                                        .foregroundStyle(item.id == chosen ? Palette.accent
+                                                                           : Palette.text)
+                                    Spacer()
+                                    Text("\(item.amount)")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Palette.accent)
+                                }
+                                Text("\(item.places) chỗ trong phần lưu  ·  "
+                                     + "nhiều nhất \(item.ceiling)")
+                                    .font(.caption2)
+                                    .foregroundStyle(Palette.textDim)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            if let chosen, let item = table?.items.first(where: { $0.id == chosen }) {
+                SectionCard(title: "GỬI VÀO GAME", trailing: item.name) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            TextField("Số lượng", text: $amount)
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(.roundedBorder)
+                            Button("Gửi") { send(chosen) }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Palette.accent)
+                        }
+                        if !note.isEmpty {
+                            Text(note).font(.caption2).foregroundStyle(Palette.textDim)
+                        }
+                        Text("Phần lưu được sao lưu trước khi sửa.")
+                            .font(.caption2)
+                            .foregroundStyle(Palette.textDim)
+                    }
+                }
+            }
+
+            SectionCard(title: round == 0 ? "TÌM VẬT PHẨM MỚI" : "SỐ MỚI SAU KHI CHƠI TIẾP",
                         trailing: scan.map { "\($0.count) chỗ" }) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(round == 0
-                         ? "Mở game, nhìn số vàng đang có rồi gõ vào đây."
-                         : "Chơi cho số vàng đổi đi, rồi gõ số mới. Mỗi lần như vậy lọc bớt "
+                         ? "Mở game, nhìn số đang có (vàng, thuốc, ngọc…) rồi gõ vào đây."
+                         : "Chơi cho con số đổi đi rồi gõ số mới. Mỗi lần như vậy lọc bớt "
                            + "những chỗ chỉ tình cờ trùng số.")
                         .font(.caption2)
                         .foregroundStyle(Palette.textDim)
-                    TextField("Con số", text: $typed)
+                    TextField("Con số đang thấy", text: $typed)
                         .keyboardType(.numberPad)
                         .textFieldStyle(.roundedBorder)
                     HStack(spacing: 16) {
@@ -133,32 +198,47 @@ struct ToolsView: View {
                             .tint(Palette.textDim)
                         }
                     }
-                    if !note.isEmpty {
+                    if round > 0 {
+                        TextField("Đặt tên: Vàng, Thuốc hồi máu…", text: $newName)
+                            .textFieldStyle(.roundedBorder)
+                        Button("Cất vào bảng") { keep() }
+                            .font(.footnote)
+                            .tint(Palette.accent)
+                    }
+                    if !note.isEmpty && chosen == nil {
                         Text(note).font(.caption2).foregroundStyle(Palette.textDim)
                     }
                 }
             }
-
-            if let scan, !scan.hits.isEmpty {
-                SectionCard(title: "CHỖ GIỮ SỐ NÀY", trailing: "\(scan.count)") {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(scan.hits.prefix(20)) { hit in
-                            FieldRow(label: "\(hit.store) · bản ghi \(hit.recordId)",
-                                     value: "\(hit.value)  ·  \(hit.encodingName)")
-                        }
-                        // Đặt vào mọi chỗ còn lại: game hay giữ số vàng ở hai
-                        // nơi, và sửa mỗi một nơi là để lại phần lưu tự mâu
-                        // thuẫn.
-                        Button("Đặt số mới vào tất cả") { apply() }
-                            .font(.footnote)
-                            .tint(Palette.accent)
-                        Text("Gõ số mới vào ô trên rồi bấm. Phần lưu được sao lưu trước khi sửa.")
-                            .font(.caption2)
-                            .foregroundStyle(Palette.textDim)
-                    }
-                }
-            }
         }
+    }
+
+    private func reloadItems() {
+        guard let suiteId = selected else { return }
+        table = client.items(suiteId, matching: query)
+    }
+
+    private func keep() {
+        guard let suiteId = selected else { return }
+        if client.keepItem(newName, in: suiteId)?.ok == true {
+            newName = ""
+            round = 0
+            scan = nil
+            note = "Đã cất. Từ giờ chỉ cần gõ số lượng rồi gửi."
+            reloadItems()
+        }
+    }
+
+    private func send(_ itemId: String) {
+        guard let suiteId = selected, let value = Int64(amount) else {
+            note = "Gõ số lượng trước đã."
+            return
+        }
+        let result = client.sendItem(itemId, amount: value, in: suiteId)
+        note = result?.ok == true
+            ? "Đã gửi \(value). Mở lại game để thấy."
+            : (result?.error ?? "Không gửi được số này.")
+        reloadItems()
     }
 
     private func search() {
@@ -169,19 +249,6 @@ struct ToolsView: View {
         round += 1
         note = scan?.summary ?? ""
         typed = ""
-    }
-
-    private func apply() {
-        guard let suiteId = selected, let value = Int64(typed) else {
-            note = "Gõ con số mới vào ô trên trước."
-            return
-        }
-        let result = client.setSaveValue(value, in: suiteId)
-        if result?.ok == true {
-            note = "Đã đặt \(value) vào \(result?.written ?? 0) chỗ. Mở lại game để thấy."
-        } else {
-            note = result?.error ?? "Không đặt được số này."
-        }
     }
 
     /// Kho tài nguyên: mọi thứ trong tệp game, và nút để thay.

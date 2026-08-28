@@ -192,6 +192,16 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)setSaveValue:(int64_t)value inSuite:(NSString *)suiteId;
 - (NSString *)clearSaveScan;
 
+/// Bảng vật phẩm đã tìm ra và đặt tên; `query` rỗng thì trả về tất cả.
+- (NSString *)itemsJSONForSuite:(NSString *)suiteId matching:(NSString *)query;
+/// Cất chỗ vừa tìm được dưới một cái tên.
+- (NSString *)keepItem:(NSString *)name inSuite:(NSString *)suiteId;
+/// Gửi một số lượng vào game.
+- (NSString *)sendItem:(NSString *)itemId
+                amount:(int64_t)amount
+               inSuite:(NSString *)suiteId;
+- (NSString *)forgetItem:(NSString *)itemId inSuite:(NSString *)suiteId;
+
 #pragma mark - Kho tài nguyên
 
 /// Mọi thứ nằm trong tệp game: loại, định dạng, cỡ, và đã bị thay chưa.

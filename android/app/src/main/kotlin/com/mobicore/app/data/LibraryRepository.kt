@@ -8,6 +8,7 @@ import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.library.PresetStore
 import com.mobicore.core.mod.ModManager
 import com.mobicore.core.mod.ResourceCatalog
+import com.mobicore.core.tools.ItemChest
 import com.mobicore.core.tools.SaveScanner
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
@@ -153,6 +154,34 @@ class LibraryRepository(filesDir: String) {
             }
         }
         return written
+    }
+
+    /** Những vật phẩm đã tìm ra và đặt tên, lọc theo ô tìm kiếm. */
+    fun items(suiteId: String, query: String = ""): List<ItemChest.Item> =
+        ItemChest(vfs, layout, suiteId).search(library.records(suiteId), query)
+
+    /** Cất chỗ vừa tìm được dưới một cái tên; từ đó chỉ còn gõ số lượng. */
+    fun keepItem(suiteId: String, name: String): Boolean {
+        if (saveHits.isEmpty()) return false
+        ItemChest(vfs, layout, suiteId).keep(name, saveHits, saveHits[0].value())
+        return true
+    }
+
+    /**
+     * Gửi một số lượng vào game.
+     *
+     * @return số chỗ đã ghi được; 0 khi con số không vừa chỗ game để dành
+     */
+    fun sendItem(suiteId: String, itemId: String, amount: Long): Int {
+        val chest = ItemChest(vfs, layout, suiteId)
+        val item = chest.find(itemId) ?: return 0
+        if (amount < 0 || amount > item.ceiling()) return 0
+        library.backup(suiteId)
+        return chest.send(library.records(suiteId), item, amount, System.currentTimeMillis())
+    }
+
+    fun forgetItem(suiteId: String, itemId: String) {
+        ItemChest(vfs, layout, suiteId).forget(itemId)
     }
 
     /** Kho tài nguyên của một game, kèm những gì người chơi đã tự thay. */

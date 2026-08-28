@@ -44,6 +44,7 @@ import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.emu.CrashDiagnosis;
 import com.mobicore.core.emu.SystemProperties;
 import com.mobicore.core.tools.CrashReport;
+import com.mobicore.core.tools.ItemChest;
 import com.mobicore.core.tools.JadEditor;
 import com.mobicore.core.tools.RmsEditor;
 import com.mobicore.core.tools.SaveScanner;
@@ -3011,6 +3012,125 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
+    }
+
+    // ----------------------------------------------------- tủ vật phẩm
+
+    /**
+     * Cất chỗ vừa tìm được dưới một cái tên.
+     *
+     * <p>Từ lần sau chỉ còn gõ số lượng rồi bấm gửi: cái đáng giá không phải
+     * con số, mà là biết con số ấy nằm ở đâu.</p>
+     */
+    public String keepItem(String suiteId, String name) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        if (!suiteId.equals(saveHitsSuite) || saveHits.isEmpty()) {
+            return error("Hãy tìm vật phẩm trước đã");
+        }
+        try {
+            ItemChest chest = chest(suiteId);
+            ItemChest.Item item = chest.keep(name, saveHits,
+                    saveHits.get(0).value());
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("item", item.toJson());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Bảng vật phẩm, lọc theo ô tìm kiếm.
+     *
+     * @param query để trống thì trả về tất cả
+     */
+    public String itemsJson(String suiteId, String query) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            ItemChest chest = chest(suiteId);
+            List<ItemChest.Item> items = chest.search(library.records(suiteId), query);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("query", query == null ? "" : query);
+            json.put("items", ItemChest.toJson(items));
+            json.put("count", Integer.valueOf(items.size()));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Gửi một số lượng vào game.
+     *
+     * <p>Đây là nút bấm của bảng vật phẩm: chọn vật phẩm, gõ số lượng, gửi.
+     * Phần lưu được sao lưu trước, vì đây là thứ không dựng lại được.</p>
+     */
+    public String sendItem(String suiteId, String itemId, long amount) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            ItemChest chest = chest(suiteId);
+            ItemChest.Item item = chest.find(itemId);
+            if (item == null) {
+                return error("Không còn vật phẩm này trong bảng");
+            }
+            if (amount < 0) {
+                return error("Số lượng không thể là số âm");
+            }
+            if (amount > item.ceiling()) {
+                return error("Nhiều nhất " + item.ceiling() + " — hơn nữa thì không vừa chỗ "
+                        + "game để dành cho nó, và game sẽ đọc ra một con số khác");
+            }
+            library.backup(suiteId);
+            int written = chest.send(library.records(suiteId), item, amount, now());
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.valueOf(written > 0));
+            json.put("written", Integer.valueOf(written));
+            json.put("item", item.toJson());
+            if (written == 0) {
+                json.put("error", "Không ghi được vào phần lưu");
+            }
+            json.put("restartNeeded", Boolean.valueOf(
+                    session != null && suiteId.equals(activeSuiteId)));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String renameItem(String suiteId, String itemId, String name) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return chest(suiteId).rename(itemId, name)
+                    ? ok("itemId", itemId)
+                    : error("Không còn vật phẩm này trong bảng");
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String forgetItem(String suiteId, String itemId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return ok("removed", String.valueOf(chest(suiteId).forget(itemId)));
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    private ItemChest chest(String suiteId) throws IOException {
+        return new ItemChest(vfs, layout, suiteId);
     }
 
     /** Bỏ danh sách đang có và bắt đầu lại từ đầu. */

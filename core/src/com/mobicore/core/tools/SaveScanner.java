@@ -103,6 +103,17 @@ public final class SaveScanner {
         }
     }
 
+    /**
+     * Dựng lại một chỗ đã cất, từ những gì đã ghi xuống đĩa.
+     *
+     * <p>Chỗ tìm được có ích nhất khi nó sống lâu hơn lần tìm ra nó, nên nó
+     * phải dựng lại được từ JSON.</p>
+     */
+    public static Hit hit(String store, int recordId, int offset, int encoding, int length,
+                          long value) {
+        return new Hit(store, recordId, offset, encoding, length, value);
+    }
+
     /** Con số nhỏ nhất đáng đi tìm. */
     public static final long MIN_VALUE = 1;
     /** Và lớn nhất: quá cỡ này thì không còn là số vàng của một game J2ME. */
@@ -388,6 +399,44 @@ public final class SaveScanner {
         int a = data[at] & 0xFF;
         int b = data[at + 1] & 0xFF;
         return bigEndian ? (a << 8) | b : (b << 8) | a;
+    }
+
+    /**
+     * Bỏ những chỗ nằm lồng trong một chỗ rộng hơn.
+     *
+     * <p>Một con số bốn byte cũng khớp khi đọc hai byte cuối của nó, và khớp
+     * cả khi đọc một byte — nên một ô duy nhất trong phần lưu hiện ra thành
+     * ba chỗ. Ghi vào cả ba là ghi đè lên chính mình: hai byte cuối bị đặt
+     * lại, và con số bốn byte thành ra một con số khác.</p>
+     *
+     * <p>Giữ chỗ rộng nhất, bỏ những chỗ nằm trong lòng nó. Chỗ ở bản ghi
+     * khác, hay chỗ viết thành chữ, thì vẫn giữ — đó là những nơi <em>khác
+     * nhau</em> cùng chép một con số, và game đọc nơi nào thì tuỳ nó.</p>
+     */
+    public static List<Hit> widest(List<Hit> hits) {
+        List<Hit> kept = new ArrayList<Hit>();
+        for (int i = 0; i < hits.size(); i++) {
+            Hit hit = hits.get(i);
+            boolean inside = false;
+            for (int j = 0; j < hits.size() && !inside; j++) {
+                if (i == j) {
+                    continue;
+                }
+                Hit other = hits.get(j);
+                if (!other.store.equals(hit.store) || other.recordId != hit.recordId) {
+                    continue;
+                }
+                boolean covers = other.offset <= hit.offset
+                        && other.offset + other.length >= hit.offset + hit.length;
+                boolean wider = other.length > hit.length
+                        || (other.length == hit.length && j < i);
+                inside = covers && wider;
+            }
+            if (!inside) {
+                kept.add(hit);
+            }
+        }
+        return kept;
     }
 
     /** Cả danh sách, cho màn hình đọc. */

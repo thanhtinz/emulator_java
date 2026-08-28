@@ -82,28 +82,147 @@ fun ToolsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
  */
 @Composable
 private fun TreasureTab(library: LibraryRepository, suiteId: String) {
-    var typed by remember(suiteId) { mutableStateOf("") }
-    var hits by remember(suiteId) { mutableStateOf(library.clearedHits()) }
-    var round by remember(suiteId) { mutableIntStateOf(0) }
+    var query by remember(suiteId) { mutableStateOf("") }
+    var amount by remember(suiteId) { mutableStateOf("") }
+    var chosen by remember(suiteId) { mutableStateOf<String?>(null) }
+    var revision by remember(suiteId) { mutableIntStateOf(0) }
     var note by remember(suiteId) { mutableStateOf("") }
+    val items = remember(suiteId, query, revision) { library.items(suiteId, query) }
+
+    // Vòng tìm một vật phẩm mới: gõ số đang thấy, chơi cho nó đổi, gõ lại.
+    var typed by remember(suiteId) { mutableStateOf("") }
+    var round by remember(suiteId) { mutableIntStateOf(0) }
+    var hits by remember(suiteId) { mutableIntStateOf(0) }
+    var newName by remember(suiteId) { mutableStateOf("") }
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { Spacer(Modifier.height(4.dp)) }
+
+        // Bảng vật phẩm: tìm theo tên, gõ số lượng, gửi.
+        item {
+            SectionCard(title = "VẬT PHẨM ĐÃ TÌM ĐƯỢC", trailing = "${items.size} thứ") {
+                Column {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        singleLine = true,
+                        label = { Text("Tìm vật phẩm…") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    if (items.isEmpty()) {
+                        Text(
+                            "Chưa có vật phẩm nào. Dùng phần dưới để tìm số vàng, số " +
+                                "thuốc… rồi đặt tên cho nó.",
+                            color = MobiColors.TextDim,
+                            fontSize = 11.sp,
+                        )
+                    }
+                    items.forEach { item ->
+                        val picked = item.id() == chosen
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .clickable { chosen = item.id() }
+                                .padding(vertical = 6.dp),
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    item.name(),
+                                    color = if (picked) MobiColors.Accent else MobiColors.Text,
+                                    fontSize = 15.sp,
+                                    fontWeight = if (picked) FontWeight.SemiBold
+                                                 else FontWeight.Normal,
+                                )
+                                Text(
+                                    "${item.amount()}",
+                                    color = MobiColors.Accent,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                            Text(
+                                "${item.places().size} chỗ trong phần lưu  ·  " +
+                                    "nhiều nhất ${item.ceiling()}",
+                                color = MobiColors.TextDim,
+                                fontSize = 11.sp,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (chosen != null) {
+            item {
+                val name = items.firstOrNull { it.id() == chosen }?.name() ?: ""
+                SectionCard(title = "GỬI VÀO GAME", trailing = name) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                value = amount,
+                                onValueChange = { text ->
+                                    amount = text.filter { it.isDigit() }.take(10)
+                                },
+                                singleLine = true,
+                                label = { Text("Số lượng") },
+                                modifier = Modifier.weight(1f),
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "Gửi",
+                                color = MobiColors.Accent,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .clickable {
+                                        val value = amount.toLongOrNull()
+                                        val id = chosen
+                                        if (value != null && id != null) {
+                                            val written = library.sendItem(suiteId, id, value)
+                                            revision++
+                                            note = if (written > 0) {
+                                                "Đã gửi $value. Mở lại game để thấy."
+                                            } else {
+                                                "Số này không vừa chỗ game để dành cho nó."
+                                            }
+                                        }
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                            )
+                        }
+                        if (note.isNotEmpty()) {
+                            Text(note, color = MobiColors.TextDim, fontSize = 11.sp)
+                        }
+                        Text(
+                            "Phần lưu được sao lưu trước khi sửa.",
+                            color = MobiColors.TextDim,
+                            fontSize = 11.sp,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Tìm một vật phẩm mới: phần lưu không có nhãn, nên cách duy nhất là
+        // đi ngược từ con số người chơi đang nhìn thấy.
         item {
             SectionCard(
-                title = if (round == 0) "SỐ ĐANG THẤY TRONG GAME" else "SỐ MỚI SAU KHI CHƠI TIẾP",
-                trailing = if (round == 0) null else "${hits.size} chỗ",
+                title = if (round == 0) "TÌM VẬT PHẨM MỚI" else "SỐ MỚI SAU KHI CHƠI TIẾP",
+                trailing = if (round == 0) null else "$hits chỗ",
             ) {
                 Column {
                     Text(
                         if (round == 0) {
-                            "Mở game, nhìn số vàng đang có rồi gõ vào đây."
+                            "Mở game, nhìn số đang có (vàng, thuốc, ngọc…) rồi gõ vào đây."
                         } else {
-                            "Chơi cho số vàng đổi đi, rồi gõ số mới. Mỗi lần như vậy lọc " +
-                                "bớt những chỗ chỉ tình cờ trùng số."
+                            "Chơi cho con số đổi đi rồi gõ số mới. Mỗi lần như vậy lọc bớt " +
+                                "những chỗ chỉ tình cờ trùng số."
                         },
                         color = MobiColors.TextDim,
                         fontSize = 11.sp,
@@ -113,7 +232,7 @@ private fun TreasureTab(library: LibraryRepository, suiteId: String) {
                         value = typed,
                         onValueChange = { text -> typed = text.filter { it.isDigit() }.take(9) },
                         singleLine = true,
-                        label = { Text("Con số") },
+                        label = { Text("Con số đang thấy") },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
@@ -125,17 +244,14 @@ private fun TreasureTab(library: LibraryRepository, suiteId: String) {
                             modifier = Modifier.clickable {
                                 val value = typed.toLongOrNull() ?: return@clickable
                                 hits = if (round == 0) {
-                                    library.scanSave(suiteId, value)
+                                    library.scanSave(suiteId, value).size
                                 } else {
-                                    library.narrowSave(suiteId, value)
+                                    library.narrowSave(suiteId, value).size
                                 }
                                 round++
-                                note = if (hits.size == 1) {
-                                    "Còn đúng một chỗ — chính là nó."
-                                } else {
-                                    "Còn ${hits.size} chỗ. Chơi tiếp cho số đổi rồi lọc nữa."
-                                }
                                 typed = ""
+                                note = if (hits == 1) "Còn đúng một chỗ — đặt tên rồi cất đi."
+                                       else "Còn $hits chỗ. Chơi tiếp cho số đổi rồi lọc nữa."
                             },
                         )
                         if (round > 0) {
@@ -145,54 +261,37 @@ private fun TreasureTab(library: LibraryRepository, suiteId: String) {
                                 fontSize = 14.sp,
                                 modifier = Modifier.clickable {
                                     library.clearSaveScan()
-                                    hits = library.clearedHits()
                                     round = 0
-                                    note = ""
+                                    hits = 0
                                     typed = ""
+                                    note = ""
                                 },
                             )
                         }
                     }
-                    if (note.isNotEmpty()) {
-                        Spacer(Modifier.height(6.dp))
-                        Text(note, color = MobiColors.TextDim, fontSize = 11.sp)
-                    }
-                }
-            }
-        }
-
-        if (hits.isNotEmpty()) {
-            item {
-                SectionCard(title = "CHỖ GIỮ SỐ NÀY", trailing = "${hits.size}") {
-                    Column {
-                        hits.take(20).forEach { hit ->
-                            FieldRow(
-                                "${hit.store()} · bản ghi ${hit.recordId()}",
-                                "${hit.value()}  ·  ${hit.encodingName()}",
-                            )
-                        }
+                    if (round > 0) {
                         Spacer(Modifier.height(8.dp))
-                        // Đặt vào mọi chỗ còn lại: game hay giữ số vàng ở hai
-                        // nơi — một bản nhị phân, một bản viết thành chữ — và
-                        // sửa mỗi một nơi là để lại phần lưu tự mâu thuẫn.
+                        OutlinedTextField(
+                            value = newName,
+                            onValueChange = { newName = it },
+                            singleLine = true,
+                            label = { Text("Đặt tên: Vàng, Thuốc hồi máu…") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(6.dp))
                         Text(
-                            "Đặt số mới vào tất cả",
+                            "Cất vào bảng",
                             color = MobiColors.Accent,
                             fontSize = 14.sp,
                             modifier = Modifier.clickable {
-                                val value = typed.toLongOrNull() ?: return@clickable
-                                val written = library.setSaveValue(suiteId, value)
-                                note = if (written > 0) {
-                                    "Đã đặt $value vào $written chỗ. Mở lại game để thấy."
-                                } else {
-                                    "Số này không vừa ô nào trong số đã tìm."
+                                if (library.keepItem(suiteId, newName)) {
+                                    revision++
+                                    round = 0
+                                    hits = 0
+                                    newName = ""
+                                    note = "Đã cất. Từ giờ chỉ cần gõ số lượng rồi gửi."
                                 }
                             },
-                        )
-                        Text(
-                            "Gõ số mới vào ô trên rồi bấm. Phần lưu được sao lưu trước khi sửa.",
-                            color = MobiColors.TextDim,
-                            fontSize = 11.sp,
                         )
                     }
                 }

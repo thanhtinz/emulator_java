@@ -200,6 +200,25 @@ public final class Ui {
         return height;
     }
 
+    /**
+     * Ô nhập trống, không có kính lúp.
+     *
+     * <p>Ô tìm kiếm mượn được cho mọi chỗ nhập, nhưng cái kính lúp trong ô
+     * "số lượng" thì nói sai việc: nó mời người ta đi tìm, trong khi việc ở
+     * đó là gõ một con số.</p>
+     */
+    public int input(int x, int y, int width, String typed, String hint) {
+        int height = medium.height() + 20;
+        panel(x, y, width, height, Theme.SURFACE, Theme.BORDER);
+        boolean empty = typed == null || typed.length() == 0;
+        text(medium, empty ? hint : typed, x + 14, y + 10, empty ? Theme.TEXT_DIM : Theme.TEXT);
+        if (!empty) {
+            int caretX = x + 14 + medium.stringWidth(typed) + 2;
+            bar(caretX, y + 8, 2, height - 16, Theme.ACCENT);
+        }
+        return height;
+    }
+
     /** Rounded label used for tags such as "MIDP-2.0" or "Yêu thích". */
     public int chip(String label, int x, int y, int textColor, int fillColor) {
         int padding = 9;

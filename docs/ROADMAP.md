@@ -1983,4 +1983,33 @@ Nhân tiện, máy ảo nay có `String.getBytes(String)` — bản CLDC nhận 
 Game dùng nó thật (ghi tên người chơi bằng UTF-8), và thiếu nó thì game chết
 ngay ở câu lưu.
 
-Cầu nối: `scanSave`, `narrowSave`, `setAllSaveValues`, `clearSaveScan`.
+### Bảng vật phẩm
+
+Vàng không phải thứ duy nhất đáng sửa, và tìm một con số là việc mất công: mở
+game, nhìn số, gõ vào, chơi tiếp, gõ lại. Làm xong cho số vàng rồi lần sau lại
+làm y hệt cho số thuốc hồi máu — mà lần sau nữa đã quên mất chỗ cũ — thì công
+cụ chỉ dùng được một lần.
+
+Nên chỗ đã tìm ra được **đặt tên và cất đi**: "Vàng", "Thuốc hồi máu", "Ngọc".
+Bảng nằm cạnh hồ sơ của game nên sống qua những lần tắt máy, và từ lần sau chỉ
+còn **ô tìm kiếm, ô số lượng, nút gửi**. Cái đáng giữ không phải con số, mà là
+biết con số ấy nằm ở đâu.
+
+- **Ô tìm kiếm bỏ dấu**: gõ "thuoc" cũng ra "Thuốc hồi máu", vì không ai gõ dấu
+  khi tìm nhanh.
+- **Mỗi vật phẩm biết mức tối đa của nó.** Thuốc nằm trong hai byte thì nhiều
+  nhất là 65535; gửi 70000 vào đó thì game đọc ra 4464, nên chỗ này từ chối
+  kèm con số đúng.
+- **Bỏ những chỗ nằm lồng nhau.** Một ô bốn byte cũng khớp khi đọc hai byte
+  cuối của nó, và khớp cả khi đọc một byte — một ô duy nhất hiện ra thành ba
+  chỗ. Ghi vào cả ba là ghi đè lên chính mình: hai byte cuối bị đặt lại và con
+  số bốn byte thành ra một con số khác. Nên chỉ giữ chỗ rộng nhất; chỗ ở bản
+  ghi khác hay chỗ viết thành chữ thì vẫn giữ, vì đó là những nơi *khác nhau*
+  cùng chép một con số.
+
+Bản mẫu nay giữ hai thứ — vàng bốn byte và thuốc hai byte — và bài kiểm tra đi
+đủ vòng cho cả hai: tìm, đặt tên, gửi số mới, mở lại game và đọc ra đúng cả
+hai. Bảng cũng được mở lại sau khi tắt ứng dụng, vì đó là chỗ nó đáng giá nhất.
+
+Cầu nối: `scanSave`, `narrowSave`, `setAllSaveValues`, `clearSaveScan`,
+`itemsJson`, `keepItem`, `sendItem`, `renameItem`, `forgetItem`.

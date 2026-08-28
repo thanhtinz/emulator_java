@@ -43,7 +43,8 @@ public final class TreasureTest extends Test {
             fail("fixtures are not compiled; run ./build.sh fixtures");
             return;
         }
-        MobiCoreFacade facade = new MobiCoreFacade(new MemoryVfs());
+        MemoryVfs disk = new MemoryVfs();
+        MobiCoreFacade facade = new MobiCoreFacade(disk);
         facade.open("/data");
         Map<String, Object> imported = Json.readObject(
                 facade.importSuite(SampleSuite.jar(fixtureDir), SampleSuite.jad()));
@@ -119,9 +120,104 @@ public final class TreasureTest extends Test {
         check(!Json.bool(Json.readObject(facade.setSaveValue(suiteId, 0, 5)), "ok", true),
                 "bỏ danh sách rồi thì không sửa theo số thứ tự cũ được");
 
+        theItemPanel(facade, disk, suiteId);
+
         // Sao lưu trước khi ghi: sửa phần lưu là sửa thứ không dựng lại được.
         check(Json.array(Json.readObject(facade.savesJson(suiteId)), "backups").size() > 0,
                 "trước khi sửa, phần lưu được sao lưu");
+    }
+
+    /**
+     * Bảng vật phẩm: tìm một lần, đặt tên, rồi từ đó chỉ gõ số lượng.
+     *
+     * <p>Tìm một con số là việc mất công, và game nào cũng có nhiều hơn một
+     * thứ đáng tìm. Làm xong cho số vàng rồi lần sau lại làm y hệt cho số
+     * thuốc — mà lần sau nữa đã quên chỗ cũ — thì công cụ chỉ dùng được một
+     * lần.</p>
+     */
+    private void theItemPanel(MobiCoreFacade facade, MemoryVfs disk, String suiteId)
+            throws Exception {
+        // Bắt đầu lại một ván sạch: 8630 vàng và 12 thuốc.
+        VmObject bank = start(facade, suiteId);
+        call(facade, bank, "newGame", "(I)V", Integer.valueOf(8630));
+        facade.stopGame();
+
+        // Tìm số vàng: 8630, tiêu 130 rồi lọc lại ở 8500.
+        facade.scanSave(suiteId, 8630);
+        bank = start(facade, suiteId);
+        call(facade, bank, "spend", "(I)V", Integer.valueOf(130));
+        facade.stopGame();
+        facade.narrowSave(suiteId, 8500);
+        check(Json.bool(Json.readObject(facade.keepItem(suiteId, "Vàng")), "ok", false),
+                "cất được chỗ vừa tìm dưới một cái tên");
+
+        // Và làm y hệt cho thuốc hồi máu: 12, uống một viên còn 11.
+        facade.scanSave(suiteId, 12);
+        bank = start(facade, suiteId);
+        call(facade, bank, "drink", "()V", null);
+        facade.stopGame();
+        facade.narrowSave(suiteId, 11);
+        check(Json.bool(Json.readObject(facade.keepItem(suiteId, "Thuốc hồi máu")), "ok", false),
+                "cất được vật phẩm thứ hai");
+
+        Map<String, Object> table = Json.readObject(facade.itemsJson(suiteId, ""));
+        eq(2, Json.integer(table, "count", 0), "bảng có hai vật phẩm");
+
+        // Ô tìm kiếm: gõ không dấu vẫn ra, vì không ai gõ dấu khi tìm nhanh.
+        Map<String, Object> found = Json.readObject(facade.itemsJson(suiteId, "thuoc"));
+        eq(1, Json.integer(found, "count", 0), "tìm \"thuoc\" ra đúng một vật phẩm");
+        Map<String, Object> potion = (Map<String, Object>) Json.array(found, "items").get(0);
+        eq("Thuốc hồi máu", Json.string(potion, "name", ""), "và đúng vật phẩm ấy");
+        eq(11, Json.integer(potion, "amount", 0), "kèm số lượng đang có thật trong phần lưu");
+
+        // Nút gửi: gõ số lượng rồi bấm.
+        String potionId = Json.string(potion, "id", "");
+        Map<String, Object> sent = Json.readObject(facade.sendItem(suiteId, potionId, 99));
+        check(Json.bool(sent, "ok", false), "gửi được: " + Json.string(sent, "error", ""));
+
+        Map<String, Object> gold = itemNamed(facade, suiteId, "Vàng");
+        Map<String, Object> rich = Json.readObject(
+                facade.sendItem(suiteId, Json.string(gold, "id", ""), 1000000));
+        check(Json.bool(rich, "ok", false), "và gửi được cả số vàng lớn");
+
+        // Game mở lại và đọc thấy cả hai.
+        bank = start(facade, suiteId);
+        call(facade, bank, "reload", "()V", null);
+        eq(1000000, ((Integer) bank.get("gold")).intValue(), "game đọc thấy số vàng vừa gửi");
+        eq(99, ((Integer) bank.get("potions")).intValue(), "và số thuốc vừa gửi");
+        facade.stopGame();
+
+        // Số quá lớn so với chỗ game để dành thì nói thẳng, kèm mức tối đa —
+        // thuốc nằm trong hai byte, nên 70000 là không được.
+        Map<String, Object> refused = Json.readObject(
+                facade.sendItem(suiteId, potionId, 70000));
+        check(!Json.bool(refused, "ok", true), "số vượt chỗ để dành thì bị từ chối");
+        check(Json.string(refused, "error", "").indexOf("65535") >= 0,
+                "và nói rõ nhiều nhất là bao nhiêu: " + Json.string(refused, "error", ""));
+
+        // Bảng sống qua một lần tắt ứng dụng: chỗ đã tìm ra mới là thứ đáng
+        // giữ, không phải con số.
+        MobiCoreFacade reopened = new MobiCoreFacade(disk);
+        reopened.open("/data");
+        eq(2, Json.integer(Json.readObject(reopened.itemsJson(suiteId, "")), "count", 0),
+                "mở lại ứng dụng thì bảng vật phẩm vẫn còn");
+        Map<String, Object> again = itemNamed(reopened, suiteId, "Vàng");
+        eq(1000000, Json.integer(again, "amount", 0),
+                "và đọc lại đúng số lượng đang có trong phần lưu");
+
+        // Đổi tên và bỏ đi.
+        check(Json.bool(Json.readObject(reopened.renameItem(suiteId,
+                        Json.string(again, "id", ""), "Xu")), "ok", false), "đổi tên được");
+        check(Json.bool(Json.readObject(reopened.forgetItem(suiteId,
+                        Json.string(again, "id", ""))), "ok", false), "và bỏ được");
+        eq(1, Json.integer(Json.readObject(reopened.itemsJson(suiteId, "")), "count", 0),
+                "bảng còn lại một vật phẩm");
+    }
+
+    private Map<String, Object> itemNamed(MobiCoreFacade facade, String suiteId, String name) {
+        List<Object> items = Json.array(Json.readObject(facade.itemsJson(suiteId, name)), "items");
+        check(!items.isEmpty(), "bảng phải có vật phẩm tên " + name);
+        return items.isEmpty() ? Json.object() : (Map<String, Object>) items.get(0);
     }
 
     // ------------------------------------------------------------ tiện ích

@@ -117,39 +117,59 @@ public final class DevToolsScreen {
         facade.stopGame();
         Map<String, Object> second = Json.readObject(facade.narrowSave(suiteId, 8500));
 
+        // Cất hai chỗ tìm được dưới tên của chúng, rồi bày ra bảng vật phẩm —
+        // đúng thứ người chơi thấy sau khi đã tìm xong một lần.
+        facade.keepItem(suiteId, "Vàng");
+        facade.scanSave(suiteId, 12);
+        facade.startGame(suiteId, "demo.PiggyBank");
+        facade.session().vm().callVirtual(facade.session().context().midlet(),
+                "drink", "()V");
+        facade.stopGame();
+        facade.narrowSave(suiteId, 11);
+        facade.keepItem(suiteId, "Thuốc hồi máu");
+        List<Object> items = Json.array(
+                Json.readObject(facade.itemsJson(suiteId, "")), "items");
+
+        // Bảng vật phẩm: ô tìm kiếm, số lượng, nút gửi.
+        int searchHeight = 12 + ui.small().height() + 8 + 44 + 10;
+        int row = ui.section(margin, y, width, searchHeight, "VẬT PHẨM ĐÃ TÌM ĐƯỢC",
+                items.size() + " thứ");
+        ui.searchField(fieldX, row, fieldWidth, "", "Tìm vật phẩm…");
+        y += searchHeight + 12;
+
+        int itemHeight = ui.mediumBold().height() + ui.small().height() + 12;
+        int listHeight = 12 + ui.small().height() + 8 + items.size() * itemHeight + 8;
+        row = ui.section(margin, y, width, listHeight, "TRONG GAME NÀY", null);
+        for (int i = 0; i < items.size(); i++) {
+            Map<String, Object> item = (Map<String, Object>) items.get(i);
+            ui.text(ui.mediumBold(), Json.string(item, "name", ""), fieldX, row, Theme.TEXT);
+            ui.textRight(ui.mediumBold(), String.valueOf(Json.longValue(item, "amount", 0L)),
+                    fieldX + fieldWidth, row, Theme.ACCENT);
+            ui.text(ui.small(), Json.integer(item, "places", 0) + " chỗ trong phần lưu  ·  "
+                            + "nhiều nhất " + Json.longValue(item, "ceiling", 0L),
+                    fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
+            row += itemHeight;
+        }
+        y += listHeight + 12;
+
+        // Ô số lượng và nút gửi, cạnh nhau: gõ số rồi bấm là xong.
+        int sendHeight = 12 + ui.small().height() + 8 + 46 + 10;
+        row = ui.section(margin, y, width, sendHeight, "GỬI VÀO GAME", "Thuốc hồi máu");
+        int amountWidth = fieldWidth - 150;
+        ui.input(fieldX, row, amountWidth, "99", "Số lượng");
+        ui.button(fieldX + amountWidth + 12, row - 2, 138, "Gửi", true, Icons.IMPORT);
+        y += sendHeight + 14;
+
         // Hai bước, và bước nào cũng nói ra nó vừa làm gì.
         int stepHeight = 12 + ui.small().height() + 8 + Ui.ROW * 2 + 6;
-        int row = ui.section(margin, y, width, stepHeight, "TÌM SỐ VÀNG",
+        row = ui.section(margin, y, width, stepHeight, "TÌM THÊM VẬT PHẨM MỚI",
                 Json.integer(second, "count", 0) + " chỗ còn lại");
         ui.field("Lần 1 — số đang thấy", "8630  ·  "
                 + Json.integer(first, "count", 0) + " chỗ trùng", fieldX, row, fieldWidth);
-        ui.field("Lần 2 — sau khi tiêu", "8500  ·  "
+        ui.field("Lần 2 — sau khi chơi", "8500  ·  "
                 + Json.integer(second, "count", 0) + " chỗ trùng", fieldX, row + Ui.ROW,
                 fieldWidth);
         y += stepHeight + 14;
-
-        List<Object> hits = Json.array(second, "hits");
-        int rowHeight = ui.mediumBold().height() + ui.small().height() + 10;
-        int height = 12 + ui.small().height() + 8 + Math.max(1, hits.size()) * rowHeight + 6;
-        row = ui.section(margin, y, width, height, "CHỖ GIỮ SỐ VÀNG", "sửa hết");
-        for (int i = 0; i < hits.size(); i++) {
-            Map<String, Object> hit = (Map<String, Object>) hits.get(i);
-            String where = Json.string(hit, "store", "") + "  ·  bản ghi "
-                    + Json.integer(hit, "recordId", 0);
-            ui.text(ui.mediumBold(), where, fieldX, row, Theme.TEXT);
-            ui.textRight(ui.mediumBold(), String.valueOf(Json.longValue(hit, "value", 0L)),
-                    fieldX + fieldWidth, row, Theme.ACCENT);
-            ui.text(ui.small(), "byte thứ " + Json.integer(hit, "offset", 0) + "  ·  "
-                            + Json.string(hit, "encodingName", ""),
-                    fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
-            row += rowHeight;
-        }
-        y += height + 16;
-
-        int buttonWidth = (width - 12) / 2;
-        ui.button(margin, y, buttonWidth, "Tìm lại", false);
-        ui.button(margin + buttonWidth + 12, y, buttonWidth, "Đặt số mới", true, Icons.EDIT);
-        y += 60;
 
         ui.text(ui.small(), "Phần lưu được sao lưu trước khi sửa.", fieldX, y, Theme.TEXT_DIM);
     }

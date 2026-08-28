@@ -467,6 +467,26 @@
     return [_facade clearSaveScan];
 }
 
+- (NSString *)itemsJSONForSuite:(NSString *)suiteId matching:(NSString *)query {
+    return [_facade itemsJsonWithNSString:suiteId withNSString:query];
+}
+
+- (NSString *)keepItem:(NSString *)name inSuite:(NSString *)suiteId {
+    return [_facade keepItemWithNSString:suiteId withNSString:name];
+}
+
+- (NSString *)sendItem:(NSString *)itemId
+                amount:(int64_t)amount
+               inSuite:(NSString *)suiteId {
+    return [_facade sendItemWithNSString:suiteId
+                            withNSString:itemId
+                                withLong:(jlong) amount];
+}
+
+- (NSString *)forgetItem:(NSString *)itemId inSuite:(NSString *)suiteId {
+    return [_facade forgetItemWithNSString:suiteId withNSString:itemId];
+}
+
 - (NSString *)resourcesJSONForSuite:(NSString *)suiteId {
     return [_facade resourcesJsonWithNSString:suiteId];
 }

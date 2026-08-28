@@ -651,6 +651,30 @@ final class MobiCoreClient: ObservableObject {
         _ = bridge.clearSaveScan()
     }
 
+    /// Bảng vật phẩm, lọc theo ô tìm kiếm.
+    func items(_ suiteId: String, matching query: String = "") -> ItemTable? {
+        decode(bridge.itemsJSON(forSuite: suiteId, matching: query))
+    }
+
+    /// Cất chỗ vừa tìm được dưới một cái tên.
+    func keepItem(_ name: String, in suiteId: String) -> ActionResult? {
+        let result: ActionResult? = decode(bridge.keepItem(name, inSuite: suiteId))
+        report(result)
+        return result
+    }
+
+    /// Gửi một số lượng vào game; phần lưu được sao lưu trước.
+    func sendItem(_ itemId: String, amount: Int64, in suiteId: String) -> ActionResult? {
+        let result: ActionResult? = decode(bridge.sendItem(itemId, amount: amount,
+                                                           inSuite: suiteId))
+        report(result)
+        return result
+    }
+
+    func forgetItem(_ itemId: String, in suiteId: String) {
+        report(decode(bridge.forgetItem(itemId, inSuite: suiteId)))
+    }
+
     // MARK: - Kho tài nguyên
 
     /// Mọi thứ nằm trong tệp game, kèm dấu những gì đã bị thay.

@@ -21,6 +21,8 @@ public final class PiggyBank extends MIDlet {
 
     /** What the player currently has, as the game itself reports it. */
     public int gold;
+    /** A second thing worth having, so the purse is not the only target. */
+    public int potions;
     /** A decoy: equal to the purse at the start, and then it stops moving. */
     private int score;
     /** Read back from the save, to prove an edit really lands. */
@@ -44,6 +46,7 @@ public final class PiggyBank extends MIDlet {
     public void newGame(int amount) throws Exception {
         RecordStore.deleteRecordStore(STORE);
         gold = amount;
+        potions = 12;
         // Điểm bằng đúng số vàng lúc bắt đầu, rồi đứng yên: đây chính là kiểu
         // trùng số mà một lần tìm không phân biệt được, và lần tìm thứ hai
         // sinh ra để loại.
@@ -57,9 +60,16 @@ public final class PiggyBank extends MIDlet {
         save();
     }
 
+    /** Drinks one, which moves the other number the same way. */
+    public void drink() throws Exception {
+        potions--;
+        save();
+    }
+
     /** Reads the purse back out of the save, ignoring what is in memory. */
     public void reload() throws Exception {
         gold = 0;
+        potions = 0;
         load();
         reloaded = gold;
     }
@@ -74,6 +84,7 @@ public final class PiggyBank extends MIDlet {
             DataOutputStream out = new DataOutputStream(bytes);
             out.writeInt(score);       // điểm, tình cờ bằng số vàng lúc đầu
             out.writeInt(gold);        // vàng
+            out.writeShort(potions);   // thuốc hồi máu
             out.writeShort(3);         // màn đang chơi
             out.flush();
             byte[] record = bytes.toByteArray();
@@ -102,6 +113,7 @@ public final class PiggyBank extends MIDlet {
             // Bốn byte thứ hai là số vàng.
             gold = ((record[4] & 0xFF) << 24) | ((record[5] & 0xFF) << 16)
                     | ((record[6] & 0xFF) << 8) | (record[7] & 0xFF);
+            potions = ((record[8] & 0xFF) << 8) | (record[9] & 0xFF);
         } finally {
             store.closeRecordStore();
         }

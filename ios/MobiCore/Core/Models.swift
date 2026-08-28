@@ -254,6 +254,22 @@ struct ContinueCard: Codable {
     let playedName: String?
 }
 
+/// Bảng vật phẩm của một game: những chỗ đã tìm ra và đặt tên.
+struct ItemTable: Codable {
+    let items: [GameItem]
+    let count: Int
+}
+
+struct GameItem: Codable, Identifiable {
+    let id: String
+    let name: String
+    let amount: Int64
+    /// Số chỗ trong phần lưu đang giữ số lượng của nó.
+    let places: Int
+    /// Số lớn nhất còn nhét vừa chỗ game để dành cho nó.
+    let ceiling: Int64
+}
+
 /// Kết quả một lần tìm số vàng trong phần lưu.
 struct SaveScan: Codable {
     let summary: String
