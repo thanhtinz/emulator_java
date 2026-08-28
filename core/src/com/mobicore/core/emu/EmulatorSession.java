@@ -526,6 +526,9 @@ public final class EmulatorSession {
         // Timers first: a MIDlet that drives itself from a TimerTask expects
         // its tick to have happened before the frame it paints.
         pumpTimers();
+        // Hộp thoại hẹn giờ tự đóng ở đây, cạnh nhịp của Timer: đây là chỗ
+        // duy nhất mỗi khung hình đã có sẵn một nhịp theo giờ thật.
+        context.dismissAlertIfDue(vm.host().currentTimeMillis());
         context.drainCallbacks();
         VmObject current = context.current();
         if (current == null) {
@@ -574,6 +577,12 @@ public final class EmulatorSession {
             // the list instead of running the first one. Without this the rest
             // of a screen's commands can never be reached.
             context.openMenu();
+            return false;
+        }
+        if (!left && context.alertNeedsWayOut()) {
+            // Lối ra máy tự cho một hộp thoại không lệnh nào; nhãn của nó là
+            // "Xong", vẽ bởi SystemChrome.
+            context.dismissAlert();
             return false;
         }
         VmObject command = left ? context.leftCommand() : context.rightCommand();

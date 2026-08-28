@@ -63,10 +63,18 @@ public final class ScreenInput {
         // handset's did, by running whatever command it carries.
         if (isType(vm, screen, MidpForms.ALERT) && action == MidpContext.ACTION_FIRE) {
             VmObject command = context.leftCommand();
+            if (command == null) {
+                command = context.rightCommand();
+            }
             if (command != null) {
                 commands.invoke(command);
                 return true;
             }
+            // Không lệnh nào thì vẫn phải đóng được. MIDP nói hộp thoại là màn
+            // hình tạm; một hộp thoại không có lối ra là một cái ngõ cụt, và
+            // trước đây phím này không làm gì cả.
+            context.dismissAlert();
+            return true;
         }
         return false;
     }

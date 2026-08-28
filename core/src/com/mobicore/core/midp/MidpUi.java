@@ -463,6 +463,41 @@ public final class MidpUi {
                         return null;
                     }
                 })
+                .method("setCurrent",
+                        "(Ljavax/microedition/lcdui/Alert;Ljavax/microedition/lcdui/Displayable;)V",
+                        new NativeMethod() {
+                            public Object invoke(Vm vm, VmObject self, Object[] args) {
+                                // Câu lệnh MIDP phổ biến bậc nhất, và cho tới
+                                // giờ máy ảo không có nó: game hiện hộp thoại
+                                // đầu tiên là chết ngay tại dòng ấy.
+                                VmObject alert = Rt.obj(args, 0);
+                                VmObject next = Rt.obj(args, 1);
+                                context.setCurrent(alert, next);
+                                if (alert != null) {
+                                    vm.callVirtual(alert, "showNotify", "()V");
+                                }
+                                return null;
+                            }
+                        })
+                .method("setCurrentItem", "(Ljavax/microedition/lcdui/Item;)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        VmObject item = Rt.obj(args, 0);
+                        if (item == null) {
+                            throw vm.nullPointer("setCurrentItem(null)");
+                        }
+                        VmObject form = MidpForms.formOf(item);
+                        if (form == null) {
+                            return null;
+                        }
+                        if (context.current() != form) {
+                            context.setCurrent(form);
+                            vm.callVirtual(form, "showNotify", "()V");
+                        }
+                        form.set("focus", Integer.valueOf(MidpForms.itemsOf(form).indexOf(item)));
+                        context.requestRepaint();
+                        return null;
+                    }
+                })
                 .method("getCurrent", "()Ljavax/microedition/lcdui/Displayable;", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         return context.current();

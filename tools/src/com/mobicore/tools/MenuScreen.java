@@ -55,6 +55,10 @@ public final class MenuScreen {
             type(session, '6', 2);
         } else if ("alert".equals(state)) {
             select(session, 4);
+        } else if ("countdown".equals(state)) {
+            // The alert a MIDlet leaves with no command at all: the machine
+            // has to put a way out on the right key or the player is stuck.
+            select(session, 3);
         }
         session.renderFrame();
         return session;
@@ -112,6 +116,9 @@ public final class MenuScreen {
         }
         if ("alert".equals(state)) {
             return "Alert — hộp thoại của MIDlet";
+        }
+        if ("countdown".equals(state)) {
+            return "Alert hẹn giờ — máy tự phát phím Xong";
         }
         return "List (IMPLICIT) — menu chính của MIDlet";
     }

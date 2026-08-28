@@ -315,6 +315,20 @@ public final class MidpContext {
     }
 
     public void setCurrent(VmObject displayable) {
+        setCurrent(displayable, null);
+    }
+
+    /**
+     * Đổi màn hình, và với hộp thoại thì nhớ luôn chỗ phải quay về.
+     *
+     * <p>MIDP nói một Alert là màn hình tạm: nó đóng lại rồi máy quay về màn
+     * hình game chỉ định, hoặc về màn hình vừa rời đi nếu game không chỉ định.
+     * Trước đây máy ảo không nhớ gì cả, nên một hộp thoại là ngõ cụt.</p>
+     *
+     * @param afterAlert màn hình quay về khi hộp thoại đóng, hoặc null
+     */
+    public void setCurrent(VmObject displayable, VmObject afterAlert) {
+        VmObject previous = current;
         this.current = displayable;
         // The menu listed the old screen's commands; it cannot outlive it.
         menuOpen = false;
@@ -324,7 +338,73 @@ public final class MidpContext {
         // title in the bar.
         Object next = displayable == null ? null : displayable.get("title");
         this.title = next == null ? null : vm.stringOf(next);
+        if (isAlert(displayable)) {
+            // Hộp thoại chồng lên hộp thoại thì chỗ quay về vẫn là chỗ cũ,
+            // chứ không phải cái hộp thoại vừa rời đi.
+            alertReturn = afterAlert != null ? afterAlert
+                    : (isAlert(previous) ? alertReturn : previous);
+            int timeout = MidpForms.intField(displayable, "timeout");
+            alertDueAt = timeout > 0 ? vm.host().currentTimeMillis() + timeout : 0L;
+        } else {
+            alertReturn = null;
+            alertDueAt = 0L;
+        }
         requestRepaint();
+    }
+
+    // ------------------------------------------------------------ hộp thoại
+
+    /** Màn hình phải quay về khi hộp thoại đóng lại. */
+    private VmObject alertReturn;
+    /** Lúc hộp thoại tự đóng, theo giờ máy ảo; 0 là chờ người chơi. */
+    private long alertDueAt;
+
+    private boolean isAlert(VmObject screen) {
+        return screen != null && screen.type().isAssignableTo(vm.loadClass(MidpForms.ALERT));
+    }
+
+    /** True khi màn hình đang hiện là một hộp thoại. */
+    public boolean showingAlert() {
+        return isAlert(current);
+    }
+
+    /**
+     * Hộp thoại không mang lệnh nào, nên máy phải tự cho một lối ra.
+     *
+     * <p>MIDP nói đúng thế: hộp thoại nào game không gắn lệnh vào thì máy gắn
+     * cho nó một lệnh đóng. Không có thì hộp thoại là ngõ cụt.</p>
+     */
+    public boolean alertNeedsWayOut() {
+        return isAlert(current) && commandsOf(current).isEmpty();
+    }
+
+    /**
+     * Đóng hộp thoại nếu đã hết giờ của nó.
+     *
+     * <p>Gọi mỗi khung hình. `setTimeout` trước đây cất con số rồi bỏ đó, nên
+     * một hộp thoại hẹn giờ mà game không gắn lệnh nào vào là một ngõ cụt
+     * vĩnh viễn — không phím nào đóng được.</p>
+     *
+     * @return true khi vừa đóng một hộp thoại
+     */
+    public boolean dismissAlertIfDue(long now) {
+        if (alertDueAt == 0L || now < alertDueAt || !isAlert(current)) {
+            return false;
+        }
+        dismissAlert();
+        return true;
+    }
+
+    /** Đóng hộp thoại đang hiện và quay về chỗ đã nhớ. */
+    public void dismissAlert() {
+        if (!isAlert(current)) {
+            return;
+        }
+        VmObject back = alertReturn;
+        setCurrent(back);
+        if (back != null) {
+            vm.callVirtual(back, "showNotify", "()V");
+        }
     }
 
     public VmObject midlet() {
@@ -501,7 +581,13 @@ public final class MidpContext {
 
     /** True when the system should reserve room for softkey labels. */
     public boolean hasSoftKeys() {
-        return !fullScreen && !commandsOf(current).isEmpty();
+        if (fullScreen) {
+            return false;
+        }
+        // An alert the MIDlet left without a single command still needs the
+        // strip: the way out the machine offers lives on it, and without the
+        // strip the player can see no way to close the dialog at all.
+        return !commandsOf(current).isEmpty() || alertNeedsWayOut();
     }
 
     public boolean isDestroyed() {

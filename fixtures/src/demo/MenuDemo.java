@@ -112,6 +112,18 @@ public class MenuDemo extends MIDlet implements CommandListener, ItemStateListen
         return alert;
     }
 
+    /**
+     * The other kind of alert: it counts down on its own and carries no
+     * command at all, so the only ways out are the clock and the default
+     * "Xong" the machine has to offer. Shown with an explicit next screen,
+     * which is where the alert must land rather than back where it came from.
+     */
+    public Alert scoreAlert() {
+        Alert alert = new Alert("Bảng điểm", "Chưa có điểm nào.", null, AlertType.INFO);
+        alert.setTimeout(300);
+        return alert;
+    }
+
     public List menu() {
         return menu;
     }
@@ -146,6 +158,8 @@ public class MenuDemo extends MIDlet implements CommandListener, ItemStateListen
             display.setCurrent(optionsForm());
         } else if (index == 2) {
             display.setCurrent(nameBox());
+        } else if (index == 3) {
+            display.setCurrent(scoreAlert(), optionsForm());
         } else if (index == 4) {
             display.setCurrent(aboutAlert());
         }

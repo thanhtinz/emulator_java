@@ -191,6 +191,9 @@ public final class SystemChrome {
         if (context.isMenuOpen()) {
             return "Huỷ";
         }
+        if (context.alertNeedsWayOut()) {
+            return "Xong";
+        }
         return context.labelOf(context.rightCommand());
     }
 

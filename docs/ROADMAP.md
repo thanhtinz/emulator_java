@@ -2382,3 +2382,36 @@ Vá luôn mấy chỗ hai ứng dụng lệch nhau:
 
 Bộ kiểm chữ tràn khung của giai đoạn 52 bắt được ngay dòng chú thích mới quá
 dài dưới ô số lượng, trước khi kịp nhìn ảnh.
+
+## Giai đoạn 59 — hộp thoại đóng được
+
+`display.setCurrent(alert, mànHìnhKếTiếp)` là một trong những câu lệnh MIDP
+được gõ nhiều nhất, và **máy ảo không có hàm ấy**: game nào hiện hộp thoại đầu
+tiên theo lối chuẩn là `NoSuchMethodError` ngay tại dòng đó, không đường vòng,
+không phản chiếu, chết hẳn. `setCurrentItem(Item)` cũng thiếu.
+
+Nặng hơn: `Alert.setTimeout` cất con số rồi bỏ đó — **không chỗ nào đọc**. Một
+hộp thoại hẹn giờ mà không có lệnh nào của riêng nó thì không phím nào đóng
+được: game treo vĩnh viễn ở màn hình ấy. Đúng cái MIDP cấm, vì MIDP nói một
+alert luôn phải có đường ra.
+
+Giờ:
+
+- `Display.setCurrent(Alert, Displayable)` hiện hộp thoại và **nhớ màn hình
+  phải quay về**; gọi `setCurrent(alert)` trơn thì quay về màn hình đang hiện
+  trước đó. `setCurrentItem(Item)` chuyển sang màn hình chứa item — `Item` giờ
+  giữ một liên kết ngược tới Form sở hữu nó, đặt ở mọi chỗ thêm/chèn/thay và gỡ
+  khi xoá.
+- **Hết giờ thì tự đóng**, đếm theo đồng hồ máy ảo, móc vào `renderFrame` ngay
+  cạnh nhịp hẹn giờ đã có sẵn.
+- **Hộp thoại không có lệnh nào được máy phát cho một lệnh "Xong"** trên phím
+  mềm phải — và dải phím mềm được vẽ ra cho nó, vì `hasSoftKeys()` trước đây
+  chỉ hỏi "game có lệnh nào không". Một cái nhãn không ai nhìn thấy thì không
+  phải đường ra: ảnh `12b-alert-countdown.png` là chỗ nhìn ra điều đó.
+
+Phép kiểm dựng đúng ca khó — hộp thoại **hẹn giờ, không lệnh nào, có hẹn màn
+hình kế tiếp** — rồi hỏi ba câu: hết giờ có tự đóng không, đóng xong có về đúng
+chỗ đã hẹn (chứ không phải chỗ nó được gọi lên) không, và phím mềm phải có đóng
+được không. Phá lại từng chỗ sửa một để chắc phép kiểm cắn: bỏ nhịp đếm giờ,
+bỏ màn hình đã hẹn, bỏ đường ra trên phím mềm, bỏ dải phím mềm — mỗi lần một
+câu hỏng, đúng câu tương ứng.

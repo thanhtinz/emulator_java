@@ -59,6 +59,7 @@ public final class FormsTest extends Test {
         typing(session, context, vm);
         optionsMenu(session, context, vm);
         alerts(session, context, vm);
+        timedAlert(session, context, vm);
         diagonals(session);
         softKeysAreLandR(session);
         tappingTheCommandBar();
@@ -200,6 +201,72 @@ public final class FormsTest extends Test {
         eq("Quay lại", session.rightSoftKeyLabel(), "the alert's back command labels the right key");
         session.pressButton("softRight");
         check(context.current() != alert, "backing out of the alert leaves it");
+    }
+
+    /**
+     * The other half of MIDP's alert contract, and the half that hangs a game
+     * when it is missing: an alert that counts itself down, that names the
+     * screen to land on, and that carries no command of its own — so the
+     * machine has to offer a way out or the player is stuck for good.
+     */
+    private void timedAlert(EmulatorSession session, MidpContext context, Vm vm) throws Exception {
+        int wasFocused = MidpForms.intField(context.current(), "focus");
+        VmObject alert = raiseCountdown(session, context, vm);
+        check(context.alertNeedsWayOut(), "the alert carries no command of its own");
+        eq("Xong", session.rightSoftKeyLabel(), "so the machine puts its own way out on the right key");
+        check(context.hasSoftKeys(), "and draws the strip that shows it — a label nobody sees is no way out");
+        check(session.renderFrame(), "the alert is painted");
+        check(context.current() == alert, "and it does not vanish on the first frame");
+
+        // The clock closes it, and it lands on the screen the MIDlet named
+        // rather than the list it was raised from.
+        Thread.sleep(400);
+        session.renderFrame();
+        check(context.current() != alert, "the countdown ran out and closed the alert");
+        eq("Tuỳ chọn", context.title(), "and left the screen setCurrent named, not the one it came from");
+
+        // Back to the list the long way, through the alert that already worked.
+        session.pressButton("softLeft");
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_FIRE);
+        session.pressButton("softRight");
+        eq("Sky Runner", context.title(), "the list is showing again");
+
+        // The other way out: the key the machine labelled.
+        alert = raiseCountdown(session, context, vm);
+        session.pressButton("softRight");
+        check(context.current() != alert, "the right key closes an alert that has no command");
+        eq("Tuỳ chọn", context.title(), "and lands on the named screen too");
+
+        // Hand the list back the way the rest of the run expects to find it.
+        session.pressButton("softLeft");
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_DOWN);
+        session.keyPressed(MidpContext.KEY_FIRE);
+        session.pressButton("softRight");
+        VmObject list = context.current();
+        for (int i = 0; i < 8 && MidpForms.intField(list, "focus") != wasFocused; i++) {
+            session.keyPressed(MidpContext.KEY_DOWN);
+        }
+        eq(wasFocused, MidpForms.intField(list, "focus"),
+                "the selection is back where the rest of the run left it");
+    }
+
+    /** Picks the "Bảng điểm" row, which raises the countdown alert. */
+    private VmObject raiseCountdown(EmulatorSession session, MidpContext context, Vm vm) {
+        VmObject list = context.current();
+        for (int i = 0; i < 8 && MidpForms.intField(list, "focus") != 3; i++) {
+            session.keyPressed(MidpContext.KEY_DOWN);
+        }
+        eq(3, MidpForms.intField(list, "focus"), "the selection reached the scores row");
+        session.keyPressed(MidpContext.KEY_FIRE);
+        VmObject alert = context.current();
+        check(alert.type().isAssignableTo(vm.loadClass(MidpForms.ALERT)),
+                "the scores row put up an Alert");
+        eq(300, MidpForms.intField(alert, "timeout"),
+                "and it carries the countdown the MIDlet asked for");
+        return alert;
     }
 
     /** True when every pixel is the same, which means nothing was drawn. */

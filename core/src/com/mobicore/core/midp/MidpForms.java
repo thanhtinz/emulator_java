@@ -189,6 +189,20 @@ public final class MidpForms {
         return (StringBuilder) self.host;
     }
 
+    /** Form chứa một item, hoặc null khi item chưa thuộc về màn hình nào. */
+    public static VmObject formOf(VmObject item) {
+        Object owner = item == null ? null : item.get("owner");
+        return owner instanceof VmObject ? (VmObject) owner : null;
+    }
+
+    /** Ghi lại rằng item này thuộc về form kia, rồi trả lại chính nó. */
+    static VmObject own(VmObject form, VmObject item) {
+        if (item != null) {
+            item.set("owner", form);
+        }
+        return item;
+    }
+
     /** Host item list of a Form, created on demand. */
     @SuppressWarnings("unchecked")
     public static List<VmObject> itemsOf(VmObject self) {
@@ -264,6 +278,10 @@ public final class MidpForms {
     private static void item(final Vm vm, final MidpContext context) {
         vm.builtin(ITEM, Vm.OBJECT)
                 .field("label", "Ljava/lang/String;")
+                // Form chứa item này. MIDP cho phép nhảy thẳng tới một item
+                // (setCurrentItem), mà từ item thì không có đường nào tìm ra
+                // màn hình chứa nó — nên đường ấy được ghi lại lúc thêm vào.
+                .field("owner", "Ljavax/microedition/lcdui/Displayable;")
                 .field("layout", "I")
                 .staticField("LAYOUT_DEFAULT", "I").staticField("LAYOUT_LEFT", "I")
                 .staticField("LAYOUT_RIGHT", "I").staticField("LAYOUT_CENTER", "I")
@@ -877,7 +895,7 @@ public final class MidpForms {
                                 VmArray given = (VmArray) args[1];
                                 if (given != null) {
                                     for (int i = 0; i < given.length(); i++) {
-                                        items.add((VmObject) given.objects()[i]);
+                                        items.add(own(self, (VmObject) given.objects()[i]));
                                     }
                                 }
                                 return null;
@@ -886,7 +904,7 @@ public final class MidpForms {
                 .method("append", "(Ljavax/microedition/lcdui/Item;)I", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         List<VmObject> items = itemsOf(self);
-                        items.add(Rt.obj(args, 0));
+                        items.add(own(self, Rt.obj(args, 0)));
                         context.requestRepaint();
                         return Integer.valueOf(items.size() - 1);
                     }
@@ -896,7 +914,7 @@ public final class MidpForms {
                         VmObject item = vm.newInstance(STRING_ITEM);
                         item.set("text", args[0]);
                         List<VmObject> items = itemsOf(self);
-                        items.add(item);
+                        items.add(own(self, item));
                         context.requestRepaint();
                         return Integer.valueOf(items.size() - 1);
                     }
@@ -906,7 +924,7 @@ public final class MidpForms {
                         VmObject item = vm.newInstance(IMAGE_ITEM);
                         item.set("image", args[0]);
                         List<VmObject> items = itemsOf(self);
-                        items.add(item);
+                        items.add(own(self, item));
                         context.requestRepaint();
                         return Integer.valueOf(items.size() - 1);
                     }
@@ -914,7 +932,7 @@ public final class MidpForms {
                 .method("insert", "(ILjavax/microedition/lcdui/Item;)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         List<VmObject> items = itemsOf(self);
-                        items.add(clamp(Rt.i(args, 0), 0, items.size()), Rt.obj(args, 1));
+                        items.add(clamp(Rt.i(args, 0), 0, items.size()), own(self, Rt.obj(args, 1)));
                         context.requestRepaint();
                         return null;
                     }
@@ -924,7 +942,7 @@ public final class MidpForms {
                         List<VmObject> items = itemsOf(self);
                         int index = Rt.i(args, 0);
                         if (index >= 0 && index < items.size()) {
-                            items.set(index, Rt.obj(args, 1));
+                            items.set(index, own(self, Rt.obj(args, 1)));
                         }
                         context.requestRepaint();
                         return null;
@@ -935,7 +953,7 @@ public final class MidpForms {
                         List<VmObject> items = itemsOf(self);
                         int index = Rt.i(args, 0);
                         if (index >= 0 && index < items.size()) {
-                            items.remove(index);
+                            own(null, items.remove(index));
                         }
                         self.set("focus", Integer.valueOf(
                                 clamp(intField(self, "focus"), 0, Math.max(0, items.size() - 1))));

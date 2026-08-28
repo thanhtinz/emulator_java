@@ -12,6 +12,12 @@ public class Display {
     public void setCurrent(Displayable next) {
     }
 
+    public void setCurrent(Alert alert, Displayable next) {
+    }
+
+    public void setCurrentItem(Item item) {
+    }
+
     public Displayable getCurrent() {
         return null;
     }
