@@ -23,6 +23,17 @@ public class Graphics {
         return 0;
     }
 
+    public int getGrayScale() {
+        return 0;
+    }
+
+    public int getDisplayColor(int colour) {
+        return colour;
+    }
+
+    public void copyArea(int x, int y, int width, int height, int toX, int toY, int anchor) {
+    }
+
     public void setGrayScale(int value) {
     }
 

@@ -38,6 +38,8 @@ public final class SampleSuite {
             + "MIDlet-14: Loop Demo,,demo.LoopDemo\n"
             + "MIDlet-15: Thread Demo,,demo.ThreadDemo\n"
             + "MIDlet-16: Clock Demo,,demo.ClockDemo\n"
+            + "MIDlet-17: Pixel Probe,,demo.PixelProbe\n"
+            + "MIDlet-18: Flip Demo,,demo.FlipDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 
@@ -63,6 +65,8 @@ public final class SampleSuite {
             + "MIDlet-14: Loop Demo,,demo.LoopDemo\n"
             + "MIDlet-15: Thread Demo,,demo.ThreadDemo\n"
             + "MIDlet-16: Clock Demo,,demo.ClockDemo\n"
+            + "MIDlet-17: Pixel Probe,,demo.PixelProbe\n"
+            + "MIDlet-18: Flip Demo,,demo.FlipDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 

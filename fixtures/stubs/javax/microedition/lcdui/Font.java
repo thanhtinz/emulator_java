@@ -58,6 +58,10 @@ public class Font {
         return false;
     }
 
+    public boolean isPlain() {
+        return false;
+    }
+
     public boolean isUnderlined() {
         return false;
     }

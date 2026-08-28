@@ -75,6 +75,7 @@ public final class Preview {
         write(vfs, outDir, "30-photo.png", photoScreen(fixtures));
         write(vfs, outDir, "35-own-loop.png", loopScreen(fixtures));
         write(vfs, outDir, "36-clock.png", clockScreen(fixtures));
+        write(vfs, outDir, "37-flip.png", flipScreen(fixtures));
         write(vfs, outDir, "27-install-link.png", new LinkScreen(fixtures).render());
         write(vfs, outDir, "28-crash.png", new CrashScreen(fixtures).render());
         write(vfs, outDir, "29-hang.png", new CrashScreen(fixtures, "demo.HangDemo").render());
@@ -146,6 +147,19 @@ public final class Preview {
         // Múi giờ Việt Nam, để cái đồng hồ trong ảnh là một giờ có thật ở đây.
         session.vm().setTimeZone("Asia/Ho_Chi_Minh", 7 * 60 * 60000);
         session.renderFrame();
+        return screen.render();
+    }
+
+    /**
+     * Cùng một hình dưới cả tám phép lật xoay của MIDP.
+     *
+     * <p>Hình cố ý không đối xứng: hình đối xứng giấu đúng cái lỗi đáng bắt,
+     * vì lật rồi xoay không ra cùng kết quả với xoay rồi lật.</p>
+     */
+    private static Framebuffer flipScreen(String fixtures) throws Exception {
+        EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.FlipDemo");
+        screen.boot();
+        screen.session().renderFrame();
         return screen.render();
     }
 

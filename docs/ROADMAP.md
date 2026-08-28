@@ -2228,3 +2228,43 @@ chủ, rồi đem hai kết quả ra so, nên phép kiểm không thể trôi th
 
 Ảnh chụp: **36-clock.png** — một game xem giờ, giờ và thứ do máy ảo tính, và
 dòng chữ dưới cùng là một tệp trong gói game đọc bằng `InputStreamReader`.
+
+## Giai đoạn 55 — tám phép lật xoay, và lỗi nằm giữa hai phép
+
+Rà tiếp, lần này là MIDP 2.0: mười tám nhóm lời gọi — hình vẽ, chữ, vùng cắt,
+màu, nét, phông, ảnh, `Image`, `Font`, `Canvas`, `Display`, `RecordStore`,
+`GameCanvas`, `Sprite`, `TiledLayer`, `LayerManager` — chạy hết qua máy ảo.
+Mặt này khá hơn CLDC nhiều: chỉ bốn hàm vắng hẳn (`Graphics.getGrayScale`,
+`getDisplayColor`, `copyArea` và `Font.isPlain`).
+
+Nhưng có mặt không có nghĩa là đúng. Nên rà tiếp bằng cách vẽ từng hình vào
+một tấm 12×12 rồi soi từng điểm ảnh: `drawRect` có bao gồm điểm cuối không,
+`fillRect` bề rộng 0 có vẽ gì không, `fillArc` đếm góc từ đâu về đâu, vùng
+cắt giao nhau ra sao. Mười sáu hình, tất cả đúng.
+
+**Chỗ sai nằm ở phép lật xoay.** MIDP có tám phép, và bốn phép mang chữ MIRROR
+là *lật trước, xoay sau*. Thứ tự ấy có thật: lật rồi xoay chín mươi độ không ra
+cùng kết quả với xoay rồi lật. Máy ảo làm ngược thứ tự, và hậu quả đúng bằng
+việc **`MIRROR_ROT90` và `MIRROR_ROT270` đổi chỗ cho nhau** — game xin phép
+này thì nhận phép kia, con thú quay mặt sang phải hiện ra quay sang trái.
+
+Lỗi này sống được lâu vì bộ kiểm cũ chỉ soi `MIRROR` và `ROT90` — đúng hai
+phép không thể sai, vì với chúng thứ tự không quan trọng. Bộ kiểm mới không
+chép sẵn kết quả của tám phép: nó dựng lại phép lật và phép xoay chín mươi độ
+bằng hai hàm nhỏ độc lập rồi ghép theo đúng cái tên MIDP đặt, nên hai đường
+tính không thể sai giống nhau.
+
+Vài chỗ cố ý:
+
+- **`copyArea` chép qua một bản sao**, không chép thẳng: vùng nguồn và vùng
+  đích có thể chồng lên nhau, và chép thẳng thì phần chồng bị bôi mất giữa
+  chừng. Chép ra ngoài mép tấm vẽ thì kêu, không lặng lẽ bỏ qua.
+- **`getGrayScale` trả về độ sáng của màu hiện tại** khi màu ấy không phải một
+  mức xám, đúng như máy trắng đen ngày ấy hiện ra.
+- **`getDisplayColor` trả lại đúng màu được hỏi.** Game hỏi câu này để tự chọn
+  bảng màu cho máy ít màu; ở đây màn hình đủ màu, nên câu trả lời thật là
+  "không đổi gì".
+
+Ảnh chụp: **37-flip.png** — cùng một hình dưới cả tám phép. Hình cố ý không
+đối xứng, có một chỗ khuyết đỏ ở góc, vì hình đối xứng giấu đúng cái lỗi vừa
+bắt được.

@@ -76,13 +76,18 @@ public final class Transforms {
                         targetX = row;
                         targetY = width - 1 - column;
                         break;
+                    // Lật trước, xoay sau — đúng thứ tự MIDP nói, và thứ tự
+                    // ấy có thật: lật rồi xoay chín mươi độ không ra cùng kết
+                    // quả với xoay rồi lật. Hai phép này từng làm ngược, nên
+                    // chúng đổi chỗ cho nhau: một con thú quay mặt sang phải
+                    // hiện ra quay sang trái.
                     case MIRROR_ROT90:
-                        targetX = row;
-                        targetY = column;
-                        break;
-                    case MIRROR_ROT270:
                         targetX = height - 1 - row;
                         targetY = width - 1 - column;
+                        break;
+                    case MIRROR_ROT270:
+                        targetX = row;
+                        targetY = column;
                         break;
                     default:
                         targetX = column;

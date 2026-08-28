@@ -114,6 +114,34 @@ public final class MidpGfx {
                         return null;
                     }
                 })
+                .method("getGrayScale", "()I", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        // MIDP nói mức xám là mức của màu hiện tại khi màu ấy
+                        // đúng là một mức xám; màu thường thì lấy độ sáng của
+                        // nó, đúng như máy trắng đen ngày ấy vẫn hiện ra.
+                        int colour = surface(vm, self).color();
+                        int red = (colour >> 16) & 0xFF;
+                        int green = (colour >> 8) & 0xFF;
+                        int blue = colour & 0xFF;
+                        if (red == green && green == blue) {
+                            return Integer.valueOf(red);
+                        }
+                        return Integer.valueOf((red * 77 + green * 151 + blue * 28) >> 8);
+                    }
+                })
+                .method("getDisplayColor", "(I)I", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        // Màn hình ở đây là màn hình đủ màu, nên màu xin được
+                        // là màu hiện ra. Game hỏi câu này để tự chọn bảng màu
+                        // cho máy ít màu; câu trả lời thật là "không đổi gì".
+                        return Integer.valueOf(Rt.i(args, 0) & 0xFFFFFF);
+                    }
+                })
+                .method("copyArea", "(IIIIIII)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return copyArea(vm, self, args);
+                    }
+                })
                 .method("getRedComponent", "()I", component(16))
                 .method("getGreenComponent", "()I", component(8))
                 .method("getBlueComponent", "()I", component(0))
@@ -340,6 +368,46 @@ public final class MidpGfx {
         int outHeight = Transforms.resultHeight(transform, width, height);
         int[] anchored = anchor(dx, dy, anchorFlags, outWidth, outHeight, 0);
         surface(vm, self).drawPixels(block, outWidth, outHeight, anchored[0], anchored[1]);
+    }
+
+    /**
+     * Chép một mảng của chính tấm vẽ sang chỗ khác trên nó.
+     *
+     * <p>MIDP chỉ cho làm việc này trên ảnh sửa được, không cho trên tấm vẽ
+     * của màn hình — vì trên máy thật màn hình có thể đang được vẽ dở. Chép
+     * qua một bản sao chứ không chép thẳng: vùng nguồn và vùng đích có thể
+     * chồng lên nhau, và chép thẳng thì phần chồng bị bôi mất giữa chừng.</p>
+     */
+    private static Object copyArea(Vm vm, VmObject self, Object[] args) {
+        Framebuffer target = surface(vm, self);
+        int x = Rt.i(args, 0), y = Rt.i(args, 1);
+        int width = Rt.i(args, 2), height = Rt.i(args, 3);
+        int toX = Rt.i(args, 4), toY = Rt.i(args, 5);
+        int anchor = Rt.i(args, 6);
+        if (width < 0 || height < 0) {
+            throw vm.raise("java/lang/IllegalArgumentException",
+                    "Vùng chép có bề rộng hoặc chiều cao âm");
+        }
+        int left = x + target.translateX();
+        int top = y + target.translateY();
+        if (left < 0 || top < 0 || left + width > target.width() || top + height > target.height()) {
+            throw vm.raise("java/lang/IllegalArgumentException", "Vùng chép nằm ngoài tấm vẽ");
+        }
+        int[] pixels = target.pixels();
+        int[] copy = new int[width * height];
+        for (int row = 0; row < height; row++) {
+            System.arraycopy(pixels, (top + row) * target.width() + left,
+                    copy, row * width, width);
+        }
+        Framebuffer patch = new Framebuffer(width, height);
+        System.arraycopy(copy, 0, patch.pixels(), 0, copy.length);
+        int[] placed = anchor(toX + target.translateX(), toY + target.translateY(),
+                anchor, width, height, 0);
+        int saved = target.blendMode();
+        target.setBlendMode(Framebuffer.BLEND_REPLACE);
+        target.drawFramebuffer(patch, placed[0], placed[1]);
+        target.setBlendMode(saved);
+        return null;
     }
 
     private static NativeMethod component(final int shift) {
@@ -680,6 +748,11 @@ public final class MidpGfx {
                 .method("isUnderlined", "()Z", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         return Rt.box((((Integer) self.get("style")).intValue() & STYLE_UNDERLINED) != 0);
+                    }
+                })
+                .method("isPlain", "()Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Rt.box(((Integer) self.get("style")).intValue() == 0);
                     }
                 })
                 .staticMethod("getDefaultFont", "()Ljavax/microedition/lcdui/Font;", new NativeMethod() {
