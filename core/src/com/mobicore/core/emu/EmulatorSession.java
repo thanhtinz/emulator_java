@@ -637,26 +637,21 @@ public final class EmulatorSession {
             return false;
         }
         if (!context.consumeRepaint()) {
-            return false;
+            // Không ai xin vẽ, nhưng game có thể đã tự vẽ bằng serviceRepaints
+            // giữa hai nhịp: khung ấy vẫn phải được đưa lên màn hình.
+            return context.consumePainted();
         }
         if (!isCanvas(current)) {
             // Form, List, TextBox and Alert are the device's to draw: MIDP
             // describes what they hold and leaves the look to the handset.
             return ScreenRenderer.render(context);
         }
-        Framebuffer screen = context.screen();
-        screen.setTranslation(0, 0);
-        screen.resetClip();
-        // The game paints into its canvas area only. Clipping here is what
-        // stops a MIDlet that ignores getHeight() from scribbling over the
-        // title and softkey strips the system owns.
-        screen.setClip(context.canvasLeft(), context.canvasTop(),
-                context.canvasWidth(), context.canvasHeight());
-        screen.translate(context.canvasLeft(), context.canvasTop());
-        VmObject graphics = MidpGfx.newGraphics(vm, screen);
-        vm.callVirtual(current, "paint", "(Ljavax/microedition/lcdui/Graphics;)V", graphics);
-        SystemChrome.draw(context);
-        context.countFrame();
+        // Cùng một đường vẽ mà serviceRepaints dùng: game gọi tay hay vòng
+        // lặp gọi hộ thì khung hình phải ra y như nhau. Phần cắt vùng vẽ nằm
+        // trong đó — nó là thứ chặn một MIDlet lờ getHeight() vẽ đè lên thanh
+        // tiêu đề và thanh phím mềm của hệ thống.
+        context.paintNow(current);
+        context.consumePainted();
         return true;
     }
 

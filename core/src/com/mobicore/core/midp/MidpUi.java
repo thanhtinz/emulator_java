@@ -275,7 +275,18 @@ public final class MidpUi {
                         return null;
                     }
                 })
-                .method("serviceRepaints", "()V", noop())
+                .method("serviceRepaints", "()V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        // MIDP: "chặn lại cho tới khi vẽ xong". Một mảng lớn
+                        // game đời ấy viết vòng lặp dựa đúng vào lời hứa này —
+                        // tính toán, repaint, serviceRepaints, ngủ một nhịp —
+                        // nên bỏ trống nó là lấy mất nhịp game tự đặt ra.
+                        if (context.current() == self && context.isRepaintRequested()) {
+                            context.paintNow(self);
+                        }
+                        return null;
+                    }
+                })
                 .method("setFullScreenMode", "(Z)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         context.setFullScreen(Rt.bool(args, 0));

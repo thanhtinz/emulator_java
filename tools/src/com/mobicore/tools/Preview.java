@@ -70,6 +70,7 @@ public final class Preview {
         write(vfs, outDir, "22-save-slots.png", new SlotsScreen(fixtures).render());
         write(vfs, outDir, "23-nokia.png", nokiaScreen(fixtures));
         write(vfs, outDir, "30-photo.png", photoScreen(fixtures));
+        write(vfs, outDir, "35-own-loop.png", loopScreen(fixtures));
         write(vfs, outDir, "27-install-link.png", new LinkScreen(fixtures).render());
         write(vfs, outDir, "28-crash.png", new CrashScreen(fixtures).render());
         write(vfs, outDir, "29-hang.png", new CrashScreen(fixtures, "demo.HangDemo").render());
@@ -113,6 +114,21 @@ public final class Preview {
      * đáng chụp là chỗ đó chứ không phải một bảng cài đặt nói rằng đã đọc
      * được JPEG.</p>
      */
+    /**
+     * Một game tự chạy vòng lặp của nó, vẽ bằng serviceRepaints.
+     *
+     * <p>Khung hình trong ảnh do chính game vẽ khi nó gọi — không phải do vòng
+     * lặp của máy ảo vẽ hộ.</p>
+     */
+    private static Framebuffer loopScreen(String fixtures) throws Exception {
+        EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.LoopDemo");
+        EmulatorSession session = screen.boot();
+        for (int i = 0; i < 40; i++) {
+            session.vm().callVirtual(session.context().midlet(), "step", "()V");
+        }
+        return screen.render();
+    }
+
     private static Framebuffer photoScreen(String fixtures) throws Exception {
         EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.PhotoDemo");
         screen.boot();

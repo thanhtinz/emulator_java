@@ -553,6 +553,54 @@ public final class MidpContext {
                 Integer.valueOf(canvasWidth()), Integer.valueOf(canvasHeight()));
     }
 
+    /** True while paint() is running, để serviceRepaints không gọi lồng vào chính nó. */
+    private boolean painting;
+    /** Có khung hình nào vừa được vẽ mà chưa ai lấy đi chưa. */
+    private boolean painted;
+
+    /**
+     * Vẽ ngay khung hình, tại đây, trên chính luồng đang gọi.
+     *
+     * <p>Đây là thứ {@code Canvas.serviceRepaints} hứa: MIDP nói nó <em>chặn
+     * lại cho tới khi vẽ xong</em>, và một mảng lớn game đời ấy viết vòng lặp
+     * của chúng dựa đúng vào lời hứa đó — tính toán, gọi repaint, gọi
+     * serviceRepaints, ngủ một nhịp. Bỏ trống hàm ấy thì game vẫn chạy nhưng
+     * nhịp của nó không còn là nhịp nó tự đặt ra.</p>
+     *
+     * @return true khi thật sự vẽ
+     */
+    public boolean paintNow(VmObject canvas) {
+        if (painting || canvas == null) {
+            // Gọi lồng: game gọi serviceRepaints từ trong chính paint của nó.
+            // Vẽ tiếp ở đây là gọi đệ quy không đáy.
+            return false;
+        }
+        painting = true;
+        try {
+            Framebuffer target = screen();
+            target.setTranslation(0, 0);
+            target.resetClip();
+            target.setClip(canvasLeft(), canvasTop(), canvasWidth(), canvasHeight());
+            target.translate(canvasLeft(), canvasTop());
+            VmObject graphics = MidpGfx.newGraphics(vm, target);
+            vm.callVirtual(canvas, "paint", "(Ljavax/microedition/lcdui/Graphics;)V", graphics);
+            SystemChrome.draw(this);
+            countFrame();
+            repaintRequested = false;
+            painted = true;
+            return true;
+        } finally {
+            painting = false;
+        }
+    }
+
+    /** Lấy đi dấu "vừa vẽ", để vòng lặp biết có gì mới mà đưa lên màn hình. */
+    public boolean consumePainted() {
+        boolean value = painted;
+        painted = false;
+        return value;
+    }
+
     public boolean consumeRepaint() {
         boolean requested = repaintRequested;
         repaintRequested = false;

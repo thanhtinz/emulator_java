@@ -2013,3 +2013,47 @@ hai. Bảng cũng được mở lại sau khi tắt ứng dụng, vì đó là c
 
 Cầu nối: `scanSave`, `narrowSave`, `setAllSaveValues`, `clearSaveScan`,
 `itemsJson`, `keepItem`, `sendItem`, `renameItem`, `forgetItem`.
+
+## Giai đoạn 50 — vẽ ngay khi game bảo vẽ
+
+Hầu hết game J2ME tự chạy vòng lặp của mình, và vòng lặp ấy luôn cùng một hình:
+
+```java
+while (playing) {
+    tick();               // tính bước tiếp theo
+    repaint();            // xin vẽ
+    serviceRepaints();    // và đợi vẽ xong
+    Thread.sleep(50);
+}
+```
+
+Bước giữa là **một lời hứa MIDP đưa ra**: `serviceRepaints` chặn lại cho tới
+khi khung hình vẽ xong. Máy ảo này để trống nó — một hàm rỗng — nên game vẫn
+chạy, và đó chính là lý do lỗi này lọt được lâu đến vậy: **màn hình vẫn có
+hình**. Chỉ có điều nhịp không còn là nhịp game tự đặt ra: nó tính hàng chục
+bước giữa hai khung hình do vòng lặp máy ảo vẽ hộ, và người chơi thấy nhân vật
+nhảy cóc.
+
+Nay `serviceRepaints` làm đúng việc của nó: vẽ ngay, tại đó, trên chính luồng
+đang gọi — cùng một đường vẽ mà vòng lặp máy ảo dùng, nên khung hình ra y như
+nhau dù ai gọi.
+
+Ba chỗ phải cẩn thận:
+
+- **Gọi lồng.** Game gọi `serviceRepaints` từ trong chính `paint` của nó là
+  chuyện có thật; vẽ tiếp ở đó là gọi đệ quy không đáy. Trong lúc đang vẽ thì
+  lời gọi ấy bị bỏ qua.
+- **Khung hình game tự vẽ vẫn phải lên màn hình.** Vòng lặp máy ảo nhìn vào cờ
+  "có ai xin vẽ không", và game vừa tự vẽ xong thì cờ ấy đã tắt — khung hình sẽ
+  nằm im trong bộ nhớ. Nay có thêm dấu "vừa vẽ" để vòng lặp biết còn thứ mới mà
+  đưa lên.
+- **Chỉ vẽ khi có ai xin.** `serviceRepaints` không phải lệnh vẽ, nó là lệnh
+  *chờ*: không có repaint nào đang đợi thì không có gì để làm.
+
+Bản mẫu `demo.LoopDemo` viết đúng vòng lặp ấy và tự đếm: xin mấy lần, vẽ mấy
+lần, và **khung hình có vẽ xong trước khi `serviceRepaints` trả về hay không**.
+Thử ngược lại bằng cách trả hàm về rỗng thì bài kiểm tra đỏ đúng ba chỗ.
+
+Đây cũng là thứ J2ME Loader gọi là *immediate processing mode* — bên ấy là một
+công tắc kèm lời cảnh báo "hành vi của midlet sẽ khó đoán"; ở đây nó không phải
+lựa chọn, vì MIDP đã nói rõ hàm này phải làm gì.

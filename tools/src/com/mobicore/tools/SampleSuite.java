@@ -35,6 +35,7 @@ public final class SampleSuite {
             + "MIDlet-11: Photo Demo,,demo.PhotoDemo\n"
             + "MIDlet-12: Socket Demo,,demo.SocketDemo\n"
             + "MIDlet-13: Piggy Bank,,demo.PiggyBank\n"
+            + "MIDlet-14: Loop Demo,,demo.LoopDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 
@@ -57,6 +58,7 @@ public final class SampleSuite {
             + "MIDlet-11: Photo Demo,,demo.PhotoDemo\n"
             + "MIDlet-12: Socket Demo,,demo.SocketDemo\n"
             + "MIDlet-13: Piggy Bank,,demo.PiggyBank\n"
+            + "MIDlet-14: Loop Demo,,demo.LoopDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 
