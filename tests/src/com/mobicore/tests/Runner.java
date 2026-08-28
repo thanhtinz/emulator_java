@@ -32,7 +32,6 @@ public final class Runner {
         tests.add(new HangTest(fixtures));
         tests.add(new SocketTest(fixtures));
         tests.add(new JpegTest());
-        tests.add(new ResourceTest(fixtures));
         tests.add(new TreasureTest(fixtures));
         tests.add(new RepaintTest(fixtures));
         tests.add(new KeypadLayoutTest(fixtures));

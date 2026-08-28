@@ -6,10 +6,8 @@ import com.mobicore.core.jar.AttributeSet;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
-import com.mobicore.core.mod.ModManager;
-import com.mobicore.core.mod.ModPackage;
 import com.mobicore.core.model.GameProfile;
-import com.mobicore.core.net.LoopbackTransport;
+import com.mobicore.tests.net.LoopbackTransport;
 import com.mobicore.core.net.NetworkMonitor;
 import com.mobicore.core.net.NetworkPolicy;
 import com.mobicore.core.net.NetworkStack;
@@ -17,9 +15,6 @@ import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.storage.MemoryVfs;
 import com.mobicore.core.storage.StorageLayout;
 import com.mobicore.core.storage.Vfs;
-import com.mobicore.core.tools.CrashReport;
-import com.mobicore.core.tools.JadEditor;
-import com.mobicore.core.tools.RmsEditor;
 import com.mobicore.core.vm.VmObject;
 import com.mobicore.core.vm.VmThrow;
 import com.mobicore.tools.SampleSuite;
@@ -50,7 +45,6 @@ public final class ToolsTest extends Test {
     @Override
     public void run() throws Exception {
         policy();
-        jadEditor();
         icons();
         themes();
 
@@ -66,9 +60,6 @@ public final class ToolsTest extends Test {
             return;
         }
         network(library, entry);
-        mods(library, entry);
-        rmsEditor(library, entry);
-        crash(library, entry);
     }
 
     /**
@@ -210,42 +201,6 @@ public final class ToolsTest extends Test {
         eq(1, restored.deniedHosts().size(), "the policy survives JSON");
     }
 
-    private void jadEditor() {
-        JadEditor editor = JadEditor.parse(SampleSuite.jad());
-        check(editor.isValid(), "the sample descriptor is valid");
-        eq("Sky Runner", editor.get("MIDlet-Name"), "values read back");
-
-        editor.set("MIDlet-Name", "Sky Runner HD");
-        eq("Sky Runner HD", editor.get("MIDlet-Name"), "edits take effect");
-        check(editor.toDescriptor().indexOf("MIDlet-Name: Sky Runner HD") >= 0,
-                "the edit appears in the serialised descriptor");
-
-        editor.syncWithJar("SkyRunnerHD.jar", 40960);
-        eq("40960", editor.get("MIDlet-Jar-Size"), "the JAR size is synced");
-
-        editor.remove("MIDlet-Vendor");
-        List<JadEditor.Problem> problems = editor.validate();
-        check(!editor.isValid(), "removing the vendor makes the descriptor invalid");
-        boolean vendorReported = false;
-        for (JadEditor.Problem problem : problems) {
-            if (problem.attribute().equals("MIDlet-Vendor") && problem.isError()) {
-                vendorReported = true;
-            }
-        }
-        check(vendorReported, "the missing vendor is reported as an error");
-
-        JadEditor broken = new JadEditor(AttributeSet.parse(
-                "MIDlet-Name: X\nMIDlet-Vendor: Y\nMIDlet-Version: banana\nMIDlet-1: X,,\n"));
-        check(!broken.isValid(), "a MIDlet entry without a class is invalid");
-        boolean versionWarned = false;
-        for (JadEditor.Problem problem : broken.validate()) {
-            if (problem.attribute().equals("MIDlet-Version") && !problem.isError()) {
-                versionWarned = true;
-            }
-        }
-        check(versionWarned, "a nonsense version is a warning, not an error");
-    }
-
     private void network(GameLibrary library, LibraryEntry entry) throws Exception {
         GameProfile profile = library.profile(entry.suiteId());
         SuiteLoader suite = library.load(entry.suiteId());
@@ -319,122 +274,6 @@ public final class ToolsTest extends Test {
         }
         check(rejectedScheme, "an unsupported scheme raises ConnectionNotFoundException");
 
-        session.destroy();
-    }
-
-    private void mods(GameLibrary library, LibraryEntry entry) throws Exception {
-        ModManager mods = new ModManager(library, entry.suiteId());
-        eq(0, mods.installed().size(), "no mods are installed to begin with");
-
-        Map<String, byte[]> files = new LinkedHashMap<String, byte[]>();
-        files.put("mod.json", SampleSuite.utf8("{\"id\":\"hd-tiles\",\"name\":\"HD Tiles\","
-                + "\"version\":\"1.1\",\"author\":\"Community\",\"target\":\"" + entry.suiteId()
-                + "\",\"description\":\"Higher resolution ground tiles\"}"));
-        files.put("res/level1.dat", new byte[]{7, 7, 7});
-        ModPackage installed = mods.install("hd-tiles", SampleSuite.zip(files));
-        eq("hd-tiles", installed.modId(), "the manifest id is used");
-        eq("HD Tiles", installed.name(), "the manifest name is read");
-        check(!installed.touchesCode(), "a resource-only mod does not touch code");
-        eq(1, installed.replacedResources().size(), "the replaced resource is listed");
-        eq(1, library.backupsFor(entry.suiteId()).size(),
-                "installing a mod backs the game up first");
-
-        eq(1, mods.installed().size(), "the mod is listed");
-        check(!mods.installed().get(0).isEnabled(), "a new mod starts disabled");
-        mods.setEnabled("hd-tiles", true);
-        check(mods.installed().get(0).isEnabled(), "enabling persists");
-
-        // With the mod enabled, the overlay wins over the original resource.
-        GameProfile profile = library.profile(entry.suiteId());
-        EmulatorSession session = EmulatorSession.create(library.load(entry.suiteId()), profile,
-                library.storage(), library.layout(), null);
-        eq(1, mods.applyTo(session), "the enabled mod is applied");
-        eq(3, session.source().resourceBytes("res/level1.dat").length,
-                "the mod's resource replaces the original");
-        eq(1024, com.mobicore.core.jar.SuiteLoader
-                        .load(library.storage().read(library.layout().jarPath(entry.suiteId())), null)
-                        .archive().read("res/level1.dat").length,
-                "the original JAR on disk is untouched");
-        session.destroy();
-
-        mods.setEnabled("hd-tiles", false);
-        EmulatorSession plain = EmulatorSession.create(library.load(entry.suiteId()), profile,
-                library.storage(), library.layout(), null);
-        eq(0, mods.applyTo(plain), "a disabled mod is not applied");
-        eq(1024, plain.source().resourceBytes("res/level1.dat").length,
-                "disabling restores the stock resource exactly");
-        plain.destroy();
-
-        Map<String, byte[]> codeMod = new LinkedHashMap<String, byte[]>();
-        codeMod.put("mod.json", SampleSuite.utf8("{\"id\":\"patched\",\"name\":\"Patched\"}"));
-        codeMod.put("demo/SkyRunner.class", new byte[]{(byte) 0xCA, (byte) 0xFE, 0, 0});
-        ModPackage patch = mods.install("patched", SampleSuite.zip(codeMod));
-        check(patch.touchesCode(), "a mod carrying class files is flagged");
-
-        check(mods.uninstall("patched"), "a mod can be removed");
-        eq(1, mods.installed().size(), "removal leaves the other mod alone");
-
-        // A mod for a different game is refused rather than silently applied.
-        Map<String, byte[]> wrong = new LinkedHashMap<String, byte[]>();
-        wrong.put("mod.json", SampleSuite.utf8("{\"id\":\"other\",\"target\":\"someone.else.1-0\"}"));
-        boolean refused = false;
-        try {
-            mods.install("other", SampleSuite.zip(wrong));
-        } catch (java.io.IOException e) {
-            refused = true;
-        }
-        check(refused, "a mod aimed at another suite is refused");
-    }
-
-    private void rmsEditor(GameLibrary library, LibraryEntry entry) throws Exception {
-        RecordStoreManager records = library.records(entry.suiteId());
-        RmsEditor editor = new RmsEditor(records, 1_700_000_000_000L);
-
-        int id = editor.addRecord("scores", new byte[]{0, 0, 0x11, 0x22});
-        eq(1, id, "the first record gets id 1");
-        eq(1, editor.stores().size(), "the store now exists");
-        List<RmsEditor.Record> all = editor.records("scores");
-        eq(1, all.size(), "the record is listed");
-        eq(0x1122, all.get(0).asInt(), "records decode as big-endian ints, as games write them");
-        eq("00 00 11 22", all.get(0).asHex(), "hex rendering is grouped");
-        eq("...\"", all.get(0).asText(),
-                "unprintable bytes render as dots and printable ones as themselves");
-
-        check(editor.setRecord("scores", 1, RmsEditor.parseHex("00 00 30 39")),
-                "a record can be rewritten from hex");
-        eq(12345, editor.records("scores").get(0).asInt(), "the edit round-trips");
-        check(!editor.setRecord("scores", 99, new byte[0]), "editing a missing record fails cleanly");
-
-        // The edit must be on disk, not only in memory.
-        RecordStoreManager reopened = library.records(entry.suiteId());
-        eq(12345, new RmsEditor(reopened, 0).records("scores").get(0).asInt(),
-                "the edit was flushed to storage");
-
-        check(editor.deleteRecord("scores", 1), "a record can be deleted");
-        eq(0, editor.records("scores").size(), "the store is empty afterwards");
-        eqBytes(new byte[]{(byte) 0xDE, (byte) 0xAD}, RmsEditor.parseHex("de:ad"),
-                "the hex parser ignores separators");
-    }
-
-    private void crash(GameLibrary library, LibraryEntry entry) throws Exception {
-        GameProfile profile = library.profile(entry.suiteId());
-        EmulatorSession session = EmulatorSession.create(library.load(entry.suiteId()), profile,
-                library.storage(), library.layout(), null);
-        session.start();
-        VmThrow failure;
-        try {
-            throw session.vm().raise("java/lang/IllegalStateException", "the level index is out of range");
-        } catch (VmThrow e) {
-            failure = e;
-        }
-        CrashReport report = CrashReport.from(session, failure);
-        eq("java.lang.IllegalStateException", report.title(), "the exception type is reported");
-        eq("the level index is out of range", report.detail(), "the message is reported");
-        String text = report.render();
-        check(text.indexOf("Sky Runner") >= 0, "the report names the suite");
-        check(text.indexOf("CLDC-1.1") >= 0, "the report records the runtime");
-        check(text.indexOf("--- log ---") >= 0, "the report carries the log");
-        check(report.toJson().indexOf("\"title\"") >= 0, "the report also serialises to JSON");
         session.destroy();
     }
 }

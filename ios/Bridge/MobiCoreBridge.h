@@ -179,7 +179,6 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma mark - Tools
 
 - (NSString *)inspectJSONForSuite:(NSString *)suiteId;
-- (nullable NSData *)resourceNamed:(NSString *)path inSuite:(NSString *)suiteId;
 
 #pragma mark - Bộ bàn phím
 
@@ -213,16 +212,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark - Kho tài nguyên
 
-/// Mọi thứ nằm trong tệp game: loại, định dạng, cỡ, và đã bị thay chưa.
-- (NSString *)resourcesJSONForSuite:(NSString *)suiteId;
 /// Thay một tệp trong game bằng tệp của người chơi; bản gốc không bị đụng tới.
 - (NSString *)replaceResource:(NSString *)path
                     withData:(NSData *)data
                      inSuite:(NSString *)suiteId;
-/// Trả một tệp về bản gốc trong game.
-- (NSString *)restoreResource:(NSString *)path inSuite:(NSString *)suiteId;
-/// Một tệp ảnh trong game, đổi sang PNG để màn hình vẽ được.
-- (nullable NSData *)resourceImagePNG:(NSString *)path inSuite:(NSString *)suiteId;
 
 #pragma mark - Emulator
 

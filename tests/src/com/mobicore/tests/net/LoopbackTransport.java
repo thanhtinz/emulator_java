@@ -1,4 +1,7 @@
-package com.mobicore.core.net;
+package com.mobicore.tests.net;
+
+import com.mobicore.core.net.NetworkTransport;
+import com.mobicore.core.net.SocketTransport;
 
 import java.io.IOException;
 import java.util.ArrayList;

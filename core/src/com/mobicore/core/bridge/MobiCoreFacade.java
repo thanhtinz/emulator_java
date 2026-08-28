@@ -25,10 +25,7 @@ import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.model.KeypadArrangement;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.model.TiltProfile;
-import com.mobicore.core.mod.ModManager;
-import com.mobicore.core.mod.ModPackage;
 import com.mobicore.core.gfx.JpegReader;
-import com.mobicore.core.mod.ResourceCatalog;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.net.HttpTransport;
 import com.mobicore.core.net.NetworkMonitor;
@@ -40,10 +37,7 @@ import com.mobicore.core.net.SocketTransport;
 import com.mobicore.core.rms.RecordStoreManager;
 import com.mobicore.core.emu.CrashDiagnosis;
 import com.mobicore.core.emu.SystemProperties;
-import com.mobicore.core.tools.CrashReport;
 import com.mobicore.core.tools.ItemChest;
-import com.mobicore.core.tools.JadEditor;
-import com.mobicore.core.tools.RmsEditor;
 import com.mobicore.core.tools.SaveScanner;
 import com.mobicore.core.storage.Json;
 import com.mobicore.core.storage.LocalVfs;
@@ -1910,14 +1904,7 @@ public final class MobiCoreFacade {
         return writeAppSettings(settings);
     }
 
-    public String updateAppSettings(String json) {
-        try {
-            return writeAppSettings(AppSettings.fromJson(Json.readObject(json)));
-        } catch (RuntimeException e) {
-            return error("Cài đặt không hợp lệ");
-        }
-    }
-
+    
     private AppSettings appSettings() {
         try {
             String path = layout.settingsPath();
@@ -2439,40 +2426,9 @@ public final class MobiCoreFacade {
 
     // -------------------------------------------------------------- network
 
-    /** Recorded connections plus the current policy, for the network monitor. */
-    public String networkJson() {
-        if (session == null) {
-            return Json.write(Json.object());
-        }
-        Map<String, Object> root = Json.object();
-        List<Object> exchanges = new ArrayList<Object>();
-        for (NetworkMonitor.Exchange exchange : session.network().monitor().exchanges()) {
-            exchanges.add(exchange.toJson());
-        }
-        root.put("exchanges", exchanges);
-        root.put("policy", session.network().policy().toJson());
-        int[] totals = session.network().monitor().totals();
-        root.put("bytesSent", Integer.valueOf(totals[0]));
-        root.put("bytesReceived", Integer.valueOf(totals[1]));
-        return Json.write(root);
-    }
 
-    public String allowHost(String host) {
-        if (session == null) {
-            return error("No game is running");
-        }
-        session.network().policy().allowHost(host);
-        return ok("allowed", host);
-    }
-
-    public String denyHost(String host) {
-        if (session == null) {
-            return error("No game is running");
-        }
-        session.network().policy().denyHost(host);
-        return ok("denied", host);
-    }
-
+    
+    
     // ------------------------------------------------------- bộ bàn phím
 
     /**
@@ -2590,178 +2546,16 @@ public final class MobiCoreFacade {
 
     // ----------------------------------------------------------------- mods
 
-    public String modsJson(String suiteId) {
-        if (library == null) {
-            return error("The library is not open");
-        }
-        try {
-            return new ModManager(library, suiteId).toJson();
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
-
-    public String installMod(String suiteId, String modId, byte[] archive) {
-        try {
-            ModPackage mod = new ModManager(library, suiteId).install(modId, archive);
-            Map<String, Object> json = Json.object();
-            json.put("ok", Boolean.TRUE);
-            json.put("mod", mod.toJson());
-            return Json.write(json);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
-
-    public String setModEnabled(String suiteId, String modId, boolean enabled) {
-        if (library == null) {
-            return error("The library is not open");
-        }
-        new ModManager(library, suiteId).setEnabled(modId, enabled);
-        return ok("modId", modId);
-    }
-
-    public String uninstallMod(String suiteId, String modId) {
-        if (library == null) {
-            return error("The library is not open");
-        }
-        return ok("removed", String.valueOf(new ModManager(library, suiteId).uninstall(modId)));
-    }
-
+    
+    
+    
+    
     // ------------------------------------------------- kho tài nguyên của game
 
-    /**
-     * Mọi thứ nằm trong tệp game, để người chơi xem và thay.
-     *
-     * <p>Đọc từ chính ruột tệp chứ không đoán theo tên: game đời ấy đặt tên
-     * rất tuỳ hứng, ảnh PNG nằm trong {@code data/12.dat} là chuyện thường.</p>
-     */
-    public String resourcesJson(String suiteId) {
-        if (library == null) {
-            return error("The library is not open");
-        }
-        try {
-            SuiteLoader suite = library.load(suiteId);
-            ModManager mods = new ModManager(library, suiteId);
-            List<ResourceCatalog.Entry> entries =
-                    ResourceCatalog.scan(suite, mods.installed());
-            int images = 0;
-            int sounds = 0;
-            long total = 0;
-            for (int i = 0; i < entries.size(); i++) {
-                ResourceCatalog.Entry entry = entries.get(i);
-                total += entry.bytes();
-                if (entry.kind() == ResourceCatalog.KIND_IMAGE) {
-                    images++;
-                } else if (entry.kind() == ResourceCatalog.KIND_SOUND) {
-                    sounds++;
-                }
-            }
-            Map<String, Object> json = Json.object();
-            json.put("ok", Boolean.TRUE);
-            json.put("resources", ResourceCatalog.toJson(entries));
-            json.put("count", Integer.valueOf(entries.size()));
-            json.put("images", Integer.valueOf(images));
-            json.put("sounds", Integer.valueOf(sounds));
-            json.put("bytes", Long.valueOf(total));
-            json.put("replaced", new ArrayList<Object>(mods.replacedByPlayer()));
-            return Json.write(json);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
 
-    /**
-     * Thay một tệp trong game bằng tệp của người chơi.
-     *
-     * <p>Game gốc không bị đụng tới: thứ thay vào nằm trong một bản mod riêng
-     * phủ lên trên, nên bỏ ra lúc nào cũng được và bản cài vẫn nguyên.</p>
-     */
-    public String replaceResource(String suiteId, String path, byte[] bytes) {
-        if (library == null) {
-            return error("The library is not open");
-        }
-        try {
-            SuiteLoader suite = library.load(suiteId);
-            if (suite.archive().read(path) == null) {
-                return error("Game này không có tệp " + path);
-            }
-            new ModManager(library, suiteId).replaceResource(path, bytes);
-            Map<String, Object> json = Json.object();
-            json.put("ok", Boolean.TRUE);
-            json.put("path", path);
-            json.put("bytes", Integer.valueOf(bytes == null ? 0 : bytes.length));
-            json.put("restartNeeded", Boolean.valueOf(
-                    session != null && suiteId.equals(activeSuiteId)));
-            return Json.write(json);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
 
-    /** Trả một tệp về bản gốc trong game. */
-    public String restoreResource(String suiteId, String path) {
-        if (library == null) {
-            return error("The library is not open");
-        }
-        try {
-            boolean removed = new ModManager(library, suiteId).restoreResource(path);
-            return ok("restored", String.valueOf(removed));
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
 
-    /**
-     * Một tệp trong game, đọc qua cả những gì người chơi đã thay.
-     *
-     * <p>Khác {@link #resource}: chỗ kia đọc thẳng bản gốc, chỗ này trả về
-     * đúng thứ game sẽ thấy khi chạy.</p>
-     */
-    public byte[] resourceAsPlayed(String suiteId, String path) {
-        if (library == null) {
-            return new byte[0];
-        }
-        try {
-            List<ModPackage> mods = new ModManager(library, suiteId).installed();
-            for (int i = mods.size() - 1; i >= 0; i--) {
-                ModPackage mod = mods.get(i);
-                if (!mod.isEnabled()) {
-                    continue;
-                }
-                byte[] replaced = mod.archive().read(path);
-                if (replaced != null) {
-                    return replaced;
-                }
-            }
-            byte[] original = library.load(suiteId).archive().read(path);
-            return original == null ? new byte[0] : original;
-        } catch (IOException e) {
-            return new byte[0];
-        }
-    }
 
-    /**
-     * Một tệp ảnh trong game, đổi sang PNG để màn hình vẽ được.
-     *
-     * <p>Ảnh trong game có thể là JPEG, và giao diện thì chỉ vẽ PNG; đổi ở
-     * đây một lần còn hơn bắt cả ba giao diện tự lo.</p>
-     */
-    public byte[] resourceImagePng(String suiteId, String path) {
-        byte[] data = resourceAsPlayed(suiteId, path);
-        if (data.length == 0) {
-            return new byte[0];
-        }
-        try {
-            if (JpegReader.looksLikeJpeg(data)) {
-                JpegReader.Image image = JpegReader.decode(data);
-                return PngWriter.encode(image.pixels, image.width, image.height);
-            }
-            return data;
-        } catch (IOException broken) {
-            return new byte[0];
-        }
-    }
 
     // ------------------------------------------- tìm vàng, ngọc trong phần lưu
 
@@ -3043,58 +2837,7 @@ public final class MobiCoreFacade {
 
     // ---------------------------------------------------------- JAD and RMS
 
-    /** The descriptor plus any problems the validator found. */
-    public String descriptorJson(String suiteId) {
-        try {
-            JadEditor editor = new JadEditor(library.load(suiteId).info().attributes());
-            Map<String, Object> root = Json.object();
-            Map<String, Object> attributes = Json.object();
-            for (String key : editor.keys()) {
-                attributes.put(key, editor.get(key));
-            }
-            root.put("attributes", attributes);
-            List<Object> problems = new ArrayList<Object>();
-            for (JadEditor.Problem problem : editor.validate()) {
-                Map<String, Object> entry = Json.object();
-                entry.put("severity", problem.isError() ? "error" : "warning");
-                entry.put("attribute", problem.attribute());
-                entry.put("message", problem.message());
-                problems.add(entry);
-            }
-            root.put("problems", problems);
-            root.put("valid", Boolean.valueOf(editor.isValid()));
-            root.put("text", editor.toDescriptor());
-            return Json.write(root);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
 
-    /** Records of one store, rendered for the RMS editor. */
-    public String recordsJson(String suiteId, String storeName) {
-        if (library == null) {
-            return error("The library is not open");
-        }
-        try {
-            RmsEditor editor = new RmsEditor(library.records(suiteId), now());
-            Map<String, Object> root = Json.object();
-            List<Object> records = new ArrayList<Object>();
-            for (RmsEditor.Record record : editor.records(storeName)) {
-                Map<String, Object> entry = Json.object();
-                entry.put("id", Integer.valueOf(record.id()));
-                entry.put("size", Integer.valueOf(record.size()));
-                entry.put("hex", record.asHex());
-                entry.put("text", record.asText());
-                entry.put("int", Integer.valueOf(record.asInt()));
-                records.add(entry);
-            }
-            root.put("store", storeName);
-            root.put("records", records);
-            return Json.write(root);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
 
     /**
      * The files a game has written for itself, oldest folder first.
@@ -3170,29 +2913,8 @@ public final class MobiCoreFacade {
         return ok("path", path);
     }
 
-    /** Rewrites one record from hex, as typed into the editor. */
-    public String setRecordHex(String suiteId, String storeName, int recordId, String hex) {
-        try {
-            RmsEditor editor = new RmsEditor(library.records(suiteId), now());
-            boolean changed = editor.setRecord(storeName, recordId, RmsEditor.parseHex(hex));
-            return changed ? ok("recordId", String.valueOf(recordId))
-                    : error("No record " + recordId + " in " + storeName);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
 
-    public String deleteRecord(String suiteId, String storeName, int recordId) {
-        try {
-            RmsEditor editor = new RmsEditor(library.records(suiteId), now());
-            return editor.deleteRecord(storeName, recordId)
-                    ? ok("recordId", String.valueOf(recordId))
-                    : error("No record " + recordId + " in " + storeName);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
-
+    
     // --------------------------------------------------------- game hỏng
 
     /**
@@ -3266,14 +2988,6 @@ public final class MobiCoreFacade {
         return ok("has", "false");
     }
 
-    /** Builds a crash report for the running session. */
-    public String crashReportText(String message) {
-        if (session == null) {
-            return "";
-        }
-        return CrashReport.from(session,
-                new VmError(message == null ? "Reported by the user" : message)).render();
-    }
 
     // ------------------------------------------------------------- helpers
 

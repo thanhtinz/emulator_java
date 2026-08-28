@@ -3,7 +3,7 @@ package com.mobicore.tests;
 import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.jar.SuiteLoader;
 import com.mobicore.core.model.GameProfile;
-import com.mobicore.core.net.LoopbackSockets;
+import com.mobicore.tests.net.LoopbackSockets;
 import com.mobicore.core.net.NetworkMonitor;
 import com.mobicore.core.net.NetworkPolicy;
 import com.mobicore.core.net.NetworkStack;
