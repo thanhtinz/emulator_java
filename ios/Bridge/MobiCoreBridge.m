@@ -233,29 +233,11 @@
     return [_facade keyChoicesJson];
 }
 
-- (NSString *)setTurbo:(int32_t)intervalMs forButton:(NSString *)button suite:(NSString *)suiteId {
-    return [_facade setTurboWithNSString:suiteId withNSString:button withInt:intervalMs];
-}
 
-- (NSString *)rewindStep {
-    return [_facade rewindStep];
-}
 
-- (NSString *)rewindJSON {
-    return [_facade rewindJson];
-}
 
-- (NSString *)setRewindEnabled:(BOOL)enabled {
-    return [_facade setRewindEnabledWithBoolean:enabled];
-}
 
-- (NSString *)cycleSpeed {
-    return [_facade cycleSpeed];
-}
 
-- (NSString *)speedJSON {
-    return [_facade speedJson];
-}
 
 - (NSString *)saveStateInSlot:(int32_t)slot {
     return [_facade saveStateWithInt:slot];

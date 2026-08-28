@@ -306,11 +306,6 @@ public final class ProfileTest extends Test {
         nokia.unbind("star");
         eq(0, nokia.keyCodeFor("star"), "unbind removes the mapping");
 
-        nokia.setTurbo("fire", 80);
-        eq(80, nokia.turboFor("fire"), "turbo interval is stored");
-        nokia.setTurbo("fire", 0);
-        eq(0, nokia.turboFor("fire"), "zero disables turbo");
-
         List<String> steps = new ArrayList<String>(java.util.Arrays.asList("up", "up", "fire"));
         nokia.addMacro(new InputProfile.Macro("Super jump", "num1", steps, 40));
         check(nokia.macroFor("num1") != null, "a macro is found by its trigger");

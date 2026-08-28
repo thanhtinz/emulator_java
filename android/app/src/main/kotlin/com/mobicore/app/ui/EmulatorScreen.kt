@@ -358,33 +358,6 @@ private fun GameMenu(
                 onClick = { library.cycleKeypadLayout(suiteId) },
             )
             DropdownMenuItem(
-                text = { Text("Tua lại 1 giây") },
-                trailingIcon = {
-                    Text(
-                        "${engine.rewindDepth()}s",
-                        color = MobiColors.TextDim,
-                        fontSize = 13.sp,
-                    )
-                },
-                leadingIcon = { Icon(Icons.Filled.Undo, contentDescription = null) },
-                onClick = {
-                    note = if (engine.rewind()) "Đã tua lại" else "Chưa có gì để tua lại"
-                    open = false
-                },
-            )
-            DropdownMenuItem(
-                text = { Text("Tốc độ") },
-                trailingIcon = {
-                    Text(
-                        speedLabel(engine.speed),
-                        color = MobiColors.TextDim,
-                        fontSize = 13.sp,
-                    )
-                },
-                leadingIcon = { Icon(Icons.Filled.Speed, contentDescription = null) },
-                onClick = { engine.cycleSpeed() },
-            )
-            DropdownMenuItem(
                 text = { Text("Màn hình") },
                 trailingIcon = {
                     Text(
@@ -451,10 +424,6 @@ private fun GameMenu(
         Text(message, color = MobiColors.TextDim, fontSize = 12.sp)
     }
 }
-
-/** "2×", "0,5×": what the speed control shows. */
-private fun speedLabel(speed: Int): String =
-    if (speed % 100 == 0) "${speed / 100}×" else "${speed / 100},${(speed % 100) / 10}×"
 
 /**
  * The field the game is asking for, backed by the system keyboard.

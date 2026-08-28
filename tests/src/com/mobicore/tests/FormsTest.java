@@ -62,7 +62,6 @@ public final class FormsTest extends Test {
         diagonals(session);
         softKeysAreLandR(session);
         tappingTheCommandBar();
-        turbo();
         systemKeyboard(session, context, vm);
     }
 
@@ -298,37 +297,6 @@ public final class FormsTest extends Test {
                 "a tap in the middle of the screen is not a softkey");
         eq(SystemChrome.HIT_LEFT, SystemChrome.softKeyHit(context, 4, barTop),
                 "the left half of the bar is the left key");
-    }
-
-    /**
-     * Turbo: the emulator hammering a key on the player's behalf.
-     *
-     * <p>What has to be true is that the key genuinely goes up and down
-     * again. A game reading {@code keyPressed} counts presses, so a key held
-     * down forever is one press however long it is held, and turbo that only
-     * kept it pressed would fire once and stop.</p>
-     */
-    private void turbo() throws Exception {
-        EmulatorSession session = boot();
-        session.profile().input().setTurbo("fire", 30);
-
-        session.pressButton("fire");
-        check(session.isTurboHeld("fire"), "a turbo button repeats while it is held");
-        eq(0, session.pumpTurbo(), "and does not fire again before its interval is up");
-
-        // Held past the interval, it presses again on its own.
-        Thread.sleep(45);
-        eq(1, session.pumpTurbo(), "held long enough, it presses again by itself");
-        eq(0, session.pumpTurbo(), "then waits out the interval again");
-
-        session.releaseButton("fire");
-        check(!session.isTurboHeld("fire"), "letting go stops it");
-        eq(0, session.pumpTurbo(), "and nothing repeats after that");
-
-        session.profile().input().setTurbo("fire", 0);
-        session.pressButton("fire");
-        check(!session.isTurboHeld("fire"), "a button with turbo off is a plain key again");
-        session.releaseButton("fire");
     }
 
     private void softKeysAreLandR(EmulatorSession session) {

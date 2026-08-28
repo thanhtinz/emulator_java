@@ -73,24 +73,11 @@ public final class EmulatorSession {
     private int state = STATE_NEW;
     private String midletClass;
 
-    private SpeedClock clock;
-    private final Rewind rewind = new Rewind();
-
     /** When the virtual keypad was last touched; 0 until it first is. */
     private long lastKeypadUse;
 
     /** A few seconds of play, kept so they can be saved as an animation. */
     private final ClipRecorder clip = new ClipRecorder();
-
-    /**
-     * The last few seconds of play, kept so they can be taken back.
-     *
-     * <p>These games restart a level on one mistake, because a handset had
-     * nowhere to keep anything else. This one does.</p>
-     */
-    public Rewind rewind() {
-        return rewind;
-    }
 
     private EmulatorSession(Vm vm, MidpContext context, MidletSuiteInfo info,
                             JarClassSource source, EmulatorLog log,
@@ -106,31 +93,6 @@ public final class EmulatorSession {
     }
 
     /**
-     * How fast the game runs, as a percentage of a handset's pace.
-     *
-     * <p>Lives on the clock rather than on the frame loop: a J2ME game paces
-     * itself, so what changes its speed is what it is told the time is.</p>
-     */
-    public int speed() {
-        return clock == null ? SpeedClock.NORMAL : clock.speed();
-    }
-
-    public void setSpeed(int percent) {
-        if (clock != null) {
-            clock.setSpeed(percent);
-        }
-    }
-
-    /** The next speed in the cycle, for a one-tap control. */
-    public int cycleSpeed() {
-        if (clock == null) {
-            return SpeedClock.NORMAL;
-        }
-        clock.setSpeed(clock.nextSpeed());
-        return clock.speed();
-    }
-
-    /**
      * Builds a session for an installed suite.
      *
      * @param storage where record stores live; an in-memory filesystem is used
@@ -140,13 +102,10 @@ public final class EmulatorSession {
                                          Vfs storage, StorageLayout layout, VmHost host) {
         EmulatorLog log = new EmulatorLog();
         Vm vm = new Vm();
-        // A game paces itself off the clock it is given, so the clock is the
-        // one place a speed control can live without the game noticing.
-        SpeedClock speedClock = new SpeedClock(host == null ? VmHost.DEFAULT : host);
         // Bảng thuộc tính nằm ngoài cùng: game hỏi nó đang chạy trên máy nào
         // thì nghe thấy một chiếc điện thoại thật, chứ không phải một cái tên
         // chưa game nào từng nghe.
-        vm.setHost(new PropertiesHost(log.hostBridge(speedClock)));
+        vm.setHost(new PropertiesHost(log.hostBridge(host == null ? VmHost.DEFAULT : host)));
 
         int width = profile.device().width();
         int height = profile.device().height();
@@ -195,7 +154,6 @@ public final class EmulatorSession {
         EmulatorSession created = new EmulatorSession(vm, context, suite.info(), source, log,
                 rms, profile, network);
         created.timers = timers;
-        created.clock = speedClock;
         return created;
     }
 
@@ -301,57 +259,6 @@ public final class EmulatorSession {
         pressButton2(button);
     }
 
-    // ---------------------------------------------------------------- turbo
-
-    /** Buttons being held that repeat on their own, and when each last fired. */
-    private final Map<String, Long> turboHeld = new LinkedHashMap<String, Long>();
-
-    /**
-     * Taps the held turbo buttons again when their interval is up.
-     *
-     * <p>Turbo exists because these games were written for a keypad that a
-     * thumb could hammer, and half the shooters of the era expect exactly
-     * that: a shot per press, no auto-fire, and a level that is unwinnable
-     * unless the player mashes. Holding the key is not the same input — a
-     * game reading {@code keyPressed} sees one press however long it is held
-     * — so the emulator has to let go and press again, which is what this
-     * does.</p>
-     *
-     * @return how many presses were sent
-     */
-    public int pumpTurbo() {
-        if (turboHeld.isEmpty() || state != STATE_ACTIVE) {
-            return 0;
-        }
-        long now = vm.host().currentTimeMillis();
-        int fired = 0;
-        for (Map.Entry<String, Long> held : turboHeld.entrySet()) {
-            String button = held.getKey();
-            int interval = profile.input().turboFor(button);
-            if (interval <= 0) {
-                continue;
-            }
-            if (now - held.getValue().longValue() < interval) {
-                continue;
-            }
-            held.setValue(Long.valueOf(now));
-            int keyCode = profile.input().keyCodeFor(button);
-            if (keyCode != 0) {
-                // Released first: a game that only counts presses would see
-                // nothing at all from a key that never came back up.
-                keyReleased(keyCode);
-                keyPressed(keyCode);
-                fired++;
-            }
-        }
-        return fired;
-    }
-
-    /** True while {@code button} is being held and repeating. */
-    public boolean isTurboHeld(String button) {
-        return turboHeld.containsKey(button);
-    }
-
     /**
      * Presses a virtual keypad button.
      *
@@ -380,9 +287,6 @@ public final class EmulatorSession {
         int keyCode = profile.input().keyCodeFor(button);
         if (keyCode != 0) {
             keyPressed(keyCode);
-            if (profile.input().turboFor(button) > 0) {
-                turboHeld.put(button, Long.valueOf(vm.host().currentTimeMillis()));
-            }
         }
         return false;
     }
@@ -433,7 +337,7 @@ public final class EmulatorSession {
      * the profile says what that does. Resolving it here rather than in each
      * front end means a remapped pad is remapped everywhere at once, and a
      * pad press is a keypad press in every other respect: it wakes the fading
-     * keypad, it works the softkeys, it feeds turbo.</p>
+     * keypad and it works the softkeys.</p>
      *
      * @return true when the press ran one of the screen's commands
      */
@@ -462,7 +366,6 @@ public final class EmulatorSession {
             releaseButton(diagonal[1]);
             return;
         }
-        turboHeld.remove(button);
         int keyCode = profile.input().keyCodeFor(button);
         if (keyCode != 0) {
             keyReleased(keyCode);
@@ -626,10 +529,6 @@ public final class EmulatorSession {
         // Timers first: a MIDlet that drives itself from a TimerTask expects
         // its tick to have happened before the frame it paints.
         pumpTimers();
-        pumpTurbo();
-        // History is kept off the game's own clock, so rewinding covers the
-        // same amount of play whatever speed it is running at.
-        rewind.tick(this, vm.host().currentTimeMillis());
         // The clip is taken from the last finished frame rather than from the
         // one about to be painted, so a game that is not repainting — a menu,
         // a pause, a game over screen — still records the seconds passing

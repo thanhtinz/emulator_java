@@ -129,7 +129,6 @@ struct DeviceProfile: Codable, Hashable, Identifiable {
 struct InputSettings: Codable, Hashable {
     var preset: String
     var mappings: [String: Int]
-    var turbo: [String: Int]?
 }
 
 struct LibraryResponse: Codable {

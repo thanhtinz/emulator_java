@@ -804,13 +804,6 @@ class LibraryRepository(filesDir: String) {
         refresh()
     }
 
-    fun setTurbo(suiteId: String, button: String, intervalMs: Int) {
-        val profile = library.profile(suiteId) ?: return
-        profile.input().setTurbo(button, intervalMs)
-        library.saveProfile(profile)
-        refresh()
-    }
-
     fun toggleFavourite(suiteId: String) {
         val profile = library.profile(suiteId) ?: return
         profile.isFavourite = !profile.isFavourite

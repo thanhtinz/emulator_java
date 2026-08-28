@@ -44,7 +44,6 @@ public final class ProfileScreen {
         GameProfile profile = library.profile(entry.suiteId());
         profile.setVolume(65);
         // Turbo on fire, so the screenshot shows the setting doing something.
-        profile.input().setTurbo("fire", 50);
         // One key pointed somewhere else, which is what the row is for: this
         // game reads '2' for up, as plenty of them do.
         profile.input().setMapping("up", '2');
@@ -180,10 +179,6 @@ public final class ProfileScreen {
         for (String[] button : buttons) {
             int code = profile.input().keyCodeFor(button[0]);
             String value = MidpContext.keyName(code) + "  (" + code + ")";
-            int turbo = profile.input().turboFor(button[0]);
-            if (turbo > 0) {
-                value = value + "  ·  liên thanh " + turbo + "ms";
-            }
             ui.field(button[1], value, fieldX, row, fieldWidth);
             row += Ui.ROW;
         }

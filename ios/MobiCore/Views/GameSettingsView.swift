@@ -392,21 +392,6 @@ struct GameSettingsView: View {
                         }
                     }
 
-                    SectionCard(title: "LIÊN THANH") {
-                        // Turbo where it belongs: beside the keys it acts on.
-                        // Only fire gets it — a d-pad that repeats is a d-pad
-                        // that stutters.
-                        Picker("Phím Chọn", selection: Binding(
-                            get: { current.input.turbo?["fire"] ?? 0 },
-                            set: { client.setTurbo($0, button: "fire", for: suiteId); reload() }
-                        )) {
-                            Text("Tắt").tag(0)
-                            Text("Chậm").tag(120)
-                            Text("Nhanh").tag(50)
-                        }
-                        .pickerStyle(.segmented)
-                    }
-
                     // Somebody with eighty games has one answer to "how big,
                     // how loud, how many frames". A preset is that answer with
                     // a name on it: worked out here, applied to the rest.

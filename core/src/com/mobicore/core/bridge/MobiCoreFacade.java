@@ -5,7 +5,6 @@ import com.mobicore.core.emu.ClipRecorder;
 import com.mobicore.core.emu.EmulatorLog;
 import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.emu.SaveState;
-import com.mobicore.core.emu.SpeedClock;
 import com.mobicore.core.gfx.PngWriter;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.jar.SuiteLoader;
@@ -1444,40 +1443,6 @@ public final class MobiCoreFacade {
         return Json.write(json);
     }
 
-    /**
-     * Turns auto-repeat on or off for one button.
-     *
-     * <p>Half the shooters of the era expect a thumb hammering the keypad: a
-     * shot per press, no auto-fire, and a level that cannot be won without
-     * mashing. Holding a key is not that input — a game reading
-     * {@code keyPressed} sees one press however long it is held — so turbo
-     * lets go and presses again on the player's behalf.</p>
-     *
-     * @param intervalMs milliseconds between presses, or 0 to switch it off
-     */
-    public String setTurbo(String suiteId, String button, int intervalMs) {
-        try {
-            GameProfile profile = library == null ? null : library.profile(suiteId);
-            if (profile == null) {
-                return error("No profile for " + suiteId);
-            }
-            profile.input().setTurbo(button, intervalMs);
-            library.saveProfile(profile);
-            if (session != null && suiteId.equals(activeSuiteId)) {
-                // The running game takes it now: a player switching turbo on
-                // is switching it on for the fight they are in.
-                session.profile().input().setTurbo(button, intervalMs);
-            }
-            Map<String, Object> json = Json.object();
-            json.put("ok", Boolean.TRUE);
-            json.put("button", button);
-            json.put("turbo", Integer.valueOf(profile.input().turboFor(button)));
-            return Json.write(json);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
-
     public String setInputPreset(String suiteId, String preset) {
         try {
             GameProfile profile = library.profile(suiteId);
@@ -2458,98 +2423,6 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
-    }
-
-    // ---------------------------------------------------------------- rewind
-
-    /**
-     * Takes back the last second or so of play.
-     *
-     * <p>What it is for: a game that restarts a level on one mistake, which
-     * was fair on a bus and is not fair now. Each step lands a second further
-     * back, so holding the control walks backwards through the mistake.</p>
-     */
-    public String rewindStep() {
-        if (session == null) {
-            return error("Không có trò chơi nào đang chạy");
-        }
-        boolean moved = session.rewind().stepBack(session);
-        Map<String, Object> json = Json.object();
-        json.put("ok", Boolean.valueOf(moved));
-        json.put("seconds", Integer.valueOf(session.rewind().depth()));
-        if (!moved) {
-            json.put("error", session.rewind().isEnabled()
-                    ? "Chưa có gì để tua lại"
-                    : "Tua lại đang tắt");
-        }
-        return Json.write(json);
-    }
-
-    /** How much history there is, and whether it is being kept at all. */
-    public String rewindJson() {
-        Map<String, Object> json = Json.object();
-        json.put("ok", Boolean.TRUE);
-        json.put("enabled", Boolean.valueOf(session == null || session.rewind().isEnabled()));
-        json.put("seconds", Integer.valueOf(session == null ? 0 : session.rewind().depth()));
-        return Json.write(json);
-    }
-
-    /**
-     * Keeps history, or stops and throws away what was kept.
-     *
-     * <p>Off means off: leaving several megabytes of heap captures around
-     * after someone has said they do not want the feature is the opposite of
-     * what they asked for.</p>
-     */
-    public String setRewindEnabled(boolean enabled) {
-        if (session == null) {
-            return error("Không có trò chơi nào đang chạy");
-        }
-        session.rewind().setEnabled(enabled);
-        return rewindJson();
-    }
-
-    // ----------------------------------------------------------------- speed
-
-    /**
-     * How fast the running game is playing, as a percentage of a handset's
-     * pace.
-     *
-     * <p>Not a frame rate: a J2ME game paces itself off the clock, so this
-     * changes what it is told the time is, and the game does the rest with
-     * its own logic and animations intact.</p>
-     */
-    public String speedJson() {
-        Map<String, Object> json = Json.object();
-        json.put("ok", Boolean.TRUE);
-        int speed = session == null ? SpeedClock.NORMAL : session.speed();
-        json.put("speed", Integer.valueOf(speed));
-        json.put("label", speedLabel(speed));
-        return Json.write(json);
-    }
-
-    public String setSpeed(int percent) {
-        if (session == null) {
-            return error("Không có trò chơi nào đang chạy");
-        }
-        session.setSpeed(percent);
-        return speedJson();
-    }
-
-    /** Steps through the speeds a control offers: half, normal, double, triple. */
-    public String cycleSpeed() {
-        if (session == null) {
-            return error("Không có trò chơi nào đang chạy");
-        }
-        session.cycleSpeed();
-        return speedJson();
-    }
-
-    private static String speedLabel(int speed) {
-        if (speed % 100 == 0) {
-            return (speed / 100) + "×";
-        }
-        return (speed / 100) + "," + ((speed % 100) / 10) + "×";
     }
 
     /**

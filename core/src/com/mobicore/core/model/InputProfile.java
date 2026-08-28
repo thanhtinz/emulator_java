@@ -10,7 +10,7 @@ import java.util.Map;
 
 /**
  * Key mapping for one game: which emulator button produces which J2ME key
- * code, plus turbo and macros.
+ * code, plus macros.
  *
  * <p>Handset makers disagreed about softkey codes, so a game written for a
  * Sony Ericsson may read {@code -6}/{@code -7} where a Nokia game reads
@@ -55,7 +55,6 @@ public final class InputProfile {
     }
 
     private final Map<String, Integer> mappings = new LinkedHashMap<String, Integer>();
-    private final Map<String, Integer> turbo = new LinkedHashMap<String, Integer>();
     private final List<Macro> macros = new ArrayList<Macro>();
     private String presetName = "Nokia";
 
@@ -254,20 +253,6 @@ public final class InputProfile {
         return choices;
     }
 
-    /** Auto-repeat interval in milliseconds, or 0 when turbo is off. */
-    public int turboFor(String button) {
-        Integer interval = turbo.get(button);
-        return interval == null ? 0 : interval.intValue();
-    }
-
-    public void setTurbo(String button, int intervalMs) {
-        if (intervalMs <= 0) {
-            turbo.remove(button);
-        } else {
-            turbo.put(button, Integer.valueOf(intervalMs));
-        }
-    }
-
     public List<Macro> macros() {
         return new ArrayList<Macro>(macros);
     }
@@ -303,13 +288,6 @@ public final class InputProfile {
             keys.put(entry.getKey(), entry.getValue());
         }
         json.put("mappings", keys);
-        if (!turbo.isEmpty()) {
-            Map<String, Object> repeat = Json.object();
-            for (Map.Entry<String, Integer> entry : turbo.entrySet()) {
-                repeat.put(entry.getKey(), entry.getValue());
-            }
-            json.put("turbo", repeat);
-        }
         if (!macros.isEmpty()) {
             List<Object> list = new ArrayList<Object>();
             for (Macro macro : macros) {
@@ -331,10 +309,6 @@ public final class InputProfile {
                 profile.mappings.put(entry.getKey(),
                         Integer.valueOf(Json.integer(keys, entry.getKey(), 0)));
             }
-        }
-        Map<String, Object> repeat = Json.child(json, "turbo");
-        for (Map.Entry<String, Object> entry : repeat.entrySet()) {
-            profile.turbo.put(entry.getKey(), Integer.valueOf(Json.integer(repeat, entry.getKey(), 0)));
         }
         for (Object item : Json.array(json, "macros")) {
             if (item instanceof Map) {

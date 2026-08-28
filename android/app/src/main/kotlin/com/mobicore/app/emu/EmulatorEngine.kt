@@ -430,30 +430,6 @@ class EmulatorEngine(
      */
     fun showsSoftKeyBar(): Boolean = session?.showsSoftKeyBar() ?: false
 
-    /**
-     * How fast the game is playing, as a percentage of a handset's pace.
-     *
-     * A J2ME game paces itself off the clock, so this changes what it is told
-     * the time is; the game does the rest with its own logic intact.
-     */
-    var speed by mutableIntStateOf(100)
-        private set
-
-    fun cycleSpeed() {
-        speed = session?.cycleSpeed() ?: 100
-    }
-
-    /**
-     * Takes back the last second or so of play.
-     *
-     * These games restart a level on one mistake, because a handset had
-     * nowhere to keep anything else. This one does.
-     */
-    fun rewind(): Boolean = session?.let { it.rewind().stepBack(it) } ?: false
-
-    /** How many seconds can still be taken back. */
-    fun rewindDepth(): Int = session?.rewind()?.depth() ?: 0
-
     fun leftSoftKeyLabel(): String? = session?.leftSoftKeyLabel()
 
     fun rightSoftKeyLabel(): String? = session?.rightSoftKeyLabel()

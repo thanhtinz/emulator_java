@@ -34,9 +34,6 @@ final class EmulatorEngine: ObservableObject {
     /// Read off the emulator on every presented frame rather than worked out
     /// here: the session holds both the setting and the clock that fades it.
     @Published private(set) var keypadOpacity = 100
-    /// How fast the game is playing, as a percentage of a handset's pace.
-    @Published private(set) var speed = 100
-
     private let bridge = MobiCoreBridge.shared
     private let queue = DispatchQueue(label: "com.mobicore.midlet", qos: .userInitiated)
     private var displayLink: CADisplayLink?
@@ -74,13 +71,8 @@ final class EmulatorEngine: ObservableObject {
     private nonisolated func runLoop() {
         while DispatchQueue.main.sync(execute: { self.running }) {
             let started = CACurrentMediaTime()
-            // The frame budget follows the speed control: at double speed the
-            // game's own clock runs twice as fast, and drawing at the old rate
-            // would show half of what it does.
             let interval: TimeInterval = DispatchQueue.main.sync {
-                self.frameLimit > 0
-                    ? 1.0 / (Double(self.frameLimit) * Double(max(10, self.speed)) / 100.0)
-                    : 0
+                self.frameLimit > 0 ? 1.0 / Double(self.frameLimit) : 0
             }
             let paused = DispatchQueue.main.sync { self.isPaused }
             if !paused {
@@ -367,51 +359,6 @@ final class EmulatorEngine: ObservableObject {
         showsSoftKeyBar = labels.bar ?? false
     }
 
-    /// A J2ME game paces itself off the clock, so this changes what it is
-    /// told the time is; the game does the rest with its own logic intact.
-    func cycleSpeed() {
-        guard let data = bridge.cycleSpeed().data(using: .utf8),
-              let payload = try? JSONDecoder().decode(SpeedResponse.self, from: data) else {
-            return
-        }
-        speed = payload.speed
-        // Drawing at the old rate would show half of what the game does.
-        displayLink?.preferredFramesPerSecond = frameLimit == 0
-            ? 0
-            : min(60, max(1, frameLimit * speed / 100))
-    }
-
-    private struct SpeedResponse: Decodable {
-        let speed: Int
-    }
-
-    /// How many seconds of play can still be taken back.
-    @Published private(set) var rewindDepth = 0
-
-    /// Takes back the last second or so. These games restart a level on one
-    /// mistake, because a handset had nowhere to keep anything else.
-    @discardableResult
-    func rewind() -> Bool {
-        guard let data = bridge.rewindStep().data(using: .utf8),
-              let payload = try? JSONDecoder().decode(RewindResponse.self, from: data) else {
-            return false
-        }
-        rewindDepth = payload.seconds
-        return payload.ok
-    }
-
-    func refreshRewind() {
-        guard let data = bridge.rewindJSON().data(using: .utf8),
-              let payload = try? JSONDecoder().decode(RewindResponse.self, from: data) else {
-            return
-        }
-        rewindDepth = payload.seconds
-    }
-
-    private struct RewindResponse: Decodable {
-        let ok: Bool
-        let seconds: Int
-    }
 
     func release(_ button: String) {
         bridge.releaseButton(button)

@@ -404,11 +404,6 @@ final class MobiCoreClient: ObservableObject {
     /// Auto-repeat for one button, in milliseconds between presses; 0 is off.
     /// A held key is not the same input: a game reading `keyPressed` sees one
     /// press however long it is held.
-    func setTurbo(_ intervalMs: Int, button: String, for suiteId: String) {
-        report(decode(bridge.setTurbo(Int32(intervalMs), forButton: button, suite: suiteId)))
-        refresh()
-    }
-
     // ------------------------------------------------------------ collections
 
     /// Shelves the player puts their games on.
