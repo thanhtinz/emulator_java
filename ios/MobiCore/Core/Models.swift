@@ -252,6 +252,33 @@ struct ContinueCard: Codable {
     let playedName: String?
 }
 
+/// Mọi thứ nằm trong tệp game, để xem và để thay.
+struct ResourceBox: Codable {
+    let resources: [GameResource]
+    let count: Int
+    let images: Int
+    let sounds: Int
+    let bytes: Int64
+    /// Những tệp chính người chơi đã thay.
+    let replaced: [String]
+}
+
+struct GameResource: Codable, Identifiable {
+    let path: String
+    let kind: Int
+    let kindName: String
+    /// Đúng thứ nó là, đọc từ mấy byte đầu: PNG, JPEG, MIDI, WAV…
+    let format: String
+    let bytes: Int
+    let width: Int
+    let height: Int
+    let replaced: Bool
+    let replacedBy: String
+
+    var id: String { path }
+    var isImage: Bool { kind == 0 }
+}
+
 /// Những gì game đọc được khi nó hỏi máy nó đang chạy trên đó là máy gì.
 ///
 /// Chỉ để đọc: máy ảo là một cỗ máy duy nhất và bảng này là của chung, không

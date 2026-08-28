@@ -30,6 +30,8 @@ import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.model.TiltProfile;
 import com.mobicore.core.mod.ModManager;
 import com.mobicore.core.mod.ModPackage;
+import com.mobicore.core.gfx.JpegReader;
+import com.mobicore.core.mod.ResourceCatalog;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.net.HttpTransport;
 import com.mobicore.core.net.NetworkMonitor;
@@ -2736,6 +2738,141 @@ public final class MobiCoreFacade {
             return error("The library is not open");
         }
         return ok("removed", String.valueOf(new ModManager(library, suiteId).uninstall(modId)));
+    }
+
+    // ------------------------------------------------- kho tài nguyên của game
+
+    /**
+     * Mọi thứ nằm trong tệp game, để người chơi xem và thay.
+     *
+     * <p>Đọc từ chính ruột tệp chứ không đoán theo tên: game đời ấy đặt tên
+     * rất tuỳ hứng, ảnh PNG nằm trong {@code data/12.dat} là chuyện thường.</p>
+     */
+    public String resourcesJson(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            SuiteLoader suite = library.load(suiteId);
+            ModManager mods = new ModManager(library, suiteId);
+            List<ResourceCatalog.Entry> entries =
+                    ResourceCatalog.scan(suite, mods.installed());
+            int images = 0;
+            int sounds = 0;
+            long total = 0;
+            for (int i = 0; i < entries.size(); i++) {
+                ResourceCatalog.Entry entry = entries.get(i);
+                total += entry.bytes();
+                if (entry.kind() == ResourceCatalog.KIND_IMAGE) {
+                    images++;
+                } else if (entry.kind() == ResourceCatalog.KIND_SOUND) {
+                    sounds++;
+                }
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("resources", ResourceCatalog.toJson(entries));
+            json.put("count", Integer.valueOf(entries.size()));
+            json.put("images", Integer.valueOf(images));
+            json.put("sounds", Integer.valueOf(sounds));
+            json.put("bytes", Long.valueOf(total));
+            json.put("replaced", new ArrayList<Object>(mods.replacedByPlayer()));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Thay một tệp trong game bằng tệp của người chơi.
+     *
+     * <p>Game gốc không bị đụng tới: thứ thay vào nằm trong một bản mod riêng
+     * phủ lên trên, nên bỏ ra lúc nào cũng được và bản cài vẫn nguyên.</p>
+     */
+    public String replaceResource(String suiteId, String path, byte[] bytes) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            SuiteLoader suite = library.load(suiteId);
+            if (suite.archive().read(path) == null) {
+                return error("Game này không có tệp " + path);
+            }
+            new ModManager(library, suiteId).replaceResource(path, bytes);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("path", path);
+            json.put("bytes", Integer.valueOf(bytes == null ? 0 : bytes.length));
+            json.put("restartNeeded", Boolean.valueOf(
+                    session != null && suiteId.equals(activeSuiteId)));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Trả một tệp về bản gốc trong game. */
+    public String restoreResource(String suiteId, String path) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            boolean removed = new ModManager(library, suiteId).restoreResource(path);
+            return ok("restored", String.valueOf(removed));
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Một tệp trong game, đọc qua cả những gì người chơi đã thay.
+     *
+     * <p>Khác {@link #resource}: chỗ kia đọc thẳng bản gốc, chỗ này trả về
+     * đúng thứ game sẽ thấy khi chạy.</p>
+     */
+    public byte[] resourceAsPlayed(String suiteId, String path) {
+        if (library == null) {
+            return new byte[0];
+        }
+        try {
+            List<ModPackage> mods = new ModManager(library, suiteId).installed();
+            for (int i = mods.size() - 1; i >= 0; i--) {
+                ModPackage mod = mods.get(i);
+                if (!mod.isEnabled()) {
+                    continue;
+                }
+                byte[] replaced = mod.archive().read(path);
+                if (replaced != null) {
+                    return replaced;
+                }
+            }
+            byte[] original = library.load(suiteId).archive().read(path);
+            return original == null ? new byte[0] : original;
+        } catch (IOException e) {
+            return new byte[0];
+        }
+    }
+
+    /**
+     * Một tệp ảnh trong game, đổi sang PNG để màn hình vẽ được.
+     *
+     * <p>Ảnh trong game có thể là JPEG, và giao diện thì chỉ vẽ PNG; đổi ở
+     * đây một lần còn hơn bắt cả ba giao diện tự lo.</p>
+     */
+    public byte[] resourceImagePng(String suiteId, String path) {
+        byte[] data = resourceAsPlayed(suiteId, path);
+        if (data.length == 0) {
+            return new byte[0];
+        }
+        try {
+            if (JpegReader.looksLikeJpeg(data)) {
+                JpegReader.Image image = JpegReader.decode(data);
+                return PngWriter.encode(image.pixels, image.width, image.height);
+            }
+            return data;
+        } catch (IOException broken) {
+            return new byte[0];
+        }
     }
 
     // ---------------------------------------------------------- JAD and RMS

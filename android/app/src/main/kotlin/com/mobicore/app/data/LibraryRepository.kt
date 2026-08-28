@@ -6,6 +6,8 @@ import com.mobicore.core.library.GameLibrary
 import com.mobicore.core.library.LibraryArchive
 import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.library.PresetStore
+import com.mobicore.core.mod.ModManager
+import com.mobicore.core.mod.ResourceCatalog
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
 import com.mobicore.core.library.CollectionStore
@@ -96,6 +98,26 @@ class LibraryRepository(filesDir: String) {
     }
 
     fun load(suiteId: String): SuiteLoader = library.load(suiteId)
+
+    /** Kho tài nguyên của một game, kèm những gì người chơi đã tự thay. */
+    fun resources(suiteId: String): List<ResourceCatalog.Entry> =
+        ResourceCatalog.scan(library.load(suiteId), mods(suiteId).installed())
+
+    fun mods(suiteId: String): ModManager = ModManager(library, suiteId)
+
+    /**
+     * Thay một tệp trong game bằng tệp người chơi chọn.
+     *
+     * Bản gốc không bị đụng tới: thứ thay vào nằm trong một bản mod riêng phủ
+     * lên trên, nên bỏ ra lúc nào cũng được.
+     */
+    fun replaceResource(suiteId: String, path: String, bytes: ByteArray) {
+        mods(suiteId).replaceResource(path, bytes)
+    }
+
+    fun restoreResource(suiteId: String, path: String) {
+        mods(suiteId).restoreResource(path)
+    }
 
     fun profile(suiteId: String): GameProfile? = library.profile(suiteId)
 

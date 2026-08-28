@@ -134,7 +134,7 @@ public final class SampleSuite {
         }
         entries.put("res/level1.dat", new byte[1024]);
         entries.put("res/level2.dat", new byte[2048]);
-        entries.put("res/theme.mid", new byte[5120]);
+        entries.put("res/theme.mid", midi());
         entries.put("res/photo.jpg", java.util.Base64.getDecoder().decode(PHOTO));
         return zip(entries);
     }
@@ -181,6 +181,33 @@ public final class SampleSuite {
         }
         zip.close();
         return out.toByteArray();
+    }
+
+    /**
+     * Một tệp MIDI ngắn nhưng thật.
+     *
+     * <p>Trước đây chỗ này là năm nghìn byte số 0 mang tên .mid — đủ để đếm
+     * dung lượng, nhưng bảng tài nguyên đọc ruột tệp chứ không đọc cái tên,
+     * nên nó thấy đúng thứ nó là: một khối dữ liệu vô nghĩa. Một tệp thật thì
+     * cả phần phát nhạc lẫn bảng tài nguyên đều có cái để làm việc.</p>
+     */
+    private static byte[] midi() {
+        byte[] track = {
+            0x00, (byte) 0x90, 0x3C, 0x64,   // bật nốt Đô
+            (byte) 0x60, (byte) 0x80, 0x3C, 0x40,  // tắt nốt sau một nhịp
+            0x00, (byte) 0xFF, 0x2F, 0x00,   // hết bản
+        };
+        byte[] file = new byte[14 + 8 + track.length];
+        int at = 0;
+        at = put(file, at, new byte[]{'M', 'T', 'h', 'd', 0, 0, 0, 6, 0, 0, 0, 1, 0, (byte) 96});
+        at = put(file, at, new byte[]{'M', 'T', 'r', 'k', 0, 0, 0, (byte) track.length});
+        put(file, at, track);
+        return file;
+    }
+
+    private static int put(byte[] target, int at, byte[] source) {
+        System.arraycopy(source, 0, target, at, source.length);
+        return at + source.length;
     }
 
     public static byte[] utf8(String text) {

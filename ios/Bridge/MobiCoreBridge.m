@@ -451,6 +451,32 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)resourcesJSONForSuite:(NSString *)suiteId {
+    return [_facade resourcesJsonWithNSString:suiteId];
+}
+
+- (NSString *)replaceResource:(NSString *)path
+                    withData:(NSData *)data
+                     inSuite:(NSString *)suiteId {
+    IOSByteArray *bytes = [IOSByteArray arrayWithBytes:(const jbyte *) data.bytes
+                                                 count:(jint) data.length];
+    return [_facade replaceResourceWithNSString:suiteId
+                                   withNSString:path
+                                  withByteArray:bytes];
+}
+
+- (NSString *)restoreResource:(NSString *)path inSuite:(NSString *)suiteId {
+    return [_facade restoreResourceWithNSString:suiteId withNSString:path];
+}
+
+- (nullable NSData *)resourceImagePNG:(NSString *)path inSuite:(NSString *)suiteId {
+    IOSByteArray *bytes = [_facade resourceImagePngWithNSString:suiteId withNSString:path];
+    if (bytes.length == 0) {
+        return nil;
+    }
+    return [NSData dataWithBytes:bytes.buffer length:(NSUInteger) bytes.length];
+}
+
 - (NSString *)systemPropertiesJSON {
     return [_facade systemPropertiesJson];
 }

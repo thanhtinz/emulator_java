@@ -1902,3 +1902,42 @@ Bài kiểm tra chạy trên **cả hai đường truyền**: đường trong b�
 còn `java.net` mới là chỗ ném ra lỗi không ai bắt được — kiểm mỗi đường hiền
 thì bài kiểm tra chẳng canh được gì. Và cả hai bài đều được thử ngược bằng
 cách bỏ chỗ vá đi: bỏ ra thì chúng đỏ.
+
+## Giai đoạn 48 — kho tài nguyên của game, và chia thẻ cho công cụ
+
+Một game J2ME là một cái hộp `.jar`, và đổi một tấm ảnh bên trong là việc người
+ta vẫn làm: Việt hoá chữ nằm trong ảnh, thay bộ hình nhân vật, đổi ảnh nền cho
+vừa mắt. Cho tới giờ muốn làm thì phải mang tệp sang máy tính, giải nén, sửa,
+đóng gói lại — rồi cài lại và mất phần đã lưu.
+
+Nay máy ảo **tự đọc cái hộp ấy** và bày ra: mỗi thứ bên trong là gì, nặng bao
+nhiêu, ảnh thì bao nhiêu điểm ảnh, đã bị thay chưa và ai thay. Chọn một tệp
+trên máy là xong.
+
+**Nhìn vào ruột tệp, không nhìn cái tên.** Đây mới là phần khó. Game đời ấy đặt
+tên rất tuỳ hứng: một tấm PNG nằm trong `data/12.dat`, một đoạn nhạc trong
+`r/07` không có đuôi tên. Đoán theo đuôi thì nửa số tệp thành "không rõ" — mà
+đó lại đúng là những tệp người ta muốn thay. Nên bảng này đọc mấy byte đầu:
+PNG, JPEG, GIF, MIDI, WAV, MP3, AMR, OGG. Còn tệp toàn chữ đọc được thì gọi là
+**chữ**, vì bảng lời thoại và bảng màn chơi hay nằm ở dạng đó, và đó là thứ hay
+bị sửa nhất khi Việt hoá một game.
+
+**Game gốc không bị đụng tới.** Thứ thay vào nằm trong một bản mod riêng tên
+"Của tôi" — cùng đường cài, cùng chỗ lưu, cùng cách gỡ như mọi bản mod khác —
+phủ lên trên lúc chơi. Bỏ ra lúc nào cũng được, và bản cài vẫn nguyên. Đường
+dẫn được rửa sạch trước khi ghi: một bản mod chỉ ghi vào chính nó, `..` thì bị
+từ chối.
+
+### Chia thẻ
+
+Trang công cụ trước đây là một trang dài xếp chồng: mạng, mod, JAD, RMS, tài
+nguyên. Nay là bốn thẻ — **Tài nguyên · Mạng · Mod · Dữ liệu** — vì chúng trả
+lời bốn câu hỏi khác nhau, và người đang tìm một tấm ảnh để thay không việc gì
+phải cuộn qua danh sách lớp Java. Cả ba giao diện đều chia thẻ: Android bằng
+hàng thẻ, iOS bằng thanh phân đoạn, bản xem trước bằng hàng thẻ vẽ tay.
+
+Cầu nối: `resourcesJson`, `replaceResource`, `restoreResource`, `resourceImagePng`.
+
+Nhân tiện, `res/theme.mid` trong bộ cài mẫu từ nay là **một tệp MIDI thật** chứ
+không phải năm nghìn byte số 0 mang tên `.mid`: bảng tài nguyên đọc ruột tệp,
+nên một tệp giả thì nó gọi đúng tên — "dữ liệu".

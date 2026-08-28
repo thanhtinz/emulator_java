@@ -2,6 +2,7 @@ package com.mobicore.core.mod;
 
 import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.jar.JarArchive;
+import com.mobicore.core.jar.Zip;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.storage.Json;
 import com.mobicore.core.storage.StorageLayout;
@@ -10,6 +11,7 @@ import com.mobicore.core.storage.Vfs;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +119,108 @@ public final class ModManager {
             applied++;
         }
         return applied;
+    }
+
+    /**
+     * Tên bản mod chứa những gì chính người chơi thay.
+     *
+     * <p>Một bản mod như mọi bản mod khác — cùng đường cài, cùng chỗ lưu,
+     * cùng cách gỡ — nên thứ người chơi tự thay không cần một cơ chế thứ hai
+     * đứng song song với cơ chế đã có.</p>
+     */
+    public static final String PERSONAL = "cua-toi";
+
+    /**
+     * Thay một tệp trong game bằng tệp của người chơi.
+     *
+     * <p>Ghi vào bản mod riêng, dựng lại cả gói mỗi lần: một bản mod là một
+     * tệp nén, và sửa một tệp nén tại chỗ thì rắc rối hơn nhiều so với đóng
+     * lại một gói vài chục kilobyte.</p>
+     *
+     * @param path đường dẫn bên trong tệp game, ví dụ {@code res/logo.png}
+     */
+    public ModPackage replaceResource(String path, byte[] bytes) throws IOException {
+        if (path == null || path.trim().length() == 0 || bytes == null) {
+            throw new IOException("Thiếu tệp để thay");
+        }
+        String inside = clean(path);
+        Map<String, byte[]> entries = personalEntries();
+        entries.put(inside, bytes);
+        return savePersonal(entries);
+    }
+
+    /** Bỏ một thứ đã thay, trả game về tệp gốc của nó. */
+    public boolean restoreResource(String path) throws IOException {
+        Map<String, byte[]> entries = personalEntries();
+        if (entries.remove(clean(path)) == null) {
+            return false;
+        }
+        if (entries.isEmpty()) {
+            // Không còn gì trong đó thì bỏ luôn bản mod, chứ không để lại một
+            // cái tên rỗng trong danh sách.
+            uninstall(PERSONAL);
+            return true;
+        }
+        savePersonal(entries);
+        return true;
+    }
+
+    /** Những gì người chơi đã tự thay. */
+    public List<String> replacedByPlayer() throws IOException {
+        List<String> paths = new ArrayList<String>(personalEntries().keySet());
+        Collections.sort(paths);
+        return paths;
+    }
+
+    private Map<String, byte[]> personalEntries() throws IOException {
+        Map<String, byte[]> entries = new LinkedHashMap<String, byte[]>();
+        for (String modId : library.mods(suiteId)) {
+            if (!PERSONAL.equals(modId)) {
+                continue;
+            }
+            JarArchive archive = library.loadMod(suiteId, modId);
+            for (String name : archive.names()) {
+                if (!ModPackage.MANIFEST.equals(name)) {
+                    entries.put(name, archive.read(name));
+                }
+            }
+        }
+        return entries;
+    }
+
+    private ModPackage savePersonal(Map<String, byte[]> entries) throws IOException {
+        Map<String, Object> manifest = Json.object();
+        manifest.put("id", PERSONAL);
+        manifest.put("name", "Của tôi");
+        manifest.put("version", "1.0");
+        manifest.put("author", "Người chơi");
+        manifest.put("description", "Những tệp bạn tự thay trong game này");
+        manifest.put("target", suiteId);
+        Map<String, byte[]> all = new LinkedHashMap<String, byte[]>();
+        all.put(ModPackage.MANIFEST, utf8(Json.write(manifest)));
+        all.putAll(entries);
+
+        ModPackage mod = install(PERSONAL, Zip.write(all));
+        // Bật sẵn: người chơi vừa chọn tệp để thay, không ai làm thế rồi lại
+        // đi bật thêm một công tắc nữa.
+        setEnabled(PERSONAL, true);
+        return mod;
+    }
+
+    /** Bỏ mọi lối đi vòng ra khỏi đường dẫn: một mod chỉ ghi vào chính nó. */
+    private static String clean(String path) throws IOException {
+        String value = path.trim().replace('\\', '/');
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        if (value.length() == 0 || value.indexOf("..") >= 0) {
+            throw new IOException("Đường dẫn không hợp lệ: " + path);
+        }
+        return value;
+    }
+
+    private static byte[] utf8(String text) throws IOException {
+        return text.getBytes("UTF-8");
     }
 
     public String toJson() throws IOException {

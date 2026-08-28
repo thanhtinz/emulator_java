@@ -34,6 +34,7 @@ public final class Runner {
         tests.add(new HangTest(fixtures));
         tests.add(new SocketTest(fixtures));
         tests.add(new JpegTest());
+        tests.add(new ResourceTest(fixtures));
         tests.add(new PreviewTest(fixtures));
         tests.add(new DownloadTest(fixtures));
         tests.add(new FileTest(fixtures));

@@ -628,6 +628,27 @@ final class MobiCoreClient: ObservableObject {
         bridge.resource(named: path, inSuite: suiteId)
     }
 
+    // MARK: - Kho tài nguyên
+
+    /// Mọi thứ nằm trong tệp game, kèm dấu những gì đã bị thay.
+    func resources(_ suiteId: String) -> ResourceBox? {
+        decode(bridge.resourcesJSON(forSuite: suiteId))
+    }
+
+    /// Thay một tệp trong game bằng tệp người chơi chọn.
+    func replaceResource(_ path: String, with data: Data, in suiteId: String) {
+        report(decode(bridge.replaceResource(path, withData: data, inSuite: suiteId)))
+    }
+
+    func restoreResource(_ path: String, in suiteId: String) {
+        report(decode(bridge.restoreResource(path, inSuite: suiteId)))
+    }
+
+    /// Ảnh của một tài nguyên, đã đổi sang PNG để vẽ được.
+    func resourceImage(_ path: String, in suiteId: String) -> Data? {
+        bridge.resourceImagePNG(path, inSuite: suiteId)
+    }
+
     // MARK: - Helpers
 
     private func decode<T: Decodable>(_ json: String) -> T? {

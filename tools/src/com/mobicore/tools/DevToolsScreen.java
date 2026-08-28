@@ -6,6 +6,7 @@ import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.mod.ModManager;
 import com.mobicore.core.mod.ModPackage;
+import com.mobicore.core.mod.ResourceCatalog;
 import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.net.LoopbackSockets;
 import com.mobicore.core.net.LoopbackTransport;
@@ -32,10 +33,92 @@ import java.util.Map;
  */
 public final class DevToolsScreen {
 
+    /** Thẻ nào đang mở. */
+    public static final int TAB_RESOURCES = 0;
+    public static final int TAB_NETWORK = 1;
+    public static final int TAB_MODS = 2;
+    public static final int TAB_DATA = 3;
+
     private final String fixtureDir;
+    private final int tab;
 
     public DevToolsScreen(String fixtureDir) {
+        this(fixtureDir, TAB_RESOURCES);
+    }
+
+    public DevToolsScreen(String fixtureDir, int tab) {
         this.fixtureDir = fixtureDir;
+        this.tab = tab;
+    }
+
+    /**
+     * Hàng thẻ ở đầu trang.
+     *
+     * @return đáy của hàng thẻ
+     */
+    private int tabStrip(Ui ui, String[] labels, int chosen, int width) {
+        Framebuffer frame = ui.frame();
+        int top = Ui.APP_BAR + 1;
+        int height = ui.medium().height() + 22;
+        int each = width / labels.length;
+        for (int i = 0; i < labels.length; i++) {
+            int centre = Ui.PAD + each * i + each / 2;
+            boolean active = i == chosen;
+            ui.textCenter(ui.medium(), labels[i], centre,
+                    top + (height - ui.medium().height()) / 2,
+                    active ? Theme.ACCENT : Theme.TEXT_DIM);
+            if (active) {
+                frame.setColor(Theme.ACCENT);
+                int barWidth = ui.medium().stringWidth(labels[i]) + 12;
+                frame.fillRect(centre - barWidth / 2, top + height - 3, barWidth, 3);
+            }
+        }
+        frame.setColor(Theme.BORDER);
+        frame.fillRect(0, top + height, frame.width(), 1);
+        return top + height;
+    }
+
+    /**
+     * Kho tài nguyên: mọi thứ trong tệp game, và thứ nào đã bị thay.
+     *
+     * <p>Loại của từng tệp đọc từ chính mấy byte đầu chứ không đoán theo tên:
+     * game đời ấy để một tấm PNG trong {@code data/12.dat} là chuyện
+     * thường.</p>
+     */
+    private void drawResources(Ui ui, GameLibrary library, LibraryEntry entry, ModManager mods,
+                               int margin, int y, int width, int fieldX, int fieldWidth)
+            throws Exception {
+        List<ResourceCatalog.Entry> entries =
+                ResourceCatalog.scan(library.load(entry.suiteId()), mods.installed());
+        int rowHeight = ui.mediumBold().height() + ui.small().height() + 10;
+        int height = 12 + ui.small().height() + 8 + entries.size() * rowHeight + 6;
+        long total = 0;
+        for (int i = 0; i < entries.size(); i++) {
+            total += entries.get(i).bytes();
+        }
+        int row = ui.section(margin, y, width, height, "TRONG TỆP GAME",
+                entries.size() + " tệp  ·  " + (total / 1024) + " KB");
+        for (int i = 0; i < entries.size(); i++) {
+            ResourceCatalog.Entry item = entries.get(i);
+            String trailing = item.isReplaced() ? "ĐÃ THAY" : item.format();
+            int trailingWidth = ui.small().stringWidth(trailing) + 14;
+            ui.text(ui.mediumBold(),
+                    ui.ellipsize(ui.mediumBold(), item.path(), fieldWidth - trailingWidth),
+                    fieldX, row, item.isReplaced() ? Theme.ACCENT : Theme.TEXT);
+            ui.textRight(ui.small(), trailing, fieldX + fieldWidth, row + 3,
+                    item.isReplaced() ? Theme.ACCENT : Theme.TEXT_DIM);
+            StringBuilder detail = new StringBuilder();
+            detail.append(item.kindName()).append("  ·  ").append(item.bytes()).append(" B");
+            if (item.width() > 0) {
+                detail.append("  ·  ").append(item.width()).append('×').append(item.height());
+            }
+            if (item.isReplaced()) {
+                detail.append("  ·  bản của ").append(item.replacedBy());
+            }
+            ui.text(ui.small(), ui.ellipsize(ui.small(), detail.toString(), fieldWidth),
+                    fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
+            row += rowHeight;
+        }
     }
 
     public Framebuffer render() throws Exception {
@@ -53,7 +136,9 @@ public final class DevToolsScreen {
         files.put("mod.json", SampleSuite.utf8("{\"id\":\"hd-tiles\",\"name\":\"HD Tiles\","
                 + "\"version\":\"1.1\",\"author\":\"Community\",\"target\":\""
                 + entry.suiteId() + "\"}"));
-        files.put("res/tiles.png", new byte[4096]);
+        // Thay đúng một tệp game thật sự có, để bảng tài nguyên đánh dấu
+        // được nó: một bản mod thay tệp không tồn tại thì chẳng thay gì.
+        files.put("res/level1.dat", new byte[4096]);
         mods.install("hd-tiles", SampleSuite.zip(files));
         mods.setEnabled("hd-tiles", true);
 
@@ -155,7 +240,19 @@ public final class DevToolsScreen {
         int width = frame.width() - margin * 2;
         int fieldX = margin + Ui.PAD;
         int fieldWidth = width - Ui.PAD * 2;
-        int y = Ui.APP_BAR + 18;
+
+        // Chia thẻ chứ không xếp thành một trang dài: mấy phần này trả lời
+        // những câu hỏi khác nhau, và người đang tìm một tấm ảnh để thay
+        // không việc gì phải cuộn qua bảng theo dõi mạng.
+        String[] labels = {"Tài nguyên", "Mạng", "Mod", "Dữ liệu"};
+        int y = tabStrip(ui, labels, tab, width) + 14;
+
+        if (tab == TAB_RESOURCES) {
+            drawResources(ui, library, entry, mods, margin, y, width, fieldX, fieldWidth);
+            Framebuffer only = Preview.fit(frame, Ui.TAB_BAR);
+            new Ui(only).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
+            return only;
+        }
 
         // Network monitor ------------------------------------------------
         List<NetworkMonitor.Exchange> exchanges = session.network().monitor().exchanges();
@@ -187,6 +284,11 @@ public final class DevToolsScreen {
             row += entryHeight;
         }
         y += netHeight + 14;
+        if (tab == TAB_NETWORK) {
+            Framebuffer only = Preview.fit(ui.frame(), Ui.TAB_BAR);
+            new Ui(only).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
+            return only;
+        }
 
         // Mods -----------------------------------------------------------
         List<ModPackage> installed = mods.installed();
@@ -205,6 +307,11 @@ public final class DevToolsScreen {
             row += entryHeight;
         }
         y += modHeight + 14;
+        if (tab == TAB_MODS) {
+            Framebuffer only = Preview.fit(ui.frame(), Ui.TAB_BAR);
+            new Ui(only).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
+            return only;
+        }
 
         // Descriptor -----------------------------------------------------
         JadEditor editor = new JadEditor(library.load(entry.suiteId()).info().attributes());
