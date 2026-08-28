@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobicore.app.data.LibraryRepository
@@ -77,7 +81,10 @@ private fun TreasureTab(library: LibraryRepository, suiteId: String) {
     var amount by remember(suiteId) { mutableStateOf("") }
     var chosen by remember(suiteId) { mutableStateOf<String?>(null) }
     var revision by remember(suiteId) { mutableIntStateOf(0) }
-    var note by remember(suiteId) { mutableStateOf("") }
+    // Hai lời nhắn tách nhau: kết quả của việc gửi và kết quả của việc tìm là
+    // hai chuyện, và dùng chung một chỗ thì cái này xoá cái kia.
+    var sendNote by remember(suiteId) { mutableStateOf("") }
+    var scanNote by remember(suiteId) { mutableStateOf("") }
     val items = remember(suiteId, query, revision) { library.items(suiteId, query) }
 
     // Vòng tìm một vật phẩm mới: gõ số đang thấy, chơi cho nó đổi, gõ lại.
@@ -149,10 +156,13 @@ private fun TreasureTab(library: LibraryRepository, suiteId: String) {
             }
         }
 
-        if (chosen != null) {
+        // Bước hai và ba. Tra ra vật phẩm trước rồi mới mở thẻ: chỉ hỏi
+        // "đã chọn gì chưa" thì gõ vào ô tìm kiếm cho vật phẩm ấy khuất đi sẽ
+        // để lại một cái thẻ không tên mà vẫn gửi được vào thứ không nhìn thấy.
+        val picked = items.firstOrNull { it.id() == chosen }
+        if (picked != null) {
             item {
-                val name = items.firstOrNull { it.id() == chosen }?.name() ?: ""
-                SectionCard(title = "GỬI VÀO GAME", trailing = name) {
+                SectionCard(title = "GỬI VÀO GAME", trailing = picked.name()) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             OutlinedTextField(
@@ -162,36 +172,46 @@ private fun TreasureTab(library: LibraryRepository, suiteId: String) {
                                 },
                                 singleLine = true,
                                 label = { Text("Số lượng") },
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f),
                             )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "Gửi",
-                                color = MobiColors.Accent,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier
-                                    .clickable {
-                                        val value = amount.toLongOrNull()
-                                        val id = chosen
-                                        if (value != null && id != null) {
-                                            val written = library.sendItem(suiteId, id, value)
+                            Spacer(Modifier.width(12.dp))
+                            Button(
+                                onClick = {
+                                    val value = amount.toLongOrNull()
+                                    sendNote = when {
+                                        value == null -> "Gõ số lượng trước đã."
+                                        value > picked.ceiling() ->
+                                            "Nhiều nhất ${picked.ceiling()} — hơn nữa thì " +
+                                                "không vừa chỗ game để dành cho nó."
+                                        else -> {
+                                            val written =
+                                                library.sendItem(suiteId, picked.id(), value)
                                             revision++
-                                            note = if (written > 0) {
-                                                "Đã gửi $value. Mở lại game để thấy."
+                                            if (written > 0) {
+                                                "Đã gửi $value."
                                             } else {
-                                                "Số này không vừa chỗ game để dành cho nó."
+                                                "Không ghi được vào phần lưu."
                                             }
                                         }
                                     }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                            )
-                        }
-                        if (note.isNotEmpty()) {
-                            Text(note, color = MobiColors.TextDim, fontSize = 11.sp)
+                                },
+                            ) {
+                                Text("Gửi")
+                            }
                         }
                         Text(
-                            "Phần lưu được sao lưu trước khi sửa.",
+                            "nhiều nhất ${picked.ceiling()}",
+                            color = MobiColors.TextDim,
+                            fontSize = 11.sp,
+                        )
+                        if (sendNote.isNotEmpty()) {
+                            Text(sendNote, color = MobiColors.TextDim, fontSize = 11.sp)
+                        }
+                        Text(
+                            "Phần lưu được sao lưu trước khi sửa. Game đang chạy sẽ được " +
+                                "đóng lại để ghi, có lưu trạng thái.",
                             color = MobiColors.TextDim,
                             fontSize = 11.sp,
                         )
@@ -241,7 +261,7 @@ private fun TreasureTab(library: LibraryRepository, suiteId: String) {
                                 }
                                 round++
                                 typed = ""
-                                note = if (hits == 1) "Còn đúng một chỗ — đặt tên rồi cất đi."
+                                scanNote = if (hits == 1) "Còn đúng một chỗ — đặt tên rồi cất đi."
                                        else "Còn $hits chỗ. Chơi tiếp cho số đổi rồi lọc nữa."
                             },
                         )
@@ -255,7 +275,7 @@ private fun TreasureTab(library: LibraryRepository, suiteId: String) {
                                     round = 0
                                     hits = 0
                                     typed = ""
-                                    note = ""
+                                    scanNote = ""
                                 },
                             )
                         }
@@ -280,7 +300,7 @@ private fun TreasureTab(library: LibraryRepository, suiteId: String) {
                                     round = 0
                                     hits = 0
                                     newName = ""
-                                    note = "Đã cất. Từ giờ chỉ cần gõ số lượng rồi gửi."
+                                    scanNote = "Đã cất. Từ giờ chỉ cần gõ số lượng rồi gửi."
                                 }
                             },
                         )

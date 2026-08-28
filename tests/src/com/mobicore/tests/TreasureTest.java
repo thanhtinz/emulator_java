@@ -195,6 +195,29 @@ public final class TreasureTest extends Test {
         check(Json.string(refused, "error", "").indexOf("65535") >= 0,
                 "và nói rõ nhiều nhất là bao nhiêu: " + Json.string(refused, "error", ""));
 
+        // Gửi trong lúc game đang chạy: phải tự đóng game rồi mới ghi.
+        //
+        // Game đang chạy giữ phần lưu trong bộ nhớ của nó và ghi đè cả tệp khi
+        // thoát, nên ghi thẳng xuống đĩa lúc ấy là ghi vào chỗ sắp bị xoá —
+        // số vừa gửi biến mất mà không ai báo gì. Trước đây chỗ này chỉ trả
+        // về một lá cờ "cần mở lại", tức là kể lại chuyện đã hỏng thay vì
+        // không để nó hỏng.
+        bank = start(facade, suiteId);
+        Map<String, Object> whilePlaying = Json.readObject(
+                facade.sendItem(suiteId, potionId, 42));
+        check(Json.bool(whilePlaying, "ok", false),
+                "gửi được ngay cả khi game đang chạy: "
+                        + Json.string(whilePlaying, "error", ""));
+        check(Json.bool(whilePlaying, "closedGame", false),
+                "và nói ra là đã phải đóng game để ghi");
+        check(!facade.isRunning(), "game đã đóng thật, không chỉ nói suông");
+
+        bank = start(facade, suiteId);
+        call(facade, bank, "reload", "()V", null);
+        eq(42, ((Integer) bank.get("potions")).intValue(),
+                "mở lại thì game đọc thấy đúng số vừa gửi, không bị ghi đè");
+        facade.stopGame();
+
         // Bảng sống qua một lần tắt ứng dụng: chỗ đã tìm ra mới là thứ đáng
         // giữ, không phải con số.
         MobiCoreFacade reopened = new MobiCoreFacade(disk);

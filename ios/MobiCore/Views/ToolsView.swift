@@ -12,7 +12,8 @@ struct ToolsView: View {
     @State private var scan: SaveScan?
     @State private var round = 0
     @State private var typed = ""
-    @State private var note = ""
+    @State private var sendNote = ""
+    @State private var scanNote = ""
     /// Bảng vật phẩm và ô tìm kiếm của nó.
     @State private var table: ItemTable?
     @State private var query = ""
@@ -61,6 +62,12 @@ struct ToolsView: View {
 
     private func open(_ suiteId: String) {
         selected = suiteId
+        // Đổi game là mọi thứ của game cũ hết nghĩa: vật phẩm đang chọn, số
+        // lượng đang gõ dở, lời nhắn của lần gửi trước.
+        chosen = nil
+        amount = ""
+        sendNote = ""
+        scanNote = ""
         table = client.items(suiteId, matching: query)
     }
 
@@ -116,15 +123,27 @@ struct ToolsView: View {
                         HStack {
                             TextField("Số lượng", text: $amount)
                                 .keyboardType(.numberPad)
+                                // Bàn phím số chỉ là gợi ý: bàn phím ngoài và
+                                // một cú dán vẫn đưa chữ vào ô này được.
+                                .onChange(of: amount) { typedIn in
+                                    let digits = String(typedIn.filter { $0.isNumber }.prefix(10))
+                                    if digits != typedIn {
+                                        amount = digits
+                                    }
+                                }
                                 .textFieldStyle(.roundedBorder)
-                            Button("Gửi") { send(chosen) }
+                            Button("Gửi") { send(item) }
                                 .buttonStyle(.borderedProminent)
                                 .tint(Palette.accent)
                         }
-                        if !note.isEmpty {
-                            Text(note).font(.caption2).foregroundStyle(Palette.textDim)
+                        Text("nhiều nhất \(item.ceiling)")
+                            .font(.caption2)
+                            .foregroundStyle(Palette.textDim)
+                        if !sendNote.isEmpty {
+                            Text(sendNote).font(.caption2).foregroundStyle(Palette.textDim)
                         }
-                        Text("Phần lưu được sao lưu trước khi sửa.")
+                        Text("Phần lưu được sao lưu trước khi sửa. Game đang chạy sẽ được "
+                             + "đóng lại để ghi, có lưu trạng thái.")
                             .font(.caption2)
                             .foregroundStyle(Palette.textDim)
                     }
@@ -153,7 +172,7 @@ struct ToolsView: View {
                                 scan = nil
                                 round = 0
                                 typed = ""
-                                note = ""
+                                scanNote = ""
                             }
                             .font(.footnote)
                             .tint(Palette.textDim)
@@ -166,8 +185,8 @@ struct ToolsView: View {
                             .font(.footnote)
                             .tint(Palette.accent)
                     }
-                    if !note.isEmpty && chosen == nil {
-                        Text(note).font(.caption2).foregroundStyle(Palette.textDim)
+                    if !scanNote.isEmpty {
+                        Text(scanNote).font(.caption2).foregroundStyle(Palette.textDim)
                     }
                 }
             }
@@ -185,19 +204,24 @@ struct ToolsView: View {
             newName = ""
             round = 0
             scan = nil
-            note = "Đã cất. Từ giờ chỉ cần gõ số lượng rồi gửi."
+            scanNote = "Đã cất. Từ giờ chỉ cần gõ số lượng rồi gửi."
             reloadItems()
         }
     }
 
-    private func send(_ itemId: String) {
+    private func send(_ item: GameItem) {
         guard let suiteId = selected, let value = Int64(amount) else {
-            note = "Gõ số lượng trước đã."
+            sendNote = "Gõ số lượng trước đã."
             return
         }
-        let result = client.sendItem(itemId, amount: value, in: suiteId)
-        note = result?.ok == true
-            ? "Đã gửi \(value). Mở lại game để thấy."
+        guard value <= item.ceiling else {
+            sendNote = "Nhiều nhất \(item.ceiling) — hơn nữa thì không vừa chỗ game "
+                + "để dành cho nó."
+            return
+        }
+        let result = client.sendItem(item.id, amount: value, in: suiteId)
+        sendNote = result?.ok == true
+            ? "Đã gửi \(value)."
             : (result?.error ?? "Không gửi được số này.")
         reloadItems()
     }
@@ -208,7 +232,7 @@ struct ToolsView: View {
             ? client.scanSave(value, in: suiteId)
             : client.narrowSave(value, in: suiteId)
         round += 1
-        note = scan?.summary ?? ""
+        scanNote = scan?.summary ?? ""
         typed = ""
     }
 }

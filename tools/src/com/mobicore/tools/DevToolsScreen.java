@@ -90,34 +90,62 @@ public final class DevToolsScreen {
         List<Object> items = Json.array(
                 Json.readObject(facade.itemsJson(suiteId, "")), "items");
 
-        // Bảng vật phẩm: ô tìm kiếm, số lượng, nút gửi.
+        // Vật phẩm đang được chọn. Ba bước, và bước một là chọn: gõ số lượng
+        // trước khi biết gõ cho cái gì thì con số ấy chẳng thuộc về đâu cả.
+        Map<String, Object> chosen = items.isEmpty()
+                ? null : (Map<String, Object>) items.get(items.size() - 1);
+
+        // Bảng vật phẩm: ô tìm kiếm, chọn một thứ, gõ số lượng, gửi.
         int searchHeight = 12 + ui.small().height() + 8 + 44 + 10;
         int row = ui.section(margin, y, width, searchHeight, "VẬT PHẨM ĐÃ TÌM ĐƯỢC",
                 items.size() + " thứ");
         ui.searchField(fieldX, row, fieldWidth, "", "Tìm vật phẩm…");
         y += searchHeight + 12;
 
-        int itemHeight = ui.mediumBold().height() + ui.small().height() + 12;
+        int itemHeight = ui.mediumBold().height() + ui.small().height() + 16;
         int listHeight = 12 + ui.small().height() + 8 + items.size() * itemHeight + 8;
-        row = ui.section(margin, y, width, listHeight, "TRONG GAME NÀY", null);
+        row = ui.section(margin, y, width, listHeight, "TRONG GAME NÀY", "chạm để chọn");
+        int glyph = ui.mediumBold().height();
         for (int i = 0; i < items.size(); i++) {
             Map<String, Object> item = (Map<String, Object>) items.get(i);
-            ui.text(ui.mediumBold(), Json.string(item, "name", ""), fieldX, row, Theme.TEXT);
+            boolean picked = item == chosen;
+            // Hàng đang chọn tự nói ra là nó đang được chọn: nền đổi, tên đổi
+            // màu, và một dấu tích. Chỉ đổi màu chữ thôi thì trên màn hình
+            // nhỏ không ai thấy.
+            if (picked) {
+                ui.panel(fieldX - 10, row - 6, fieldWidth + 20, itemHeight - 2,
+                        Theme.ACCENT_DIM, Theme.ACCENT_DIM);
+                Icons.draw(ui.frame(), Icons.CHECK, fieldX, row + 1, glyph, Theme.ACCENT);
+            }
+            int textX = picked ? fieldX + glyph + 8 : fieldX;
+            ui.text(ui.mediumBold(), Json.string(item, "name", ""), textX, row,
+                    picked ? Theme.ACCENT : Theme.TEXT);
             ui.textRight(ui.mediumBold(), String.valueOf(Json.longValue(item, "amount", 0L)),
                     fieldX + fieldWidth, row, Theme.ACCENT);
             ui.text(ui.small(), Json.integer(item, "places", 0) + " chỗ trong phần lưu  ·  "
                             + "nhiều nhất " + Json.longValue(item, "ceiling", 0L),
-                    fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
+                    textX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
             row += itemHeight;
         }
         y += listHeight + 12;
 
-        // Ô số lượng và nút gửi, cạnh nhau: gõ số rồi bấm là xong.
-        int sendHeight = 12 + ui.small().height() + 8 + 46 + 10;
-        row = ui.section(margin, y, width, sendHeight, "GỬI VÀO GAME", "Thuốc hồi máu");
-        int amountWidth = fieldWidth - 150;
-        ui.input(fieldX, row, amountWidth, "99", "Số lượng");
-        ui.button(fieldX + amountWidth + 12, row - 2, 138, "Gửi", true, Icons.IMPORT);
+        // Bước hai và ba, và chỉ mở ra sau khi đã chọn: ô số lượng để trống,
+        // rồi nút gửi. Ô để trống chứ không điền sẵn số đang có — điền sẵn thì
+        // một cú bấm nhỡ tay ghi đè chính con số vừa tìm được.
+        int sendHeight = 12 + ui.small().height() + 8 + 46 + ui.small().height() + 14;
+        if (chosen == null) {
+            sendHeight = 12 + ui.small().height() + 8 + ui.medium().height() + 10;
+            row = ui.section(margin, y, width, sendHeight, "GỬI VÀO GAME", null);
+            ui.text(ui.medium(), "Chọn một vật phẩm ở trên đã.", fieldX, row, Theme.TEXT_DIM);
+        } else {
+            row = ui.section(margin, y, width, sendHeight, "GỬI VÀO GAME",
+                    Json.string(chosen, "name", ""));
+            int amountWidth = fieldWidth - 150;
+            ui.input(fieldX, row, amountWidth, "", "Số lượng");
+            ui.button(fieldX + amountWidth + 12, row - 2, 138, "Gửi", true, Icons.IMPORT);
+            ui.text(ui.small(), "nhiều nhất " + Json.longValue(chosen, "ceiling", 0L),
+                    fieldX, row + 50, Theme.TEXT_DIM);
+        }
         y += sendHeight + 14;
 
         // Hai bước, và bước nào cũng nói ra nó vừa làm gì.
@@ -131,6 +159,14 @@ public final class DevToolsScreen {
                 fieldWidth);
         y += stepHeight + 14;
 
-        ui.text(ui.small(), "Phần lưu được sao lưu trước khi sửa.", fieldX, y, Theme.TEXT_DIM);
+        // Hai câu này là hai lời hứa, nên chúng được viết ra chứ không để
+        // người chơi tự đoán: không mất gì, và không ghi vào chỗ sắp bị xoá.
+        java.util.List<String> promise = ui.wrap(ui.small(),
+                "Phần lưu được sao lưu trước khi sửa. Game đang chạy sẽ được đóng lại "
+                        + "để ghi, có lưu trạng thái.", fieldWidth, 2);
+        for (int i = 0; i < promise.size(); i++) {
+            ui.text(ui.small(), promise.get(i), fieldX, y + i * (ui.small().height() + 3),
+                    Theme.TEXT_DIM);
+        }
     }
 }

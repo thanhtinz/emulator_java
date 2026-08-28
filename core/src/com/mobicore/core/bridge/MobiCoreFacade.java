@@ -2623,6 +2623,7 @@ public final class MobiCoreFacade {
             return error("Hãy tìm lại: danh sách đã cũ");
         }
         SaveScanner.Hit hit = saveHits.get(index);
+        boolean closedGame = closeGameToWrite(suiteId);
         if (!SaveScanner.fits(value, hit.encoding())) {
             return error("Số " + value + " không vừa ô " + hit.encodingName()
                     + " — game sẽ đọc ra một con số khác");
@@ -2637,10 +2638,7 @@ public final class MobiCoreFacade {
             json.put("ok", Boolean.TRUE);
             json.put("value", Long.valueOf(value));
             json.put("hit", hit.toJson());
-            // Game đang chạy giữ phần lưu trong bộ nhớ của nó; sửa dưới chân
-            // nó thì nó ghi đè lại lúc thoát.
-            json.put("restartNeeded", Boolean.valueOf(
-                    session != null && suiteId.equals(activeSuiteId)));
+            json.put("closedGame", Boolean.valueOf(closedGame));
             return Json.write(json);
         } catch (IOException e) {
             return error(e.getMessage());
@@ -2663,6 +2661,7 @@ public final class MobiCoreFacade {
         if (!suiteId.equals(saveHitsSuite) || saveHits.isEmpty()) {
             return error("Hãy tìm trước đã");
         }
+        boolean closedGame = closeGameToWrite(suiteId);
         try {
             library.backup(suiteId);
             RecordStoreManager records = library.records(suiteId);
@@ -2686,8 +2685,7 @@ public final class MobiCoreFacade {
             if (written == 0) {
                 json.put("error", "Số " + value + " không vừa chỗ nào trong số đã tìm");
             }
-            json.put("restartNeeded", Boolean.valueOf(
-                    session != null && suiteId.equals(activeSuiteId)));
+            json.put("closedGame", Boolean.valueOf(closedGame));
             return Json.write(json);
         } catch (IOException e) {
             return error(e.getMessage());
@@ -2751,10 +2749,31 @@ public final class MobiCoreFacade {
      * <p>Đây là nút bấm của bảng vật phẩm: chọn vật phẩm, gõ số lượng, gửi.
      * Phần lưu được sao lưu trước, vì đây là thứ không dựng lại được.</p>
      */
+    /**
+     * Đóng game lại trước khi sửa phần lưu của nó.
+     *
+     * <p>Game đang chạy giữ phần lưu trong bộ nhớ của nó và ghi đè cả tệp khi
+     * thoát, nên ghi thẳng xuống đĩa lúc ấy là ghi vào chỗ sắp bị xoá — số vừa
+     * gửi biến mất mà không ai báo gì. Trước đây chỗ này chỉ trả về một lá cờ
+     * "cần mở lại", tức là kể lại chuyện đã hỏng thay vì không để nó hỏng.</p>
+     *
+     * <p>Đóng có lưu trạng thái, nên mở ra là chơi tiếp đúng chỗ cũ.</p>
+     *
+     * @return true khi vừa phải đóng một game đang chạy
+     */
+    private boolean closeGameToWrite(String suiteId) {
+        if (session == null || !suiteId.equals(activeSuiteId)) {
+            return false;
+        }
+        stopGameSaving();
+        return true;
+    }
+
     public String sendItem(String suiteId, String itemId, long amount) {
         if (library == null) {
             return error("The library is not open");
         }
+        boolean closedGame = closeGameToWrite(suiteId);
         try {
             ItemChest chest = chest(suiteId);
             ItemChest.Item item = chest.find(itemId);
@@ -2777,8 +2796,7 @@ public final class MobiCoreFacade {
             if (written == 0) {
                 json.put("error", "Không ghi được vào phần lưu");
             }
-            json.put("restartNeeded", Boolean.valueOf(
-                    session != null && suiteId.equals(activeSuiteId)));
+            json.put("closedGame", Boolean.valueOf(closedGame));
             return Json.write(json);
         } catch (IOException e) {
             return error(e.getMessage());

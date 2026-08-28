@@ -2338,3 +2338,47 @@ Vài chỗ cố ý:
   `HttpTransport`, `SocketTransport`, `RealSockets`.
 
 Tổng cộng khoảng 2.600 dòng ít đi, và bộ kiểm vẫn xanh: 37 bộ, 1503 phép kiểm.
+
+## Giai đoạn 58 — chọn vật phẩm rồi mới gõ số lượng
+
+Bảng vật phẩm có ba bước: chọn một thứ, gõ số lượng, gửi. Hai ứng dụng điện
+thoại làm đúng như vậy từ đầu — nhưng **ảnh xem trước thì không kể chuyện đó**:
+nó vẽ thẻ "GỬI VÀO GAME" với một cái tên gõ cứng và một danh sách không hàng
+nào được chọn, nên nhìn vào thì tưởng công cụ bắt gõ số lượng trước khi biết gõ
+cho cái gì. Ảnh chụp là thứ người ta nhìn để đánh giá, nên nó phải kể đúng.
+
+Giờ ảnh vẽ đủ ba bước: hàng đang chọn có nền riêng, tên đổi màu và một dấu
+tích; thẻ gửi lấy tên từ chính vật phẩm ấy; ô số lượng để trống kèm dòng
+"nhiều nhất N". Chưa chọn gì thì thẻ nói "Chọn một vật phẩm ở trên đã."
+
+**Và một lỗi thật lộ ra khi đi hỏi cho kỹ: sửa phần lưu trong lúc game đang
+chạy thì số vừa gửi biến mất, không một lời nào.** Game đang chạy giữ phần lưu
+trong bộ nhớ của nó và ghi đè cả tệp khi thoát, nên ghi thẳng xuống đĩa lúc ấy
+là ghi vào chỗ sắp bị xoá. Cả ba đường ghi — `sendItem`, `setSaveValue`,
+`setAllSaveValues` — đều chỉ trả về một lá cờ `restartNeeded`, tức là **kể lại
+chuyện đã hỏng thay vì không để nó hỏng**.
+
+Giờ cả ba đóng game lại trước khi ghi, có lưu trạng thái nên mở ra là chơi tiếp
+đúng chỗ cũ, và nói ra là đã phải đóng (`closedGame`). Phép kiểm mở game rồi
+gửi mà **không** đóng, rồi mở lại đọc số — trước khi sửa thì phép kiểm này
+hỏng.
+
+Vá luôn mấy chỗ hai ứng dụng lệch nhau:
+
+- **Android: thẻ gửi còn treo khi vật phẩm đang chọn bị ô tìm kiếm lọc mất** —
+  cổng chỉ hỏi "đã chọn gì chưa", nên gõ tìm là ra một thẻ không tên mà vẫn gửi
+  được vào thứ không nhìn thấy. Giờ tra ra vật phẩm trước rồi mới mở thẻ.
+- **Android: nút "Gửi" là một dòng chữ có thể bấm**, không phải nút thật; và
+  cái `Spacer` giữa ô số lượng với nút đặt sai trục nên không tạo khoảng cách
+  nào. Gõ số lượng rỗng rồi bấm thì không có gì xảy ra, không một chữ nào.
+- **iOS: ô số lượng không lọc chữ** — bàn phím số chỉ là gợi ý, bàn phím ngoài
+  và một cú dán vẫn đưa chữ vào được.
+- **Cả hai: `note` dùng chung cho luồng gửi lẫn luồng tìm**, nên kết quả của
+  việc này xoá kết quả của việc kia. Tách thành hai.
+- **iOS: đổi game mà không xoá vật phẩm đang chọn, số lượng đang gõ dở và lời
+  nhắn cũ.**
+- **Cả hai: kiểm mức tối đa ngay tại chỗ**, để câu từ chối nói được "nhiều
+  nhất N" mà không phải đi một vòng xuống lõi.
+
+Bộ kiểm chữ tràn khung của giai đoạn 52 bắt được ngay dòng chú thích mới quá
+dài dưới ô số lượng, trước khi kịp nhìn ảnh.
