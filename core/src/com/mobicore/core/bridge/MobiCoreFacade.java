@@ -46,6 +46,7 @@ import com.mobicore.core.emu.SystemProperties;
 import com.mobicore.core.tools.CrashReport;
 import com.mobicore.core.tools.JadEditor;
 import com.mobicore.core.tools.RmsEditor;
+import com.mobicore.core.tools.SaveScanner;
 import com.mobicore.core.storage.Json;
 import com.mobicore.core.storage.LocalVfs;
 import com.mobicore.core.storage.StorageLayout;
@@ -2873,6 +2874,165 @@ public final class MobiCoreFacade {
         } catch (IOException broken) {
             return new byte[0];
         }
+    }
+
+    // ------------------------------------------- tìm vàng, ngọc trong phần lưu
+
+    /** Kết quả lần tìm gần nhất, để lần tìm sau lọc tiếp trên nó. */
+    private List<SaveScanner.Hit> saveHits = new ArrayList<SaveScanner.Hit>();
+    private String saveHitsSuite = "";
+
+    /**
+     * Tìm một con số trong phần lưu của game.
+     *
+     * <p>Người chơi nhìn màn hình game, thấy "8630 vàng", rồi gõ 8630 vào
+     * đây. Lần đầu thường ra vài chục chỗ trùng; chơi cho số vàng đổi đi rồi
+     * gọi {@link #narrowSave} với con số mới thì gần như chỉ còn một.</p>
+     */
+    public String scanSave(String suiteId, long value) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            saveHits = SaveScanner.find(library.records(suiteId), value);
+            saveHitsSuite = suiteId;
+            return hitsJson("Tìm được " + saveHits.size() + " chỗ mang số này");
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Lọc tiếp: giữ lại những chỗ nay mang con số mới.
+     *
+     * <p>Đây mới là chỗ tìm ra cái đúng. Một con số trùng ở lần đầu có thể là
+     * điểm cao, là toạ độ, là một mẩu của con số khác; chỉ ô thật sự giữ số
+     * vàng mới đổi theo đúng cách người chơi vừa thấy.</p>
+     */
+    public String narrowSave(String suiteId, long value) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        if (!suiteId.equals(saveHitsSuite) || saveHits.isEmpty()) {
+            return scanSave(suiteId, value);
+        }
+        try {
+            saveHits = SaveScanner.narrow(library.records(suiteId), saveHits, value);
+            return hitsJson(saveHits.size() == 1
+                    ? "Còn đúng một chỗ — chính là nó"
+                    : "Còn " + saveHits.size() + " chỗ");
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Sửa con số ở một chỗ đã tìm được.
+     *
+     * <p>Sao lưu trước khi ghi: sửa phần lưu là sửa thứ không dựng lại được,
+     * và một con số đặt nhầm chỗ có thể làm game không mở lại được nữa.</p>
+     *
+     * @param index thứ tự trong danh sách vừa tìm
+     */
+    public String setSaveValue(String suiteId, int index, long value) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        if (!suiteId.equals(saveHitsSuite) || index < 0 || index >= saveHits.size()) {
+            return error("Hãy tìm lại: danh sách đã cũ");
+        }
+        SaveScanner.Hit hit = saveHits.get(index);
+        if (!SaveScanner.fits(value, hit.encoding())) {
+            return error("Số " + value + " không vừa ô " + hit.encodingName()
+                    + " — game sẽ đọc ra một con số khác");
+        }
+        try {
+            library.backup(suiteId);
+            boolean written = SaveScanner.write(library.records(suiteId), hit, value, now());
+            if (!written) {
+                return error("Không ghi được vào phần lưu");
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("value", Long.valueOf(value));
+            json.put("hit", hit.toJson());
+            // Game đang chạy giữ phần lưu trong bộ nhớ của nó; sửa dưới chân
+            // nó thì nó ghi đè lại lúc thoát.
+            json.put("restartNeeded", Boolean.valueOf(
+                    session != null && suiteId.equals(activeSuiteId)));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Đặt cùng một con số vào mọi chỗ còn lại.
+     *
+     * <p>Lọc hai lần thường còn một, nhưng đôi khi còn hai hay ba — vì game
+     * giữ số vàng ở nhiều chỗ thật: một bản nhị phân để đọc nhanh, một bản
+     * viết thành chữ trong dòng lưu tên. Sửa một chỗ rồi để những chỗ kia
+     * mang số cũ là để lại một phần lưu tự mâu thuẫn, và game thường tin chỗ
+     * mình không sửa.</p>
+     */
+    public String setAllSaveValues(String suiteId, long value) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        if (!suiteId.equals(saveHitsSuite) || saveHits.isEmpty()) {
+            return error("Hãy tìm trước đã");
+        }
+        try {
+            library.backup(suiteId);
+            RecordStoreManager records = library.records(suiteId);
+            int written = 0;
+            int skipped = 0;
+            for (int i = 0; i < saveHits.size(); i++) {
+                SaveScanner.Hit hit = saveHits.get(i);
+                if (!SaveScanner.fits(value, hit.encoding())) {
+                    skipped++;
+                    continue;
+                }
+                if (SaveScanner.write(records, hit, value, now())) {
+                    written++;
+                }
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.valueOf(written > 0));
+            json.put("written", Integer.valueOf(written));
+            json.put("skipped", Integer.valueOf(skipped));
+            json.put("value", Long.valueOf(value));
+            if (written == 0) {
+                json.put("error", "Số " + value + " không vừa chỗ nào trong số đã tìm");
+            }
+            json.put("restartNeeded", Boolean.valueOf(
+                    session != null && suiteId.equals(activeSuiteId)));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Bỏ danh sách đang có và bắt đầu lại từ đầu. */
+    public String clearSaveScan() {
+        saveHits = new ArrayList<SaveScanner.Hit>();
+        saveHitsSuite = "";
+        return ok("cleared", "true");
+    }
+
+    private String hitsJson(String summary) {
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        json.put("summary", summary);
+        json.put("count", Integer.valueOf(saveHits.size()));
+        // Danh sách dài thì không ai đọc hết: bày ra một nắm, và nói còn bao
+        // nhiêu nữa.
+        List<SaveScanner.Hit> shown = saveHits.size() > 50
+                ? saveHits.subList(0, 50)
+                : saveHits;
+        json.put("hits", SaveScanner.toJson(shown));
+        json.put("done", Boolean.valueOf(saveHits.size() == 1));
+        return Json.write(json);
     }
 
     // ---------------------------------------------------------- JAD and RMS

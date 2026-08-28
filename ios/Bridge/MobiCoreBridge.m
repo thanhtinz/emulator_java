@@ -451,6 +451,22 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)scanSave:(int64_t)value inSuite:(NSString *)suiteId {
+    return [_facade scanSaveWithNSString:suiteId withLong:(jlong) value];
+}
+
+- (NSString *)narrowSave:(int64_t)value inSuite:(NSString *)suiteId {
+    return [_facade narrowSaveWithNSString:suiteId withLong:(jlong) value];
+}
+
+- (NSString *)setSaveValue:(int64_t)value inSuite:(NSString *)suiteId {
+    return [_facade setAllSaveValuesWithNSString:suiteId withLong:(jlong) value];
+}
+
+- (NSString *)clearSaveScan {
+    return [_facade clearSaveScan];
+}
+
 - (NSString *)resourcesJSONForSuite:(NSString *)suiteId {
     return [_facade resourcesJsonWithNSString:suiteId];
 }

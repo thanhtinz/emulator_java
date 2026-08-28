@@ -339,6 +339,18 @@ public final class LangClasses {
                         return vm.wrapArray("B", bytes, bytes.length);
                     }
                 })
+                .method("getBytes", "(Ljava/lang/String;)[B", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        // CLDC có bản nhận tên bảng mã, và game dùng nó thật:
+                        // ghi tên người chơi bằng "UTF-8" là chuyện thường.
+                        // Bảng mã lạ thì lùi về UTF-8 chứ không ném ra, vì
+                        // ném ở đây làm chết một câu lưu tên nhân vật.
+                        String charset = Rt.s(vm, args, 0);
+                        byte[] bytes = encode(text(self),
+                                charset == null || charset.length() == 0 ? "UTF-8" : charset);
+                        return vm.wrapArray("B", bytes, bytes.length);
+                    }
+                })
                 .method("getChars", "(II[CI)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         text(self).getChars(Rt.i(args, 0), Rt.i(args, 1), Rt.array(args, 2).chars(), Rt.i(args, 3));

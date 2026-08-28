@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,7 +42,7 @@ import com.mobicore.core.library.LibraryEntry
 fun ToolsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
     var selected by remember(games) { mutableStateOf(games.firstOrNull()?.suiteId()) }
     var tab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Tài nguyên", "Bộ cài", "MIDlet", "Lớp Java")
+    val tabs = listOf("Vật phẩm", "Tệp game", "Bộ cài", "Lớp Java")
 
     if (games.isEmpty()) {
         Text(
@@ -62,12 +63,142 @@ fun ToolsScreen(library: LibraryRepository, games: List<LibraryEntry>) {
         val suiteId = selected
         if (suiteId != null) {
             when (tab) {
-                0 -> ResourcesTab(library, suiteId)
-                1 -> SuiteTab(library, suiteId)
-                2 -> MidletsTab(library, suiteId)
+                0 -> TreasureTab(library, suiteId)
+                1 -> ResourcesTab(library, suiteId)
+                2 -> SuiteTab(library, suiteId)
                 else -> ClassesTab(library, suiteId)
             }
         }
+    }
+}
+
+/**
+ * Tìm số vàng, số ngọc trong phần lưu — rồi đặt số mới.
+ *
+ * Phần lưu của game là một dãy byte không nhãn: không chỗ nào ghi "đây là số
+ * vàng". Nhưng người chơi thì biết mình đang có bao nhiêu, nên cách làm là đi
+ * ngược: gõ con số đang thấy, chơi cho nó đổi, gõ lại — chỗ nào đổi theo đúng
+ * như vậy mới là chỗ thật.
+ */
+@Composable
+private fun TreasureTab(library: LibraryRepository, suiteId: String) {
+    var typed by remember(suiteId) { mutableStateOf("") }
+    var hits by remember(suiteId) { mutableStateOf(library.clearedHits()) }
+    var round by remember(suiteId) { mutableIntStateOf(0) }
+    var note by remember(suiteId) { mutableStateOf("") }
+
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item { Spacer(Modifier.height(4.dp)) }
+        item {
+            SectionCard(
+                title = if (round == 0) "SỐ ĐANG THẤY TRONG GAME" else "SỐ MỚI SAU KHI CHƠI TIẾP",
+                trailing = if (round == 0) null else "${hits.size} chỗ",
+            ) {
+                Column {
+                    Text(
+                        if (round == 0) {
+                            "Mở game, nhìn số vàng đang có rồi gõ vào đây."
+                        } else {
+                            "Chơi cho số vàng đổi đi, rồi gõ số mới. Mỗi lần như vậy lọc " +
+                                "bớt những chỗ chỉ tình cờ trùng số."
+                        },
+                        color = MobiColors.TextDim,
+                        fontSize = 11.sp,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = typed,
+                        onValueChange = { text -> typed = text.filter { it.isDigit() }.take(9) },
+                        singleLine = true,
+                        label = { Text("Con số") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            if (round == 0) "Tìm" else "Lọc tiếp",
+                            color = MobiColors.Accent,
+                            fontSize = 14.sp,
+                            modifier = Modifier.clickable {
+                                val value = typed.toLongOrNull() ?: return@clickable
+                                hits = if (round == 0) {
+                                    library.scanSave(suiteId, value)
+                                } else {
+                                    library.narrowSave(suiteId, value)
+                                }
+                                round++
+                                note = if (hits.size == 1) {
+                                    "Còn đúng một chỗ — chính là nó."
+                                } else {
+                                    "Còn ${hits.size} chỗ. Chơi tiếp cho số đổi rồi lọc nữa."
+                                }
+                                typed = ""
+                            },
+                        )
+                        if (round > 0) {
+                            Text(
+                                "Tìm lại từ đầu",
+                                color = MobiColors.TextDim,
+                                fontSize = 14.sp,
+                                modifier = Modifier.clickable {
+                                    library.clearSaveScan()
+                                    hits = library.clearedHits()
+                                    round = 0
+                                    note = ""
+                                    typed = ""
+                                },
+                            )
+                        }
+                    }
+                    if (note.isNotEmpty()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(note, color = MobiColors.TextDim, fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+
+        if (hits.isNotEmpty()) {
+            item {
+                SectionCard(title = "CHỖ GIỮ SỐ NÀY", trailing = "${hits.size}") {
+                    Column {
+                        hits.take(20).forEach { hit ->
+                            FieldRow(
+                                "${hit.store()} · bản ghi ${hit.recordId()}",
+                                "${hit.value()}  ·  ${hit.encodingName()}",
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        // Đặt vào mọi chỗ còn lại: game hay giữ số vàng ở hai
+                        // nơi — một bản nhị phân, một bản viết thành chữ — và
+                        // sửa mỗi một nơi là để lại phần lưu tự mâu thuẫn.
+                        Text(
+                            "Đặt số mới vào tất cả",
+                            color = MobiColors.Accent,
+                            fontSize = 14.sp,
+                            modifier = Modifier.clickable {
+                                val value = typed.toLongOrNull() ?: return@clickable
+                                val written = library.setSaveValue(suiteId, value)
+                                note = if (written > 0) {
+                                    "Đã đặt $value vào $written chỗ. Mở lại game để thấy."
+                                } else {
+                                    "Số này không vừa ô nào trong số đã tìm."
+                                }
+                            },
+                        )
+                        Text(
+                            "Gõ số mới vào ô trên rồi bấm. Phần lưu được sao lưu trước khi sửa.",
+                            color = MobiColors.TextDim,
+                            fontSize = 11.sp,
+                        )
+                    }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
@@ -180,18 +311,6 @@ private fun SuiteTab(library: LibraryRepository, suiteId: String) {
                 }
             }
         }
-        item { Spacer(Modifier.height(24.dp)) }
-    }
-}
-
-@Composable
-private fun MidletsTab(library: LibraryRepository, suiteId: String) {
-    val suite = remember(suiteId) { library.load(suiteId) }
-    LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item { Spacer(Modifier.height(4.dp)) }
         item {
             SectionCard(title = "CÁC MIDLET", trailing = "${suite.info().midlets().size}") {
                 Column {

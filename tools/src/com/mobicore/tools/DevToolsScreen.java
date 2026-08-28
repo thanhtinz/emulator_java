@@ -1,6 +1,9 @@
 package com.mobicore.tools;
 
 import com.mobicore.core.emu.EmulatorSession;
+import com.mobicore.tools.ui.Icons;
+import com.mobicore.core.storage.Json;
+import com.mobicore.core.bridge.MobiCoreFacade;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryEntry;
@@ -34,16 +37,17 @@ import java.util.Map;
 public final class DevToolsScreen {
 
     /** Thẻ nào đang mở. */
-    public static final int TAB_RESOURCES = 0;
-    public static final int TAB_NETWORK = 1;
-    public static final int TAB_MODS = 2;
-    public static final int TAB_DATA = 3;
+    public static final int TAB_TREASURE = 0;
+    public static final int TAB_RESOURCES = 1;
+    public static final int TAB_NETWORK = 2;
+    public static final int TAB_MODS = 3;
+    public static final int TAB_DATA = 4;
 
     private final String fixtureDir;
     private final int tab;
 
     public DevToolsScreen(String fixtureDir) {
-        this(fixtureDir, TAB_RESOURCES);
+        this(fixtureDir, TAB_TREASURE);
     }
 
     public DevToolsScreen(String fixtureDir, int tab) {
@@ -61,21 +65,93 @@ public final class DevToolsScreen {
         int top = Ui.APP_BAR + 1;
         int height = ui.medium().height() + 22;
         int each = width / labels.length;
+        // Nhãn phải vừa ô của nó: năm thẻ trên một màn hình hẹp thì cỡ chữ
+        // thường làm hai nhãn cạnh nhau dính vào nhau.
+        com.mobicore.tools.ui.UiFont font = ui.medium();
+        for (int i = 0; i < labels.length; i++) {
+            if (font.stringWidth(labels[i]) + 10 > each) {
+                font = ui.small();
+                break;
+            }
+        }
         for (int i = 0; i < labels.length; i++) {
             int centre = Ui.PAD + each * i + each / 2;
             boolean active = i == chosen;
-            ui.textCenter(ui.medium(), labels[i], centre,
-                    top + (height - ui.medium().height()) / 2,
+            String label = ui.ellipsize(font, labels[i], each - 6);
+            ui.textCenter(font, label, centre, top + (height - font.height()) / 2,
                     active ? Theme.ACCENT : Theme.TEXT_DIM);
             if (active) {
                 frame.setColor(Theme.ACCENT);
-                int barWidth = ui.medium().stringWidth(labels[i]) + 12;
+                int barWidth = font.stringWidth(label) + 12;
                 frame.fillRect(centre - barWidth / 2, top + height - 3, barWidth, 3);
             }
         }
         frame.setColor(Theme.BORDER);
         frame.fillRect(0, top + height, frame.width(), 1);
         return top + height;
+    }
+
+    /**
+     * Tìm số vàng trong phần lưu — hai lần tìm, như người ta vẫn làm.
+     *
+     * <p>Con số trong ảnh là kết quả thật: một game mẫu giữ ví tiền trong RMS
+     * được mở ra, tiêu bớt tiền, rồi tìm hai lần qua đúng cầu nối mà điện
+     * thoại gọi.</p>
+     */
+    private void drawTreasure(Ui ui, int margin, int y, int width, int fieldX, int fieldWidth)
+            throws Exception {
+        MobiCoreFacade facade = new MobiCoreFacade(new MemoryVfs());
+        facade.open("/data");
+        String suiteId = Json.string(Json.child(Json.readObject(
+                facade.importSuite(SampleSuite.jar(fixtureDir), SampleSuite.jad())), "game"),
+                "suiteId", "");
+        facade.startGame(suiteId, "demo.PiggyBank");
+        facade.session().vm().callVirtual(facade.session().context().midlet(),
+                "newGame", "(I)V", Integer.valueOf(8630));
+        facade.stopGame();
+        Map<String, Object> first = Json.readObject(facade.scanSave(suiteId, 8630));
+
+        facade.startGame(suiteId, "demo.PiggyBank");
+        facade.session().vm().callVirtual(facade.session().context().midlet(),
+                "spend", "(I)V", Integer.valueOf(130));
+        facade.stopGame();
+        Map<String, Object> second = Json.readObject(facade.narrowSave(suiteId, 8500));
+
+        // Hai bước, và bước nào cũng nói ra nó vừa làm gì.
+        int stepHeight = 12 + ui.small().height() + 8 + Ui.ROW * 2 + 6;
+        int row = ui.section(margin, y, width, stepHeight, "TÌM SỐ VÀNG",
+                Json.integer(second, "count", 0) + " chỗ còn lại");
+        ui.field("Lần 1 — số đang thấy", "8630  ·  "
+                + Json.integer(first, "count", 0) + " chỗ trùng", fieldX, row, fieldWidth);
+        ui.field("Lần 2 — sau khi tiêu", "8500  ·  "
+                + Json.integer(second, "count", 0) + " chỗ trùng", fieldX, row + Ui.ROW,
+                fieldWidth);
+        y += stepHeight + 14;
+
+        List<Object> hits = Json.array(second, "hits");
+        int rowHeight = ui.mediumBold().height() + ui.small().height() + 10;
+        int height = 12 + ui.small().height() + 8 + Math.max(1, hits.size()) * rowHeight + 6;
+        row = ui.section(margin, y, width, height, "CHỖ GIỮ SỐ VÀNG", "sửa hết");
+        for (int i = 0; i < hits.size(); i++) {
+            Map<String, Object> hit = (Map<String, Object>) hits.get(i);
+            String where = Json.string(hit, "store", "") + "  ·  bản ghi "
+                    + Json.integer(hit, "recordId", 0);
+            ui.text(ui.mediumBold(), where, fieldX, row, Theme.TEXT);
+            ui.textRight(ui.mediumBold(), String.valueOf(Json.longValue(hit, "value", 0L)),
+                    fieldX + fieldWidth, row, Theme.ACCENT);
+            ui.text(ui.small(), "byte thứ " + Json.integer(hit, "offset", 0) + "  ·  "
+                            + Json.string(hit, "encodingName", ""),
+                    fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
+            row += rowHeight;
+        }
+        y += height + 16;
+
+        int buttonWidth = (width - 12) / 2;
+        ui.button(margin, y, buttonWidth, "Tìm lại", false);
+        ui.button(margin + buttonWidth + 12, y, buttonWidth, "Đặt số mới", true, Icons.EDIT);
+        y += 60;
+
+        ui.text(ui.small(), "Phần lưu được sao lưu trước khi sửa.", fieldX, y, Theme.TEXT_DIM);
     }
 
     /**
@@ -244,9 +320,15 @@ public final class DevToolsScreen {
         // Chia thẻ chứ không xếp thành một trang dài: mấy phần này trả lời
         // những câu hỏi khác nhau, và người đang tìm một tấm ảnh để thay
         // không việc gì phải cuộn qua bảng theo dõi mạng.
-        String[] labels = {"Tài nguyên", "Mạng", "Mod", "Dữ liệu"};
+        String[] labels = {"Vật phẩm", "Tệp game", "Mạng", "Mod", "Dữ liệu"};
         int y = tabStrip(ui, labels, tab, width) + 14;
 
+        if (tab == TAB_TREASURE) {
+            drawTreasure(ui, margin, y, width, fieldX, fieldWidth);
+            Framebuffer page = Preview.fit(frame, Ui.TAB_BAR);
+            new Ui(page).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
+            return page;
+        }
         if (tab == TAB_RESOURCES) {
             drawResources(ui, library, entry, mods, margin, y, width, fieldX, fieldWidth);
             Framebuffer only = Preview.fit(frame, Ui.TAB_BAR);

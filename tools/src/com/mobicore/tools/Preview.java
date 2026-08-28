@@ -48,6 +48,8 @@ public final class Preview {
         write(vfs, outDir, "07-dev-tools.png", new DevToolsScreen(fixtures).render());
         write(vfs, outDir, "31-tools-network.png",
                 new DevToolsScreen(fixtures, DevToolsScreen.TAB_NETWORK).render());
+        write(vfs, outDir, "32-tools-files.png",
+                new DevToolsScreen(fixtures, DevToolsScreen.TAB_RESOURCES).render());
         write(vfs, outDir, "08-list.png", new MenuScreen(fixtures, "list").render());
         write(vfs, outDir, "09-form.png", new MenuScreen(fixtures, "form").render());
         write(vfs, outDir, "10-options-menu.png", new MenuScreen(fixtures, "menu").render());

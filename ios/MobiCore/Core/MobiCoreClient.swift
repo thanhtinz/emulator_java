@@ -628,6 +628,29 @@ final class MobiCoreClient: ObservableObject {
         bridge.resource(named: path, inSuite: suiteId)
     }
 
+    // MARK: - Tìm vàng, ngọc trong phần lưu
+
+    /// Lần tìm đầu: con số người chơi đang thấy trên màn hình game.
+    func scanSave(_ value: Int64, in suiteId: String) -> SaveScan? {
+        decode(bridge.scanSave(value, inSuite: suiteId))
+    }
+
+    /// Lần tìm sau: chỗ nào đổi theo đúng như người chơi vừa thấy.
+    func narrowSave(_ value: Int64, in suiteId: String) -> SaveScan? {
+        decode(bridge.narrowSave(value, inSuite: suiteId))
+    }
+
+    /// Đặt con số mới vào mọi chỗ còn lại; phần lưu được sao lưu trước.
+    func setSaveValue(_ value: Int64, in suiteId: String) -> ActionResult? {
+        let result: ActionResult? = decode(bridge.setSaveValue(value, inSuite: suiteId))
+        report(result)
+        return result
+    }
+
+    func clearSaveScan() {
+        _ = bridge.clearSaveScan()
+    }
+
     // MARK: - Kho tài nguyên
 
     /// Mọi thứ nằm trong tệp game, kèm dấu những gì đã bị thay.

@@ -193,6 +193,8 @@ struct ActionResult: Codable {
     let width: Int?
     let height: Int?
     let midlet: String?
+    /// Sửa được mấy chỗ, khi đặt số mới vào phần lưu.
+    let written: Int?
 }
 
 extension Array {
@@ -250,6 +252,25 @@ struct ContinueCard: Codable {
     let action: String?
     let lastPlayed: Int64?
     let playedName: String?
+}
+
+/// Kết quả một lần tìm số vàng trong phần lưu.
+struct SaveScan: Codable {
+    let summary: String
+    let count: Int
+    let hits: [SaveHit]
+    /// True khi chỉ còn đúng một chỗ — không cần lọc nữa.
+    let done: Bool
+}
+
+struct SaveHit: Codable, Identifiable {
+    let store: String
+    let recordId: Int
+    let offset: Int
+    let encodingName: String
+    let value: Int64
+
+    var id: String { "\(store)/\(recordId)/\(offset)/\(encodingName)" }
 }
 
 /// Mọi thứ nằm trong tệp game, để xem và để thay.

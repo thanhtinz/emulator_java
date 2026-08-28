@@ -12,6 +12,11 @@ struct ToolsView: View {
     @State private var tab = 0
     /// Tệp đang chờ người chơi chọn thứ thay vào.
     @State private var replacing: GameResource?
+    /// Vòng tìm số vàng: lần đầu hỏi số đang thấy, lần sau hỏi số mới.
+    @State private var scan: SaveScan?
+    @State private var round = 0
+    @State private var typed = ""
+    @State private var note = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,9 +44,9 @@ struct ToolsView: View {
                 // trả lời bốn câu hỏi khác nhau, và người đang tìm một tấm
                 // ảnh để thay không việc gì phải cuộn qua danh sách lớp Java.
                 Picker("", selection: $tab) {
-                    Text("Tài nguyên").tag(0)
-                    Text("Bộ cài").tag(1)
-                    Text("MIDlet").tag(2)
+                    Text("Vật phẩm").tag(0)
+                    Text("Tệp game").tag(1)
+                    Text("Bộ cài").tag(2)
                     Text("Lớp Java").tag(3)
                 }
                 .pickerStyle(.segmented)
@@ -51,9 +56,9 @@ struct ToolsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
                         switch tab {
-                        case 0: resourcesTab
-                        case 1: suiteTab
-                        case 2: midletsTab
+                        case 0: treasureTab
+                        case 1: resourcesTab
+                        case 2: suiteTab
                         default: classesTab
                         }
                     }
@@ -89,6 +94,94 @@ struct ToolsView: View {
         selected = suiteId
         inspection = client.inspect(suiteId)
         box = client.resources(suiteId)
+    }
+
+    /// Tìm số vàng trong phần lưu — hai lần tìm, như người ta vẫn làm.
+    ///
+    /// Phần lưu là một dãy byte không nhãn: không chỗ nào ghi "đây là số
+    /// vàng". Nhưng người chơi biết mình đang có bao nhiêu, nên đi ngược: gõ
+    /// con số đang thấy, chơi cho nó đổi, gõ lại — chỗ nào đổi theo đúng như
+    /// vậy mới là chỗ thật.
+    private var treasureTab: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionCard(title: round == 0 ? "SỐ ĐANG THẤY TRONG GAME"
+                                          : "SỐ MỚI SAU KHI CHƠI TIẾP",
+                        trailing: scan.map { "\($0.count) chỗ" }) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(round == 0
+                         ? "Mở game, nhìn số vàng đang có rồi gõ vào đây."
+                         : "Chơi cho số vàng đổi đi, rồi gõ số mới. Mỗi lần như vậy lọc bớt "
+                           + "những chỗ chỉ tình cờ trùng số.")
+                        .font(.caption2)
+                        .foregroundStyle(Palette.textDim)
+                    TextField("Con số", text: $typed)
+                        .keyboardType(.numberPad)
+                        .textFieldStyle(.roundedBorder)
+                    HStack(spacing: 16) {
+                        Button(round == 0 ? "Tìm" : "Lọc tiếp") { search() }
+                            .font(.footnote)
+                            .tint(Palette.accent)
+                        if round > 0 {
+                            Button("Tìm lại từ đầu") {
+                                client.clearSaveScan()
+                                scan = nil
+                                round = 0
+                                typed = ""
+                                note = ""
+                            }
+                            .font(.footnote)
+                            .tint(Palette.textDim)
+                        }
+                    }
+                    if !note.isEmpty {
+                        Text(note).font(.caption2).foregroundStyle(Palette.textDim)
+                    }
+                }
+            }
+
+            if let scan, !scan.hits.isEmpty {
+                SectionCard(title: "CHỖ GIỮ SỐ NÀY", trailing: "\(scan.count)") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(scan.hits.prefix(20)) { hit in
+                            FieldRow(label: "\(hit.store) · bản ghi \(hit.recordId)",
+                                     value: "\(hit.value)  ·  \(hit.encodingName)")
+                        }
+                        // Đặt vào mọi chỗ còn lại: game hay giữ số vàng ở hai
+                        // nơi, và sửa mỗi một nơi là để lại phần lưu tự mâu
+                        // thuẫn.
+                        Button("Đặt số mới vào tất cả") { apply() }
+                            .font(.footnote)
+                            .tint(Palette.accent)
+                        Text("Gõ số mới vào ô trên rồi bấm. Phần lưu được sao lưu trước khi sửa.")
+                            .font(.caption2)
+                            .foregroundStyle(Palette.textDim)
+                    }
+                }
+            }
+        }
+    }
+
+    private func search() {
+        guard let suiteId = selected, let value = Int64(typed) else { return }
+        scan = round == 0
+            ? client.scanSave(value, in: suiteId)
+            : client.narrowSave(value, in: suiteId)
+        round += 1
+        note = scan?.summary ?? ""
+        typed = ""
+    }
+
+    private func apply() {
+        guard let suiteId = selected, let value = Int64(typed) else {
+            note = "Gõ con số mới vào ô trên trước."
+            return
+        }
+        let result = client.setSaveValue(value, in: suiteId)
+        if result?.ok == true {
+            note = "Đã đặt \(value) vào \(result?.written ?? 0) chỗ. Mở lại game để thấy."
+        } else {
+            note = result?.error ?? "Không đặt được số này."
+        }
     }
 
     /// Kho tài nguyên: mọi thứ trong tệp game, và nút để thay.
@@ -152,13 +245,7 @@ struct ToolsView: View {
                         }
                     }
                 }
-            }
-        }
-    }
 
-    private var midletsTab: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if let inspection {
                 SectionCard(title: "CÁC MIDLET", trailing: "\(inspection.midlets.count)") {
                     VStack(spacing: 6) {
                         ForEach(inspection.midlets) { midlet in

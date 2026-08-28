@@ -182,6 +182,16 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)inspectJSONForSuite:(NSString *)suiteId;
 - (nullable NSData *)resourceNamed:(NSString *)path inSuite:(NSString *)suiteId;
 
+#pragma mark - Tìm vàng, ngọc trong phần lưu
+
+/// Lần tìm đầu: mọi chỗ trong phần lưu đang mang con số người chơi thấy.
+- (NSString *)scanSave:(int64_t)value inSuite:(NSString *)suiteId;
+/// Lần tìm sau: giữ lại những chỗ nay mang con số mới.
+- (NSString *)narrowSave:(int64_t)value inSuite:(NSString *)suiteId;
+/// Đặt cùng một con số vào mọi chỗ còn lại, sau khi sao lưu.
+- (NSString *)setSaveValue:(int64_t)value inSuite:(NSString *)suiteId;
+- (NSString *)clearSaveScan;
+
 #pragma mark - Kho tài nguyên
 
 /// Mọi thứ nằm trong tệp game: loại, định dạng, cỡ, và đã bị thay chưa.

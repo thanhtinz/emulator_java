@@ -8,6 +8,7 @@ import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.library.PresetStore
 import com.mobicore.core.mod.ModManager
 import com.mobicore.core.mod.ResourceCatalog
+import com.mobicore.core.tools.SaveScanner
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
 import com.mobicore.core.library.CollectionStore
@@ -98,6 +99,61 @@ class LibraryRepository(filesDir: String) {
     }
 
     fun load(suiteId: String): SuiteLoader = library.load(suiteId)
+
+    // ------------------------------------------- tìm vàng, ngọc trong phần lưu
+
+    /** Kết quả lần tìm gần nhất, để lần sau lọc tiếp trên nó. */
+    private var saveHits: List<SaveScanner.Hit> = emptyList()
+
+    /**
+     * Lần tìm đầu: mọi chỗ trong phần lưu đang mang con số người chơi thấy.
+     */
+    fun scanSave(suiteId: String, value: Long): List<SaveScanner.Hit> {
+        saveHits = SaveScanner.find(library.records(suiteId), value)
+        return saveHits
+    }
+
+    /**
+     * Lần tìm sau: giữ lại những chỗ nay mang con số mới.
+     *
+     * Đây mới là chỗ tìm ra cái đúng: một con số trùng ở lần đầu có thể là
+     * điểm, là toạ độ; chỉ ô thật sự giữ số vàng mới đổi theo.
+     */
+    fun narrowSave(suiteId: String, value: Long): List<SaveScanner.Hit> {
+        saveHits = if (saveHits.isEmpty()) {
+            SaveScanner.find(library.records(suiteId), value)
+        } else {
+            SaveScanner.narrow(library.records(suiteId), saveHits, value)
+        }
+        return saveHits
+    }
+
+    fun clearSaveScan() {
+        saveHits = emptyList()
+    }
+
+    /** Danh sách rỗng cùng kiểu, để màn hình dựng trạng thái ban đầu. */
+    fun clearedHits(): List<SaveScanner.Hit> = emptyList()
+
+    /**
+     * Đặt cùng một con số vào mọi chỗ còn lại, sau khi sao lưu.
+     *
+     * @return sửa được mấy chỗ
+     */
+    fun setSaveValue(suiteId: String, value: Long): Int {
+        if (saveHits.isEmpty()) return 0
+        library.backup(suiteId)
+        val records = library.records(suiteId)
+        var written = 0
+        saveHits.forEach { hit ->
+            if (SaveScanner.fits(value, hit.encoding()) &&
+                SaveScanner.write(records, hit, value, System.currentTimeMillis())
+            ) {
+                written++
+            }
+        }
+        return written
+    }
 
     /** Kho tài nguyên của một game, kèm những gì người chơi đã tự thay. */
     fun resources(suiteId: String): List<ResourceCatalog.Entry> =

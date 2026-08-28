@@ -1903,7 +1903,7 @@ còn `java.net` mới là chỗ ném ra lỗi không ai bắt được — kiể
 thì bài kiểm tra chẳng canh được gì. Và cả hai bài đều được thử ngược bằng
 cách bỏ chỗ vá đi: bỏ ra thì chúng đỏ.
 
-## Giai đoạn 48 — kho tài nguyên của game, và chia thẻ cho công cụ
+## Giai đoạn 48 — tệp trong game, và chia thẻ cho công cụ
 
 Một game J2ME là một cái hộp `.jar`, và đổi một tấm ảnh bên trong là việc người
 ta vẫn làm: Việt hoá chữ nằm trong ảnh, thay bộ hình nhân vật, đổi ảnh nền cho
@@ -1941,3 +1941,46 @@ Cầu nối: `resourcesJson`, `replaceResource`, `restoreResource`, `resourceIma
 Nhân tiện, `res/theme.mid` trong bộ cài mẫu từ nay là **một tệp MIDI thật** chứ
 không phải năm nghìn byte số 0 mang tên `.mid`: bảng tài nguyên đọc ruột tệp,
 nên một tệp giả thì nó gọi đúng tên — "dữ liệu".
+
+## Giai đoạn 49 — tìm và sửa số vàng trong game
+
+Game J2ME chơi một mình lưu mọi thứ vào RMS: **một dãy byte không có nhãn**.
+Không có tên trường, không có kiểu, mỗi game một cách ghi. Mở phần lưu ra nhìn
+thì chỉ thấy hex — không ai đoán được bốn byte nào là số vàng.
+
+Nhưng người chơi thì **biết** mình đang có bao nhiêu. Nên cách làm là đi ngược,
+đúng như cách người ta vẫn sửa game từ mấy chục năm nay:
+
+1. Nhìn màn hình game: đang có **8630 vàng**. Gõ 8630 vào. Máy tìm khắp phần
+   lưu và thường ra vài chục chỗ — 8630 có thể là số vàng, mà cũng có thể là
+   điểm cao, là toạ độ, là một mẩu của con số khác.
+2. **Chơi tiếp cho con số đổi đi**, còn 8500. Gõ 8500 vào. Máy chỉ giữ lại
+   những chỗ **đổi theo đúng như vậy**. Hai lần thường đủ.
+3. Đặt số mới. Phần lưu được **sao lưu trước khi ghi**.
+
+Vài chỗ cố ý:
+
+- **Không đoán kiểu ghi.** Game ghi số bằng đủ kiểu: bốn byte, hai byte, một
+  byte, đầu to hay đầu nhỏ, thậm chí viết thành chữ số trong một dòng như
+  `player=Tin;gold=8630;`. Chỗ này thử tất cả, và **nhớ kiểu nào khớp** để lúc
+  ghi còn ghi đúng kiểu ấy — ghi bốn byte đè lên một ô hai byte là làm hỏng
+  phần lưu.
+- **Số không vừa ô thì từ chối, không cắt cụt.** Nhét 70000 vào một ô hai byte
+  thì game đọc ra 4464 — tệ hơn là không sửa được.
+- **Đặt vào mọi chỗ còn lại.** Game hay giữ số vàng ở hai nơi thật: một bản
+  nhị phân để đọc nhanh, một bản viết thành chữ trong dòng lưu tên. Sửa mỗi
+  một nơi là để lại một phần lưu tự mâu thuẫn, và game thường tin chỗ mình
+  không sửa.
+- **Số viết thành chữ thì độ dài đổi theo giá trị**: "9" ngắn hơn "8630", nên
+  bản ghi được dựng lại chứ không ghi đè bừa vào giữa.
+
+Bản mẫu `demo.PiggyBank` là một game thật giữ ví tiền trong RMS, và nó có mồi
+nhử: số điểm bằng đúng số vàng lúc bắt đầu rồi đứng yên — đúng kiểu trùng số mà
+một lần tìm không phân biệt được. Bài kiểm tra chạy đủ vòng trên nó và chốt
+bằng câu hỏi duy nhất đáng hỏi: **game mở lại có đọc ra con số mới không**.
+
+Nhân tiện, máy ảo nay có `String.getBytes(String)` — bản CLDC nhận tên bảng mã.
+Game dùng nó thật (ghi tên người chơi bằng UTF-8), và thiếu nó thì game chết
+ngay ở câu lưu.
+
+Cầu nối: `scanSave`, `narrowSave`, `setAllSaveValues`, `clearSaveScan`.
