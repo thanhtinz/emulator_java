@@ -2128,3 +2128,50 @@ Vài chỗ cố ý:
 Phép kiểm nằm trong bộ test (`OverflowTest`) và chạy qua mọi màn hình xem
 trước, cả nền sáng lẫn nền tối. Màn hình thêm vào sau này được soi luôn, không
 ai phải nhớ khai báo thêm.
+
+## Giai đoạn 53 — vòng lặp trên luồng riêng của game
+
+Gần như game J2ME nào cũng có một hình dạng: Canvas mở một `Thread`, luồng ấy
+chạy tới khi được bảo dừng, và hai bên nói chuyện qua một cái khoá — bên này
+`wait`, bên kia `notify`. Máy ảo vẫn chạy được luồng thật từ đầu, nhưng đi soi
+kỹ từng thứ cái vòng lặp ấy cần thì hỏng bốn chỗ, và cả bốn đều hỏng lặng lẽ.
+
+**`currentThread()` dựng một đối tượng mới mỗi lần gọi.** Mọi câu hỏi về luồng
+đều trả lời sai mà không kêu tiếng nào: so sánh nào cũng không bằng, tên nào
+cũng rỗng. Giờ máy ảo giữ một bảng luồng, và `currentThread()` trả về đúng cái
+đối tượng game đã mở. Kèm theo là phần còn thiếu của CLDC 1.1: `Thread(String)`,
+`Thread(Runnable, String)`, `getName`, `setName`, `activeCount`, `toString` và
+ba mức ưu tiên — trước đây gọi `getName()` là game chết ngay tại dòng đó.
+
+**`wait()` tỉnh dậy vì cái khoá bận, không phải vì được báo.** Chỗ nằm đợi của
+`wait` dùng chung với chỗ giành khoá, nên hễ có luồng nào nhả khoá là bên đang
+đợi tỉnh dậy như thể vừa được báo. Đo thật: hai trăm lần chạm khoá làm bên đợi
+dậy **199 lần**, đáng lẽ một. Một vòng lặp game viết theo lối đợi-báo — tức là
+gần như mọi vòng lặp game — chạy loạn hết cả. Giờ mỗi đối tượng có một hàng đợi
+riêng cho `wait`, và người báo phải cầm hàng đợi ấy mới báo được, nên lời báo
+không lọt vào khe giữa hai việc.
+
+**Đồng hồ "người chơi đợi bao lâu" dùng chung cho mọi luồng.** Chỉ cần một
+luồng phụ gọi vào máy ảo là đồng hồ bị đặt lại, và luồng đang treo không bao
+giờ bị bắt — game treo vĩnh viễn, đúng cái mà giai đoạn 45 đã làm để tránh.
+Chỗ này hỏng đúng vào lúc nó cần nhất, vì game nào cũng có luồng phụ. Giờ mỗi
+luồng giữ sổ riêng: ngăn xếp, đồng hồ, số lệnh đã chạy. Câu báo cũng gọi tên
+luồng đang kẹt, vì cùng một hàm có thể vẫn đang chạy tốt ở luồng khác.
+
+**Luồng game chết thì không ai nghe thấy.** Lỗi trên luồng riêng chỉ được ghi
+vào nhật ký: màn hình đứng im, mọi nút vẫn bấm được, và không có gì xảy ra nữa.
+Giờ chỗ hỏng được giữ lại và khung hình kế tiếp nhặt lên, nên game chết trên
+luồng của nó cũng hiện ra màn hình "vì sao hỏng" như mọi lần chết khác.
+
+Nhìn thấy được: màn **Máy ảo** có bảng **LUỒNG CỦA GAME** — mỗi luồng một dòng,
+tên, còn sống hay không, và đang ở trong hàm nào. Cầu nối: `threadsJson`.
+
+Vài chỗ cố ý:
+
+- **Đếm luồng từ bảng của máy ảo, không từ nhóm luồng của máy chủ.** Máy chủ
+  chạy luồng riêng của nó — âm thanh, mạng — không phải phần của game, và một
+  game đang đếm thợ của mình không được thấy chúng.
+- **Đọc trộm ngăn xếp luồng khác thì chỉ đọc một phần tử**, và bỏ qua nếu vừa
+  lúc ấy nó đổi: đây là thứ để nhìn, chứ không phải thứ để dựa vào.
+- **Sổ của luồng đã tắt được gộp vào tổng rồi bỏ đi**, nên game mở rồi đóng
+  nhiều luồng không làm bảng đếm lệnh tụt xuống.

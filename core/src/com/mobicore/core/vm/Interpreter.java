@@ -15,31 +15,113 @@ import java.util.List;
 public final class Interpreter {
 
     private final Vm vm;
-    private final ThreadLocal<List<Frame>> stacks = new ThreadLocal<List<Frame>>() {
+
+    /**
+     * Sổ riêng của một luồng: ngăn xếp của nó, lúc lời gọi ngoài cùng bắt đầu,
+     * và số lệnh nó đã chạy.
+     *
+     * <p>Ba thứ này trước đây dùng chung cho mọi luồng, và điều đó làm hỏng
+     * đúng cái quan trọng nhất: game nào cũng chạy vòng lặp trên một luồng
+     * riêng, nên chỉ cần luồng phụ gọi vào máy ảo là đồng hồ "đợi bao lâu" bị
+     * đặt lại — luồng chính treo mãi mà không ai bắt được.</p>
+     */
+    private static final class Watch {
+        final java.lang.ref.WeakReference<Thread> owner =
+                new java.lang.ref.WeakReference<Thread>(Thread.currentThread());
+        final List<Frame> stack = new ArrayList<Frame>();
+        /** Giờ thật lúc lời gọi ngoài cùng bắt đầu; 0 khi luồng đang rỗi. */
+        long start;
+        long executed;
+    }
+
+    private final ThreadLocal<Watch> watches = new ThreadLocal<Watch>() {
         @Override
-        protected List<Frame> initialValue() {
-            return new ArrayList<Frame>();
+        protected Watch initialValue() {
+            Watch made = new Watch();
+            synchronized (living) {
+                living.add(made);
+            }
+            return made;
         }
     };
 
-    private long executed;
+    /** Sổ của mọi luồng còn sống, để cộng lại thành tổng số lệnh đã chạy. */
+    private final List<Watch> living = new ArrayList<Watch>();
+    /** Số lệnh của những luồng đã tắt, gộp lại để tổng không tụt xuống. */
+    private long retired;
 
     Interpreter(Vm vm) {
         this.vm = vm;
     }
 
-    /** Bytecodes executed since the last {@link #resetCounter()}. */
+    /**
+     * Bytecodes executed since the last {@link #resetCounter()}, over every
+     * thread the game runs.
+     *
+     * <p>Sổ của luồng đã tắt được gộp vào tổng ngay tại đây rồi bỏ đi, nên
+     * một game mở rồi đóng nhiều luồng không làm bảng đếm tụt xuống, cũng
+     * không để lại một đống sổ cũ.</p>
+     */
     public long executed() {
-        return executed;
+        long total;
+        synchronized (living) {
+            for (int i = living.size() - 1; i >= 0; i--) {
+                Watch watch = living.get(i);
+                Thread owner = watch.owner.get();
+                if (owner == null || !owner.isAlive()) {
+                    retired += watch.executed;
+                    living.remove(i);
+                }
+            }
+            total = retired;
+            for (int i = 0; i < living.size(); i++) {
+                total += living.get(i).executed;
+            }
+        }
+        return total;
     }
 
     public void resetCounter() {
-        executed = 0;
+        synchronized (living) {
+            retired = 0;
+            for (int i = 0; i < living.size(); i++) {
+                living.get(i).executed = 0;
+            }
+        }
+    }
+
+    /**
+     * Hàm trên cùng của một luồng khác, hoặc rỗng khi nó đang không chạy gì.
+     *
+     * <p>Đọc trộm ngăn xếp của luồng khác trong lúc nó đang chạy, nên chỉ đọc
+     * một phần tử và bỏ qua nếu vừa lúc ấy nó đổi: đây là thứ để nhìn, không
+     * phải thứ để dựa vào.</p>
+     */
+    public String topFrameOf(Thread host) {
+        Watch watch = null;
+        synchronized (living) {
+            for (int i = 0; i < living.size(); i++) {
+                if (living.get(i).owner.get() == host) {
+                    watch = living.get(i);
+                    break;
+                }
+            }
+        }
+        if (watch == null) {
+            return "";
+        }
+        try {
+            List<Frame> stack = watch.stack;
+            int size = stack.size();
+            return size == 0 ? "" : String.valueOf(stack.get(size - 1));
+        } catch (RuntimeException racing) {
+            return "";
+        }
     }
 
     /** Current call stack of the calling thread, innermost frame last. */
     public List<Frame> callStack() {
-        return stacks.get();
+        return watches.get().stack;
     }
 
     /**
@@ -49,7 +131,7 @@ public final class Interpreter {
      * đã bị gỡ sạch: chỗ hỏi "game chết ở đâu" — cái bắt được ngoại lệ — lại
      * là chỗ không còn gì để đọc.</p>
      */
-    private String lastTrace = "";
+    private volatile String lastTrace = "";
 
     /** Ngăn xếp để kể lại một lần hỏng: đang chạy thì lấy ngay, xong rồi thì lấy lần chót. */
     public String crashTrace() {
@@ -60,7 +142,7 @@ public final class Interpreter {
     /** Formats the emulated call stack for crash reports. */
     public String stackTrace() {
         StringBuilder out = new StringBuilder();
-        List<Frame> frames = stacks.get();
+        List<Frame> frames = watches.get().stack;
         for (int i = frames.size() - 1; i >= 0; i--) {
             out.append("    at ").append(frames.get(i)).append('\n');
         }
@@ -77,33 +159,47 @@ public final class Interpreter {
      */
     private static final long CHECK_EVERY = 65536L;
 
-    /** Khi lời gọi ngoài cùng bắt đầu, theo giờ thật. */
-    private long watchStart;
-
     /**
      * Chỗ ngó ra ngoài: hết giờ chưa, có ai bảo dừng chưa.
      *
      * @return mốc lệnh của lần ngó tiếp theo
      */
-    private long checkIn(Frame frame) {
+    private long checkIn(Watch watch, Frame frame) {
         if (vm.isCancelled()) {
             throw new VmCancelled("Người chơi dừng game");
         }
         long limit = vm.stuckAfterMs();
-        if (limit != Long.MAX_VALUE && watchStart > 0) {
+        if (limit != Long.MAX_VALUE && watch.start > 0) {
             // Giờ thật, không phải giờ của game: điều khiển tốc độ làm đồng hồ
             // của game chạy nhanh chậm khác đi, còn "người ngồi đợi bao lâu"
             // thì không.
-            long waited = System.currentTimeMillis() - watchStart;
+            long waited = System.currentTimeMillis() - watch.start;
             if (waited > limit) {
                 throw new VmError("Game không phản hồi sau " + describe(waited)
-                        + ", đang kẹt trong " + frame.method.key());
+                        + ", đang kẹt trong " + frame.method.key() + threadNote());
             }
         }
-        if (executed > vm.instructionBudget()) {
+        if (watch.executed > vm.instructionBudget()) {
             throw new VmError("Instruction budget exhausted in " + frame.method.key());
         }
-        return executed + CHECK_EVERY;
+        return watch.executed + CHECK_EVERY;
+    }
+
+    /**
+     * Tên luồng đang kẹt, khi đó không phải luồng chính.
+     *
+     * <p>Game treo trên luồng riêng của nó thì câu "kẹt trong hàm X" chưa đủ:
+     * hàm ấy có thể vẫn đang chạy bình thường ở luồng chính. Nói rõ luồng nào
+     * thì người đọc biết ngay phải ngó vào đâu.</p>
+     */
+    private String threadNote() {
+        VmObject thread = vm.threads().current();
+        if (thread == null) {
+            return "";
+        }
+        Object name = thread.get("name");
+        String label = name == null ? "" : vm.stringOf(name);
+        return label.length() == 0 || "chính".equals(label) ? "" : " (luồng \"" + label + "\")";
     }
 
     /** Khoảng thời gian, nói bằng đơn vị nó đáng được nói. */
@@ -120,7 +216,8 @@ public final class Interpreter {
         if (method.isAbstract() || method.code() == null) {
             throw vm.raise("java/lang/AbstractMethodError", method.key());
         }
-        List<Frame> stack = stacks.get();
+        Watch watch = watches.get();
+        List<Frame> stack = watch.stack;
         if (stack.size() >= vm.maxFrames()) {
             throw vm.raise("java/lang/StackOverflowError", method.key());
         }
@@ -144,12 +241,14 @@ public final class Interpreter {
         }
         if (stack.isEmpty()) {
             // Lời gọi ngoài cùng: đồng hồ đo "người chơi đã đợi bao lâu" bắt
-            // đầu chạy từ đây, chứ không phải từ lúc mở game.
-            watchStart = System.currentTimeMillis();
+            // đầu chạy từ đây, chứ không phải từ lúc mở game. Đồng hồ này của
+            // riêng luồng, nên luồng phụ chạy bận không đặt lại đồng hồ của
+            // luồng đang treo.
+            watch.start = System.currentTimeMillis();
         }
         stack.add(frame);
         try {
-            return execute(frame);
+            return execute(watch, frame);
         } catch (RuntimeException e) {
             if (stack.size() == 1) {
                 // Khung ngoài cùng: ngoại lệ này không ai trong game bắt, và
@@ -159,6 +258,9 @@ public final class Interpreter {
             throw e;
         } finally {
             stack.remove(stack.size() - 1);
+            if (stack.isEmpty()) {
+                watch.start = 0;
+            }
             if (frame.monitor != null) {
                 Monitors.exit(frame.monitor);
             }
@@ -190,16 +292,16 @@ public final class Interpreter {
 
     // ------------------------------------------------------------- main loop
 
-    private Object execute(Frame frame) {
+    private Object execute(Watch watch, Frame frame) {
         byte[] code = frame.method.code();
         VmClass owner = frame.method.owner();
-        long checkpoint = executed + CHECK_EVERY;
+        long checkpoint = watch.executed + CHECK_EVERY;
 
         while (true) {
             try {
                 while (true) {
-                    if (++executed > checkpoint) {
-                        checkpoint = checkIn(frame);
+                    if (++watch.executed > checkpoint) {
+                        checkpoint = checkIn(watch, frame);
                     }
                     int pc = frame.pc;
                     int op = code[pc] & 0xFF;

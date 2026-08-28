@@ -49,31 +49,64 @@ public final class Monitors {
         }
     }
 
-    /** Implements {@code Object.wait}, releasing the monitor while blocked. */
+    /**
+     * Implements {@code Object.wait}, releasing the monitor while blocked.
+     *
+     * <p>Nằm đợi ở hàng đợi riêng của đối tượng, không phải ở cái khoá máy
+     * chủ dùng để giành quyền cầm khoá. Trước đây dùng chung, và hậu quả là
+     * hễ có luồng nào nhả khoá thì mọi luồng đang {@code wait} đều tỉnh dậy
+     * như thể vừa được báo — một vòng lặp game viết theo lối đợi-báo, tức là
+     * gần như mọi vòng lặp game, chạy loạn hết cả.</p>
+     *
+     * <p>Cầm hàng đợi <em>trước</em> khi nhả khoá, vì người báo cũng phải cầm
+     * hàng đợi mới báo được: nhả trước thì lời báo có thể lọt vào đúng khe
+     * giữa hai việc và người đợi nằm đó mãi.</p>
+     */
     public static void await(VmObject target, long millis) throws InterruptedException {
-        synchronized (target) {
-            int depth = target.monitorDepth;
-            target.monitorDepth = 0;
-            target.monitorOwner = null;
-            target.notifyAll();
-            try {
-                target.wait(millis);
-            } finally {
-                while (target.monitorOwner != null && target.monitorOwner != Thread.currentThread()) {
-                    target.wait();
+        if (target == null) {
+            throw new VmError("wait on null");
+        }
+        Object waitSet = target.waitSet();
+        int depth;
+        synchronized (waitSet) {
+            synchronized (target) {
+                if (target.monitorOwner != Thread.currentThread()) {
+                    throw new VmError("Gọi wait() ngoài khối synchronized");
                 }
-                target.monitorOwner = Thread.currentThread();
-                target.monitorDepth = depth;
+                depth = target.monitorDepth;
+                target.monitorDepth = 0;
+                target.monitorOwner = null;
+                target.notifyAll();
+            }
+            try {
+                waitSet.wait(millis);
+            } finally {
+                reenter(target, depth);
             }
         }
     }
 
-    public static void signal(VmObject target, boolean all) {
+    /** Lấy lại khoá với đúng độ sâu đã nhả, sau khi thôi đợi. */
+    private static void reenter(VmObject target, int depth) throws InterruptedException {
         synchronized (target) {
+            while (target.monitorOwner != null && target.monitorOwner != Thread.currentThread()) {
+                target.wait();
+            }
+            target.monitorOwner = Thread.currentThread();
+            target.monitorDepth = depth;
+        }
+    }
+
+    public static void signal(VmObject target, boolean all) {
+        if (target == null) {
+            throw new VmError("notify on null");
+        }
+        Object waitSet = target.waitSet();
+        synchronized (waitSet) {
             if (all) {
-                target.notifyAll();
+                waitSet.notifyAll();
             } else {
-                target.notify();
+                waitSet.notify();
             }
         }
     }

@@ -215,6 +215,49 @@ public class VmProbe {
         return shared.value();
     }
 
+    /**
+     * Leaves a named worker running, the way a game leaves its loop running.
+     *
+     * <p>The point of the thread table is what a game looks like <em>while</em>
+     * it plays, so this one does not finish: it waits on a lock nobody is
+     * going to signal, which is exactly the state a loop thread sits in
+     * between frames.</p>
+     */
+    public static int startWorker() {
+        final Object idle = new Object();
+        Thread loop = new Thread(new Runnable() {
+            public void run() {
+                waitForever(idle);
+            }
+        }, "vòng lặp game");
+        loop.start();
+        Thread music = new Thread(new Runnable() {
+            public void run() {
+                waitForever(idle);
+            }
+        }, "nhạc nền");
+        music.start();
+        // Đợi cho hai luồng kịp vào chỗ đợi, để bảng luồng không chụp trúng
+        // lúc chúng còn chưa chạy.
+        for (int i = 0; i < 40 && Thread.activeCount() < 3; i++) {
+            try {
+                Thread.sleep(5);
+            } catch (InterruptedException stop) {
+                break;
+            }
+        }
+        return Thread.activeCount();
+    }
+
+    private static void waitForever(Object lock) {
+        synchronized (lock) {
+            try {
+                lock.wait();
+            } catch (InterruptedException stop) {
+            }
+        }
+    }
+
     public static void printBanner() {
         System.out.println("Máy ảo MobiCore sẵn sàng · " + greeting + " x" + counter);
         System.out.println("nền tảng: " + System.getProperty("microedition.platform"));

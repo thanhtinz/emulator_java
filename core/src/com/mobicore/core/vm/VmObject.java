@@ -23,6 +23,24 @@ public class VmObject {
     /** Thread currently holding the monitor, or {@code null}. */
     Thread monitorOwner;
 
+    /**
+     * Chỗ nằm đợi của {@code wait}/{@code notify}, tách khỏi chỗ giành khoá.
+     *
+     * <p>Hai hàng đợi này khác nhau: một hàng là "đợi tới lượt cầm khoá", hàng
+     * kia là "đợi ai đó báo". Dùng chung một cái khoá máy chủ cho cả hai thì
+     * mỗi lần có người nhả khoá là mọi người đang {@code wait} đều bị đánh
+     * thức — và một vòng lặp game viết theo lối đợi-báo sẽ chạy loạn lên.</p>
+     */
+    private Object waitSet;
+
+    /** Hàng đợi của {@code wait}, dựng khi có người dùng tới. */
+    synchronized Object waitSet() {
+        if (waitSet == null) {
+            waitSet = new Object();
+        }
+        return waitSet;
+    }
+
     public VmObject(VmClass type) {
         this.type = type;
         int slots = type == null ? 0 : type.instanceSlots();

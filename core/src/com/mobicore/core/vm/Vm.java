@@ -24,6 +24,58 @@ public final class Vm {
     private final Map<String, VmObject> internedStrings = new HashMap<String, VmObject>();
     private final List<ClassSource> sources = new ArrayList<ClassSource>();
     private final Interpreter interpreter = new Interpreter(this);
+    private final Threads threads = new Threads();
+
+    /**
+     * Lần hỏng đầu tiên trên một luồng riêng của game.
+     *
+     * <p>Game chạy vòng lặp trên luồng của nó; khi luồng ấy chết thì không ai
+     * ở phía người chơi nghe thấy gì — màn hình đứng im và mọi nút vẫn bấm
+     * được, chỉ là không có gì xảy ra nữa. Nên chỗ hỏng được giữ lại đây để
+     * khung hình kế tiếp nhặt lên và nói ra.</p>
+     *
+     * <p>Giữ lần đầu, không phải lần cuối: những lần sau thường chỉ là hệ quả
+     * của lần đầu.</p>
+     */
+    private volatile Throwable threadFailure;
+
+    /**
+     * Đối tượng {@code Thread} của luồng đang gọi, dựng lấy nếu chưa có.
+     *
+     * <p>Luồng do game mở thì đã có sẵn từ lúc {@code start()}; luồng của
+     * chính máy ảo — luồng chạy MIDlet — thì chưa, nên lần đầu ai hỏi tới nó
+     * thì dựng một cái rồi giữ lại. Không giữ thì mỗi lần hỏi ra một cái
+     * khác, và mọi phép so sánh đều sai.</p>
+     */
+    public VmObject currentThreadObject() {
+        VmObject known = threads.current();
+        if (known != null) {
+            return known;
+        }
+        VmObject made = newInstance("java/lang/Thread");
+        made.set("name", newString("chính"));
+        made.set("priority", Integer.valueOf(5));
+        made.host = Thread.currentThread();
+        threads.adopt(Thread.currentThread(), made);
+        return made;
+    }
+
+    /** Ghi lại một luồng game chết, nếu chưa có lần nào được ghi. */
+    public synchronized void noteThreadFailure(Throwable failure) {
+        if (threadFailure == null && !(failure instanceof VmCancelled)) {
+            threadFailure = failure;
+        }
+    }
+
+    /** Lần hỏng trên luồng game chưa ai kể lại, hoặc null. */
+    public Throwable threadFailure() {
+        return threadFailure;
+    }
+
+    /** Quên lần hỏng đã kể, để lần chạy sau bắt đầu sạch. */
+    public synchronized void clearThreadFailure() {
+        threadFailure = null;
+    }
 
     private VmHost host = VmHost.DEFAULT;
     private long instructionBudget = Long.MAX_VALUE;
@@ -49,6 +101,11 @@ public final class Vm {
 
     public void setHost(VmHost host) {
         this.host = host == null ? VmHost.DEFAULT : host;
+    }
+
+    /** Which emulated thread each host thread is running; see {@link Threads}. */
+    public Threads threads() {
+        return threads;
     }
 
     public Interpreter interpreter() {

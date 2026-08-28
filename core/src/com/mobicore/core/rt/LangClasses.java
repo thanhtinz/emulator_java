@@ -1130,15 +1130,44 @@ public final class LangClasses {
                 .field("target", "Ljava/lang/Runnable;")
                 .field("name", "Ljava/lang/String;")
                 .field("priority", "I")
+                .staticField("MIN_PRIORITY", "I")
+                .staticField("NORM_PRIORITY", "I")
+                .staticField("MAX_PRIORITY", "I")
                 .method("<init>", "()V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return null;
+                        return born(vm, self, null, null);
                     }
                 })
                 .method("<init>", "(Ljava/lang/Runnable;)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        self.set("target", args[0]);
+                        return born(vm, self, args[0], null);
+                    }
+                })
+                .method("<init>", "(Ljava/lang/String;)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return born(vm, self, null, args[0]);
+                    }
+                })
+                .method("<init>", "(Ljava/lang/Runnable;Ljava/lang/String;)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return born(vm, self, args[0], args[1]);
+                    }
+                })
+                .method("getName", "()Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return self.get("name");
+                    }
+                })
+                .method("setName", "(Ljava/lang/String;)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        self.set("name", args[0]);
                         return null;
+                    }
+                })
+                .method("toString", "()Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return vm.newString("Thread[" + vm.stringOf(self.get("name")) + ","
+                                + self.get("priority") + "]");
                     }
                 })
                 .method("start", "()V", new NativeMethod() {
@@ -1207,7 +1236,15 @@ public final class LangClasses {
                 })
                 .staticMethod("currentThread", "()Ljava/lang/Thread;", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return vm.newInstance("java/lang/Thread");
+                        return vm.currentThreadObject();
+                    }
+                })
+                .staticMethod("activeCount", "()I", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        // Đếm cả luồng đang hỏi, kể cả khi nó là luồng của
+                        // máy ảo chứ không phải luồng game tự mở.
+                        vm.currentThreadObject();
+                        return Integer.valueOf(vm.threads().alive());
                     }
                 })
                 .staticMethod("yield", "()V", new NativeMethod() {
@@ -1217,6 +1254,17 @@ public final class LangClasses {
                     }
                 })
                 .define();
+        setStaticInt(vm, "java/lang/Thread", "MIN_PRIORITY", 1);
+        setStaticInt(vm, "java/lang/Thread", "NORM_PRIORITY", 5);
+        setStaticInt(vm, "java/lang/Thread", "MAX_PRIORITY", 10);
+    }
+
+    /** Chung cho bốn kiểu dựng: đặt việc, đặt tên, đặt mức ưu tiên thường. */
+    private static Object born(Vm vm, VmObject self, Object target, Object name) {
+        self.set("target", target);
+        self.set("name", name != null ? name : vm.newString(vm.threads().nextName()));
+        self.set("priority", Integer.valueOf(5));
+        return null;
     }
 
     private static Object startThread(final Vm vm, final VmObject self) {
@@ -1229,13 +1277,26 @@ public final class LangClasses {
                     vm.callVirtual(self, "run", "()V");
                 } catch (VmError e) {
                     vm.host().print(true, "Thread aborted: " + e.getMessage() + "\n");
+                    vm.noteThreadFailure(e);
                 } catch (RuntimeException e) {
                     vm.host().print(true, "Uncaught in thread: " + e + "\n");
+                    vm.noteThreadFailure(e);
+                } finally {
+                    vm.threads().unbind(Thread.currentThread());
                 }
             }
         });
+        if (self.get("name") == null) {
+            // Dựng bằng lớp con của game thì <init> của Thread có thể không
+            // chạy qua chỗ đặt tên; luồng vẫn phải có một cái tên.
+            self.set("name", vm.newString(vm.threads().nextName()));
+        }
         self.host = host;
+        host.setName(vm.stringOf(self.get("name")));
         host.setDaemon(true);
+        // Buộc trước khi chạy: luồng mới có thể hỏi currentThread ngay dòng
+        // đầu tiên, sớm hơn cả lúc start() trả về.
+        vm.threads().bind(host, self);
         host.start();
         return null;
     }

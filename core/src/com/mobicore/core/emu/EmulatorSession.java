@@ -533,6 +533,10 @@ public final class EmulatorSession {
             return;
         }
         midletClass = binaryClassName;
+        // Luồng chạy MIDlet có mặt trong bảng luồng ngay từ đầu, chứ không
+        // đợi tới lúc game hỏi tới nó: bảng thiếu đúng cái luồng đang treo
+        // thì bảng ấy vô dụng.
+        vm.currentThreadObject();
         String internal = Descriptors.toInternalName(binaryClassName);
         log.info("Starting " + binaryClassName);
         VmClass type = vm.loadClass(internal);

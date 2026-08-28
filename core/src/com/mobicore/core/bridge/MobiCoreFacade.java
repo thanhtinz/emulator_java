@@ -876,6 +876,37 @@ public final class MobiCoreFacade {
         return Json.write(json);
     }
 
+    /**
+     * Những luồng game đang chạy, và mỗi luồng đang ở trong hàm nào.
+     *
+     * <p>Game J2ME nào cũng chạy vòng lặp trên một luồng riêng, nên khi màn
+     * hình đứng im thì câu hỏi đầu tiên là luồng nào đứng. Bảng này trả lời
+     * đúng câu đó.</p>
+     */
+    public String threadsJson() {
+        Map<String, Object> json = Json.object();
+        json.put("ok", Boolean.TRUE);
+        List<Object> rows = new ArrayList<Object>();
+        if (session != null) {
+            List<Object[]> live = session.vm().threads().snapshot();
+            for (int i = 0; i < live.size(); i++) {
+                Thread host = (Thread) live.get(i)[0];
+                com.mobicore.core.vm.VmObject thread =
+                        (com.mobicore.core.vm.VmObject) live.get(i)[1];
+                Object name = thread.get("name");
+                Map<String, Object> row = Json.object();
+                row.put("name", name == null ? host.getName() : session.vm().stringOf(name));
+                row.put("priority", thread.get("priority"));
+                row.put("alive", Boolean.valueOf(host.isAlive()));
+                row.put("own", Boolean.valueOf(session.vm().threads().startedByGame(host)));
+                row.put("inside", session.vm().interpreter().topFrameOf(host));
+                rows.add(row);
+            }
+        }
+        json.put("threads", rows);
+        return Json.write(json);
+    }
+
     /** Turns tilting on or off for one game. */
     public String setTiltEnabled(String suiteId, boolean enabled) {
         return withTilt(suiteId, enabled, -1, -1, -1);
@@ -1887,6 +1918,15 @@ public final class MobiCoreFacade {
         if (crash != null && activeSuiteId != null && activeSuiteId.equals(crashSuiteId)) {
             // Một game đã chết thì khung hình sau cũng chết y như vậy. Chạy
             // tiếp chỉ để ghi cùng một lỗi mỗi giây mấy chục lần.
+            return false;
+        }
+        Throwable onThread = session.vm().threadFailure();
+        if (onThread != null) {
+            // Vòng lặp riêng của game đã chết. Không có khung hình nào sẽ tới
+            // nữa, nên nói ngay thay vì để màn hình đứng im.
+            session.vm().clearThreadFailure();
+            session.log().error("Luồng game dừng: " + onThread.getMessage());
+            noteCrash(activeSuiteId, onThread);
             return false;
         }
         try {

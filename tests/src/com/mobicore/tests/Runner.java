@@ -40,6 +40,7 @@ public final class Runner {
         tests.add(new KeypadLayoutTest(fixtures));
         tests.add(new PreviewTest(fixtures));
         tests.add(new OverflowTest(fixtures));
+        tests.add(new ThreadTest(fixtures));
         tests.add(new DownloadTest(fixtures));
         tests.add(new FileTest(fixtures));
         tests.add(new GifTest());

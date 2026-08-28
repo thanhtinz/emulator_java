@@ -80,6 +80,7 @@ public final class VmScreen {
         rows.add(new Row("exceptions(2)", String.valueOf(vm.callStatic(probe, "exceptions", "(I)I",
                 Integer.valueOf(2)))));
         rows.add(new Row("threading()", String.valueOf(vm.callStatic(probe, "threading", "()I"))));
+        rows.add(new Row("startWorker()", String.valueOf(vm.callStatic(probe, "startWorker", "()I"))));
         Object text = vm.callStatic(probe, "strings", "(Ljava/lang/String;)Ljava/lang/String;",
                 vm.newString("world"));
         rows.add(new Row("strings(\"world\")", "\"" + vm.stringOf((VmObject) text) + "\""));
@@ -108,6 +109,44 @@ public final class VmScreen {
                 fieldWidth);
         ui.field("Cấu hình", "CLDC-1.1 / MIDP-2.0", fieldX, row + Ui.ROW * 2, fieldWidth);
         y += runtimeHeight + 14;
+
+        // Luồng của game ------------------------------------------------
+        // Game J2ME nào cũng chạy vòng lặp trên một luồng riêng, nên khi màn
+        // hình đứng im thì câu hỏi đầu tiên là luồng nào đang đứng ở đâu.
+        List<Object[]> live = vm.threads().snapshot();
+        java.util.Collections.sort(live, new java.util.Comparator<Object[]>() {
+            public int compare(Object[] a, Object[] b) {
+                boolean ownA = ((Thread) a[0]).isDaemon(), ownB = ((Thread) b[0]).isDaemon();
+                if (ownA != ownB) {
+                    return ownA ? 1 : -1;
+                }
+                return ((Thread) a[0]).getName().compareTo(((Thread) b[0]).getName());
+            }
+        });
+        int threadRow = ui.mediumBold().height() + ui.small().height() + 8;
+        int threadsHeight = 12 + ui.small().height() + 8
+                + Math.max(1, live.size()) * threadRow + 6;
+        row = ui.section(margin, y, width, threadsHeight, "LUỒNG CỦA GAME",
+                live.size() + " luồng");
+        for (Object[] each : live) {
+            Thread host = (Thread) each[0];
+            VmObject thread = (VmObject) each[1];
+            Object name = thread.get("name");
+            String label = name == null ? host.getName() : vm.stringOf(name);
+            boolean own = vm.threads().startedByGame(host);
+            ui.text(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), label, fieldWidth - 90),
+                    fieldX, row, Theme.TEXT);
+            ui.textRight(ui.small(), host.isAlive() ? "đang chạy" : "đã xong",
+                    fieldX + fieldWidth, row + 3, host.isAlive() ? Theme.ACCENT : Theme.TEXT_DIM);
+            String inside = vm.interpreter().topFrameOf(host);
+            if (inside.length() == 0) {
+                inside = own ? "đang đợi" : "máy ảo mượn để chạy MIDlet";
+            }
+            ui.text(ui.small(), ui.ellipsize(ui.small(), inside, fieldWidth),
+                    fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
+            row += threadRow;
+        }
+        y += threadsHeight + 14;
 
         int callsHeight = ui.sectionHeight(rows.size());
         row = ui.section(margin, y, width, callsHeight, "LỜI GỌI ĐÃ THÔNG DỊCH", null);
