@@ -47,8 +47,23 @@ public final class NetworkMonitor {
             return url;
         }
 
+        /**
+         * Máy ở đầu bên kia, hoặc chính máy này khi không có đầu bên kia.
+         *
+         * <p>Một địa chỉ như {@code socket://:7100} là game mở cổng trên chính
+         * máy đang chơi, nên nó không có tên máy nào để lấy. Trả về null thì
+         * bảng theo dõi in ra chữ "null" — một câu trả lời không có nghĩa gì
+         * với người đọc.</p>
+         */
         public String host() {
-            return NetworkPolicy.hostOf(url);
+            String host = NetworkPolicy.hostOf(url);
+            return host == null ? NetworkPolicy.THIS_DEVICE : host;
+        }
+
+        /** Tên máy để hiện lên màn hình, đọc được bằng tiếng người. */
+        public String hostLabel() {
+            String host = host();
+            return NetworkPolicy.THIS_DEVICE.equals(host) ? "máy này" : host;
         }
 
         public String method() {
@@ -198,6 +213,7 @@ public final class NetworkMonitor {
             Map<String, Object> json = Json.object();
             json.put("url", url);
             json.put("host", host());
+            json.put("hostLabel", hostLabel());
             json.put("method", method);
             json.put("decision", Integer.valueOf(decision));
             json.put("status", Integer.valueOf(status));

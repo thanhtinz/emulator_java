@@ -7,9 +7,12 @@ import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.mod.ModManager;
 import com.mobicore.core.mod.ModPackage;
 import com.mobicore.core.model.GameProfile;
+import com.mobicore.core.net.LoopbackSockets;
 import com.mobicore.core.net.LoopbackTransport;
 import com.mobicore.core.net.NetworkMonitor;
+import com.mobicore.core.net.NetworkPolicy;
 import com.mobicore.core.net.NetworkStack;
+import com.mobicore.core.net.SocketTransport;
 import com.mobicore.core.storage.MemoryVfs;
 import com.mobicore.core.storage.StorageLayout;
 import com.mobicore.core.storage.Vfs;
@@ -18,6 +21,7 @@ import com.mobicore.core.tools.RmsEditor;
 import com.mobicore.tools.ui.Theme;
 import com.mobicore.tools.ui.Ui;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +74,12 @@ public final class DevToolsScreen {
                 .respond("/news", 404, "Not Found", "gone", "text/plain"));
         network.setPrompt(new NetworkStack.PermissionPrompt() {
             public boolean allowHost(String host, String url) {
-                return "scores.example.com".equals(host);
+                // Người chơi đã đồng ý cho game nói chuyện với máy chủ điểm và
+                // với phòng chờ, và đã đồng ý cho nó mở cổng trên máy mình;
+                // cái mạng quảng cáo thì không.
+                return "scores.example.com".equals(host)
+                        || "lobby.test".equals(host)
+                        || NetworkPolicy.THIS_DEVICE.equals(host);
             }
         });
         mods.applyTo(session);
@@ -80,6 +89,11 @@ public final class DevToolsScreen {
         call(session, "http://scores.example.com/news", 0);
         call(session, "http://ads.tracker.example/news", 0);
 
+        // Và một ván nhiều người chơi, để bảng theo dõi bày ra cả những thứ
+        // không có hình dạng "hỏi một câu, nghe một câu": một đường dây giữ
+        // mở, một cổng chờ người khác gọi vào, một gói bắn đi.
+        multiplayer(session.network());
+
         RmsEditor rms = new RmsEditor(library.records(entry.suiteId()), 1_700_000_000_000L);
         rms.addRecord("skyrunner-scores", new byte[]{0, 0, 0x21, (byte) 0xB6});
         rms.addRecord("skyrunner-scores", new byte[]{0, 0, 0x10, 0x1A});
@@ -87,6 +101,37 @@ public final class DevToolsScreen {
         Framebuffer frame = draw(library, entry, session, mods, rms);
         session.destroy();
         return frame;
+    }
+
+    /**
+     * Một ván nhiều người chơi, chạy trong bộ nhớ.
+     *
+     * <p>Không có máy chủ thật nào ở đây: đường truyền vòng lại chính nó, nên
+     * ảnh chụp vẫn dựng được ở bất cứ đâu — nhưng những dòng hiện ra trong
+     * bảng theo dõi là do chính lớp mạng ghi lại, không phải viết sẵn.</p>
+     */
+    private void multiplayer(NetworkStack network) {
+        try {
+            network.setSocketTransport(new LoopbackSockets()
+                    .serve(7000, LoopbackSockets.echo()));
+            SocketTransport.Stream lobby = network.openSocket("lobby.test", 7000, 2000);
+            lobby.output().write("PING".getBytes("UTF-8"));
+            lobby.output().flush();
+            byte[] answer = new byte[4];
+            lobby.input().read(answer, 0, answer.length);
+            lobby.close();
+
+            SocketTransport.Server waiting = network.openServer(7100);
+            waiting.close();
+
+            SocketTransport.Datagrams packets = network.openDatagrams(7200);
+            byte[] shot = "BAN 12,40".getBytes("UTF-8");
+            packets.send("127.0.0.1", 7200, shot, 0, shot.length);
+            packets.receive(new byte[64], 0, 64);
+            packets.close();
+        } catch (IOException e) {
+            // Ảnh chụp vẫn dựng được: bảng theo dõi sẽ ghi đúng chỗ hỏng.
+        }
     }
 
     private void call(EmulatorSession session, String url, int score) {
@@ -121,8 +166,15 @@ public final class DevToolsScreen {
                 "gửi " + totals[0] + " B  ·  nhận " + totals[1] + " B");
         for (NetworkMonitor.Exchange exchange : exchanges) {
             boolean blocked = "blocked".equals(exchange.outcome());
-            String label = exchange.method() + "  " + exchange.host();
-            String status = blocked ? "ĐÃ CHẶN" : exchange.status() + "  ·  " + exchange.durationMs() + "ms";
+            String label = exchange.method() + "  " + exchange.hostLabel();
+            // Một socket không có mã trạng thái như http: cái đáng nói về nó
+            // là bao nhiêu byte đã đi qua.
+            String status = blocked
+                    ? "ĐÃ CHẶN"
+                    : (exchange.status() > 0
+                            ? exchange.status() + "  ·  " + exchange.durationMs() + "ms"
+                            : exchange.requestBytes() + " B gửi  ·  "
+                                    + exchange.responseBytes() + " B nhận");
             int statusWidth = ui.small().stringWidth(status) + 12;
             ui.text(ui.mediumBold(), ui.ellipsize(ui.mediumBold(), label, fieldWidth - statusWidth),
                     fieldX, row, blocked ? Theme.BAD : Theme.TEXT);

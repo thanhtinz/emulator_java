@@ -7,6 +7,7 @@ import com.mobicore.core.net.LoopbackSockets;
 import com.mobicore.core.net.NetworkMonitor;
 import com.mobicore.core.net.NetworkPolicy;
 import com.mobicore.core.net.NetworkStack;
+import com.mobicore.core.net.RealSockets;
 import com.mobicore.core.net.SocketTransport;
 import com.mobicore.core.storage.MemoryVfs;
 import com.mobicore.core.storage.StorageLayout;
@@ -50,6 +51,8 @@ public final class SocketTest extends Test {
         thePolicyStandsInFront();
         packetsGoBothWays();
         stoppingHangsUp();
+        addressesThatCannotWork();
+        everyLineHasAName();
         if (!new File(fixtureDir, "demo/SocketDemo.class").exists()) {
             fail("fixtures are not compiled; run ./build.sh fixtures");
             return;
@@ -235,6 +238,124 @@ public final class SocketTest extends Test {
         check(exchanges.size() >= 4,
                 "every connection the game opened is on the record, not just the first");
         session.destroy();
+    }
+
+    // ------------------------------------------------- địa chỉ không dùng được
+
+    /**
+     * Số cổng vô lý phải ra {@code IOException}, không phải một lỗi giết game.
+     *
+     * <p>Số cổng hiếm khi được viết cứng trong game: nó đến từ người chơi gõ
+     * vào ô "địa chỉ máy chủ", từ một dòng máy chủ gửi về, từ một tệp cấu
+     * hình. Một con số vô lý vì thế là chuyện thường ngày — và bên dưới,
+     * {@code java.net} trả lời chuyện ấy bằng một lỗi <em>không ai bắt
+     * được</em>. Game viết sẵn {@code try/catch (IOException)} quanh chỗ mở
+     * kết nối thì tự xử lý được; còn lỗi kia thì cả khung hình chết theo.</p>
+     */
+    private void addressesThatCannotWork() throws Exception {
+        // Thử trên cả hai đường truyền. Đường trong bộ nhớ thì hiền, còn
+        // java.net mới là chỗ ném ra lỗi không ai bắt được — kiểm mỗi đường
+        // hiền thì bài kiểm tra này chẳng canh được cái gì.
+        cannotWork(allowAll(new LoopbackSockets()), true);
+        cannotWork(allowAll(new RealSockets()), false);
+    }
+
+    /**
+     * @param canSend đường truyền này mở được cổng gói tin để thử gửi hay không
+     */
+    private void cannotWork(NetworkStack stack, boolean canSend) throws Exception {
+        int[] impossible = {-1, 0, 65536, 99999, Integer.MAX_VALUE};
+        for (int i = 0; i < impossible.length; i++) {
+            int port = impossible[i];
+            check(refused(stack, port), "gọi ra cổng " + port + " thì báo lỗi bắt được");
+        }
+
+        // Cổng 0 khi mở cổng chờ lại hợp lệ: đó là cách nói "cổng nào trống
+        // cũng được", và máy tự chọn một cổng thật.
+        SocketTransport.Server any = stack.openServer(0);
+        check(any.localPort() > 0, "mở cổng 0 nghĩa là để máy tự chọn, và nó chọn một cổng thật");
+        any.close();
+
+        int[] badBind = {-1, 65536, 99999};
+        for (int i = 0; i < badBind.length; i++) {
+            try {
+                stack.openServer(badBind[i]);
+                check(false, "mở cổng chờ ở " + badBind[i] + " phải báo lỗi");
+            } catch (IOException expected) {
+                check(expected.getMessage().indexOf(String.valueOf(badBind[i])) >= 0,
+                        "và nói ra con số sai: " + expected.getMessage());
+            }
+            try {
+                stack.openDatagrams(badBind[i]);
+                check(false, "mở cổng gói tin ở " + badBind[i] + " phải báo lỗi");
+            } catch (IOException expected) {
+                check(expected.getMessage().length() > 0, "kèm lý do");
+            }
+        }
+
+        if (!canSend) {
+            return;
+        }
+        // Gửi một gói tới cổng vô lý cũng vậy: địa chỉ gói tin thường do game
+        // tự ghép từ thứ nó vừa đọc được.
+        SocketTransport.Datagrams port = stack.openDatagrams(0);
+        byte[] payload = {1, 2, 3};
+        for (int i = 0; i < impossible.length; i++) {
+            try {
+                port.send("127.0.0.1", impossible[i], payload, 0, payload.length);
+                check(false, "gửi gói tới cổng " + impossible[i] + " phải báo lỗi");
+            } catch (IOException expected) {
+                check(expected.getMessage().length() > 0, "kèm lý do");
+            }
+        }
+        port.close();
+
+        // Và dùng lại một thứ đã đóng thì cũng là lỗi bắt được, không phải
+        // một lỗi trống rỗng.
+        try {
+            port.send("127.0.0.1", 9000, payload, 0, payload.length);
+            check(false, "gửi qua một cổng đã đóng phải báo lỗi");
+        } catch (IOException expected) {
+            check(expected.getMessage() != null, "và nói ra là đã đóng");
+        }
+    }
+
+    /**
+     * Bảng theo dõi phải gọi được tên chỗ game đang nói chuyện.
+     *
+     * <p>Mở một cổng trên chính máy đang chơi thì không có tên máy nào ở đầu
+     * bên kia, và trước đây bảng theo dõi in ra đúng chữ "null" — một câu trả
+     * lời không nói gì với người đọc.</p>
+     */
+    private void everyLineHasAName() throws Exception {
+        NetworkStack stack = allowAll(new LoopbackSockets());
+        SocketTransport.Server server = stack.openServer(7100);
+        NetworkMonitor.Exchange listening = last(stack);
+        eq(NetworkPolicy.THIS_DEVICE, listening.host(),
+                "mở cổng chờ được ghi dưới tên chính máy này");
+        eq("máy này", listening.hostLabel(), "và hiện lên màn hình bằng tiếng người");
+        server.close();
+
+        // Không cần ai nhấc máy: cái đang kiểm là dòng ghi lại, và một cuộc
+        // gọi không ai nghe vẫn được ghi dưới tên máy nó gọi.
+        try {
+            stack.openSocket("lobby.test", 7000, 200).close();
+        } catch (IOException refused) {
+            // không sao
+        }
+        eq("lobby.test", last(stack).hostLabel(), "còn gọi ra ngoài thì gọi đúng tên máy kia");
+    }
+
+    /** True khi mở kết nối tới cổng ấy báo về một lỗi game bắt được. */
+    private boolean refused(NetworkStack stack, int port) {
+        try {
+            stack.openSocket("127.0.0.1", port, 200);
+            return false;
+        } catch (IOException expected) {
+            return true;
+        } catch (RuntimeException escaped) {
+            return false;
+        }
     }
 
     // ------------------------------------------------------------- plumbing

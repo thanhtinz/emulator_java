@@ -1877,3 +1877,28 @@ không nổ": một lớp socket mở rỗng rồi trả về chuỗi trống c�
 kiểm tra chỉ soi ngoại lệ.
 
 Cầu nối: `setGameNetwork`.
+
+### Rà lỗi sau khi làm xong
+
+Đem phần socket ra thử phá thì lộ ba chỗ, và cả ba đều là thứ gặp thật:
+
+- **Số cổng vô lý làm lọt ra một lỗi không ai bắt được.** Số cổng hiếm khi
+  được viết cứng trong game: nó đến từ ô "địa chỉ máy chủ" người chơi gõ vào,
+  từ một dòng máy chủ gửi về, từ một tệp cấu hình. `java.net` trả lời một con
+  số vô lý bằng `IllegalArgumentException` — game viết sẵn
+  `try/catch (IOException)` quanh chỗ mở kết nối thì bắt không được, và cả
+  khung hình chết theo. Nay cả bốn đường (gọi ra, mở cổng chờ, mở cổng gói
+  tin, gửi gói) đều kiểm số cổng ở đúng một chỗ trong `NetworkStack`, và báo
+  bằng `IOException` kèm con số sai. Cổng 0 vẫn hợp lệ ở chỗ mở cổng chờ, vì
+  đó là cách nói "cổng nào trống cũng được".
+- **Bảng theo dõi in ra chữ "null".** Một địa chỉ như `socket://:7100` là game
+  mở cổng trên chính máy đang chơi, nên không có tên máy nào ở đầu bên kia.
+  Nay dòng ấy ghi dưới tên chính máy này và hiện lên là **"máy này"**.
+- **Cột trạng thái vô nghĩa với socket.** Một đường dây mở không có mã trạng
+  thái kiểu `200`/`404`; nó chỉ có số byte đã đi qua, nên cột ấy nay hiện số
+  byte gửi và nhận.
+
+Bài kiểm tra chạy trên **cả hai đường truyền**: đường trong bộ nhớ thì hiền,
+còn `java.net` mới là chỗ ném ra lỗi không ai bắt được — kiểm mỗi đường hiền
+thì bài kiểm tra chẳng canh được gì. Và cả hai bài đều được thử ngược bằng
+cách bỏ chỗ vá đi: bỏ ra thì chúng đỏ.

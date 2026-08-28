@@ -148,8 +148,27 @@ public final class NetworkStack {
      * final byte count until somebody hangs up — so the returned connection
      * counts what passes through it and closes the record on the way out.</p>
      */
+    /**
+     * Cổng phải là một con số cổng thật.
+     *
+     * <p>Game đọc số cổng từ đâu đó — người chơi gõ vào, máy chủ gửi về, một
+     * dòng trong tệp cấu hình — nên một con số vô lý là chuyện thường. Không
+     * kiểm ở đây thì {@code java.net} ném ra một lỗi không ai bắt được, và
+     * game chết hẳn thay vì nhận về một {@code IOException} mà nó đã viết sẵn
+     * chỗ để bắt.</p>
+     *
+     * @param allowAny cho phép cổng 0, nghĩa là "máy tự chọn cổng nào cũng được"
+     */
+    private static void checkPort(int port, boolean allowAny) throws IOException {
+        int lowest = allowAny ? 0 : 1;
+        if (port < lowest || port > 65535) {
+            throw new IOException("Số cổng không hợp lệ: " + port);
+        }
+    }
+
     public SocketTransport.Stream openSocket(String host, int port, int timeoutMs)
             throws IOException {
+        checkPort(port, false);
         String url = "socket://" + host + ":" + port;
         NetworkMonitor.Exchange exchange = monitor.begin(url, "SOCKET", clock.now());
         int decision = authorise(NetworkPolicy.hostOf(url), url);
@@ -170,6 +189,8 @@ public final class NetworkStack {
      * Takes a port on this device so other machines can connect to the game.
      */
     public SocketTransport.Server openServer(int port) throws IOException {
+        // Cổng 0 hợp lệ ở đây: đó là cách nói "cổng nào trống cũng được".
+        checkPort(port, true);
         String url = "socket://:" + port;
         NetworkMonitor.Exchange exchange = monitor.begin(url, "LISTEN", clock.now());
         int decision = authorise(NetworkPolicy.THIS_DEVICE, url);
@@ -190,6 +211,7 @@ public final class NetworkStack {
 
     /** Binds a UDP port for a game that speaks in packets rather than streams. */
     public SocketTransport.Datagrams openDatagrams(int port) throws IOException {
+        checkPort(port, true);
         String url = "datagram://:" + port;
         NetworkMonitor.Exchange exchange = monitor.begin(url, "DATAGRAM", clock.now());
         int decision = authorise(NetworkPolicy.THIS_DEVICE, url);
@@ -398,6 +420,10 @@ public final class NetworkStack {
 
         public void send(String host, int port, byte[] data, int offset, int length)
                 throws IOException {
+            // Địa chỉ gói tin thường do game tự ghép từ thứ nó đọc được, nên
+            // một số cổng vô lý là chuyện thường — và không kiểm thì
+            // java.net ném ra một lỗi không ai bắt được.
+            checkPort(port, false);
             delegate.send(host, port, data, offset, length);
             exchange.addRequestBytes(data, offset, length,
                     stack.policy.logBodies(), stack.policy.maxBodyBytes());
