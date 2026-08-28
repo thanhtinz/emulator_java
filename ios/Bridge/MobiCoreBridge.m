@@ -413,21 +413,9 @@
     return [_facade softKeysJson];
 }
 
-- (NSString *)startRecording {
-    return [_facade startRecording];
-}
 
-- (NSString *)stopRecording {
-    return [_facade stopRecording];
-}
 
-- (NSString *)cancelRecording {
-    return [_facade cancelRecording];
-}
 
-- (NSString *)recordingJSON {
-    return [_facade recordingJson];
-}
 
 - (NSInteger)keypadDrawOpacity {
     return [_facade keypadDrawOpacity];
@@ -563,9 +551,6 @@
     return [_facade tiltedWithInt:(jint) xMilli withInt:(jint) yMilli];
 }
 
-- (NSString *)shareScreenshot:(NSString *)name forSuite:(NSString *)suiteId {
-    return [_facade shareScreenshotWithNSString:suiteId withNSString:name];
-}
 
 - (NSString *)collectionsJSONForSuite:(NSString *)suiteId {
     return [_facade collectionsJsonWithNSString:suiteId];
@@ -591,13 +576,7 @@
     return [_facade collectionJsonWithNSString:name];
 }
 
-- (NSString *)installFromURL:(NSString *)url {
-    return [_facade installFromUrlWithNSString:url];
-}
 
-- (NSString *)downloadsJSON {
-    return [_facade downloadsJson];
-}
 
 - (NSString *)gameFilesJSONForSuite:(NSString *)suiteId {
     return [_facade gameFilesJsonWithNSString:suiteId];

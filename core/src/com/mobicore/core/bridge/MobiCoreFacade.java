@@ -1,7 +1,6 @@
 package com.mobicore.core.bridge;
 
 import com.mobicore.core.audio.AudioSink;
-import com.mobicore.core.emu.ClipRecorder;
 import com.mobicore.core.emu.EmulatorLog;
 import com.mobicore.core.emu.EmulatorSession;
 import com.mobicore.core.emu.SaveState;
@@ -13,8 +12,6 @@ import com.mobicore.core.library.CollectionStore;
 import com.mobicore.core.library.GameLibrary;
 import com.mobicore.core.library.LibraryArchive;
 import com.mobicore.core.library.PresetStore;
-import com.mobicore.core.library.ShareExport;
-import com.mobicore.core.library.UrlInstaller;
 import com.mobicore.core.library.KeypadLayoutStore;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
@@ -405,51 +402,6 @@ public final class MobiCoreFacade {
     }
 
     /**
-     * Installs a game from a link.
-     *
-     * <p>These games arrive as a link before they arrive as a file. Fetching
-     * it in a browser, finding it in Downloads and picking it out of a file
-     * chooser is three steps for something the emulator can do in one.</p>
-     *
-     * <p>The download goes through the same network stack a game's own
-     * connections do, so it is recorded and can be looked at afterwards. It is
-     * allowed rather than asked about — the player typed the address, which is
-     * the permission — but what was fetched, and from where, is reported back
-     * rather than hidden.</p>
-     */
-    public String installFromUrl(String url) {
-        if (library == null) {
-            return error("The library is not open");
-        }
-        final NetworkStack downloads = installerNetwork();
-        try {
-            UrlInstaller.Download download = UrlInstaller.fetch(new UrlInstaller.Fetcher() {
-                public NetworkTransport.Response fetch(String target) throws IOException {
-                    NetworkTransport.Request request = new NetworkTransport.Request(target);
-                    // A handset asked for exactly this, and a few servers of
-                    // the era still refuse anything that does not.
-                    request.headers.put("Accept",
-                            "text/vnd.sun.j2me.app-descriptor, application/java-archive, */*");
-                    return downloads.perform(request);
-                }
-            }, url);
-
-            library.setClock(now());
-            GameLibrary.InstallResult result = library.install(download.jar(), download.jad());
-            applyDefaultPreset(result.entry().suiteId());
-            Map<String, Object> json = Json.object();
-            json.put("ok", Boolean.TRUE);
-            json.put("replaced", Boolean.valueOf(result.replaced()));
-            json.put("game", result.entry().toJson());
-            json.put("jarUrl", download.jarUrl());
-            json.put("notes", new ArrayList<Object>(download.notes()));
-            return Json.write(json);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
-
-    /**
      * The network the installer downloads over.
      *
      * <p>Separate from a game's: a game has to ask before it connects, and a
@@ -497,20 +449,6 @@ public final class MobiCoreFacade {
             session.network().setTransport(gameTransport);
             session.network().setSocketTransport(gameSockets);
         }
-    }
-
-    /** What the installer fetched, so the player can see where it came from. */
-    public String downloadsJson() {
-        Map<String, Object> root = Json.object();
-        List<Object> requests = new ArrayList<Object>();
-        if (installerNetwork != null) {
-            for (NetworkMonitor.Exchange exchange : installerNetwork.monitor().exchanges()) {
-                requests.add(exchange.toJson());
-            }
-        }
-        root.put("ok", Boolean.TRUE);
-        root.put("downloads", requests);
-        return Json.write(root);
     }
 
     public String uninstall(String suiteId, boolean keepData) {
@@ -685,75 +623,6 @@ public final class MobiCoreFacade {
         } catch (IOException e) {
             return error(e.getMessage());
         }
-    }
-
-    /**
-     * Starts recording the screen as an animation.
-     *
-     * <p>A screenshot says where the player got to; it cannot say how. A few
-     * seconds of the game can, and a GIF plays wherever a picture plays, so
-     * nobody has to install anything to watch it.</p>
-     */
-    public String startRecording() {
-        if (session == null) {
-            return error("No game is running");
-        }
-        session.clip().start(session.vm().host().currentTimeMillis());
-        return recordingJson();
-    }
-
-    /**
-     * Ends the recording and saves it beside the screenshots.
-     *
-     * <p>Encoding happens here, not while playing: the colour table is chosen
-     * from the whole clip at once, so there is nothing to encode until the
-     * clip is whole.</p>
-     */
-    public String stopRecording() {
-        if (session == null || library == null || activeSuiteId == null) {
-            return error("No game is running");
-        }
-        try {
-            byte[] gif = session.clip().stop();
-            if (gif == null) {
-                return error("Chưa quay được khung hình nào");
-            }
-            String path = library.writeClip(activeSuiteId, gif);
-            Map<String, Object> json = Json.object();
-            json.put("ok", Boolean.TRUE);
-            json.put("path", path);
-            json.put("bytes", Integer.valueOf(gif.length));
-            return Json.write(json);
-        } catch (IOException e) {
-            return error(e.getMessage());
-        }
-    }
-
-    /** Throws a recording away without saving it. */
-    public String cancelRecording() {
-        if (session == null) {
-            return error("No game is running");
-        }
-        session.clip().cancel();
-        return recordingJson();
-    }
-
-    /**
-     * Whether a clip is being recorded, and how long it has got.
-     *
-     * <p>Asked on every drawn frame while recording, because a red dot that
-     * does not count up is a red dot nobody trusts.</p>
-     */
-    public String recordingJson() {
-        Map<String, Object> json = Json.object();
-        json.put("ok", Boolean.TRUE);
-        ClipRecorder clip = session == null ? null : session.clip();
-        json.put("recording", Boolean.valueOf(clip != null && clip.isRecording()));
-        json.put("frames", Integer.valueOf(clip == null ? 0 : clip.frameCount()));
-        json.put("tenths", Integer.valueOf(clip == null ? 0 : clip.tenths()));
-        json.put("full", Boolean.valueOf(clip != null && clip.isFull()));
-        json.put("maxSeconds", Integer.valueOf(ClipRecorder.MAX_SECONDS));
-        return Json.write(json);
     }
 
     /**
@@ -1527,7 +1396,6 @@ public final class MobiCoreFacade {
                 shot.put("bytes", Integer.valueOf(png == null ? 0 : png.length));
                 // A clip is a screenshot that moves, and lives in the same
                 // gallery; the viewer needs to know which it is holding.
-                shot.put("clip", Boolean.valueOf(name.endsWith(".gif")));
                 shots.add(shot);
             }
             Map<String, Object> root = Json.object();
@@ -1556,41 +1424,6 @@ public final class MobiCoreFacade {
             return png == null ? new byte[0] : png;
         } catch (IOException e) {
             return new byte[0];
-        }
-    }
-
-    /**
-     * Gets one picture or clip ready to leave the app.
-     *
-     * <p>A screenshot nobody can send is half a screenshot. Inside the app it
-     * is called {@code 1700000000000.png}, which is the right name for a file
-     * the app itself reads and says nothing at all in a chat — so a copy is
-     * made under a readable name and it is the copy that goes.</p>
-     *
-     * @return where the copy is, what it should be called, and what it is
-     */
-    public String shareScreenshot(String suiteId, String name) {
-        if (library == null) {
-            return error("The library is not open");
-        }
-        try {
-            byte[] bytes = library.readScreenshot(suiteId, name);
-            if (bytes == null || bytes.length == 0) {
-                return error("Không có ảnh này");
-            }
-            LibraryEntry entry = library.find(suiteId);
-            String title = entry == null ? "MobiCore" : entry.title();
-            ShareExport share = new ShareExport(library.storage(), library.layout());
-            String path = share.prepare(title, name, bytes);
-            Map<String, Object> json = Json.object();
-            json.put("ok", Boolean.TRUE);
-            json.put("path", path);
-            json.put("name", share.fileNameFor(title, name));
-            json.put("mime", ShareExport.mimeOf(name));
-            json.put("clip", Boolean.valueOf(ShareExport.isClip(name)));
-            return Json.write(json);
-        } catch (IOException e) {
-            return error(e.getMessage());
         }
     }
 

@@ -234,11 +234,7 @@ struct Screenshot: Codable, Identifiable, Hashable {
     let name: String
     let takenAt: Int64
     let bytes: Int
-    /// True for a recorded clip, which shares the gallery with the pictures.
-    let clip: Bool?
-
     var id: String { name }
-    var isClip: Bool { clip ?? false }
 }
 
 /// The one game offered on the way in, if there is one.
@@ -372,14 +368,6 @@ struct TiltSettings: Codable {
     let inverted: Bool
 }
 
-/// A picture or clip made ready to leave the app.
-struct SharedFile: Codable {
-    let path: String
-    let name: String
-    let mime: String
-    let clip: Bool
-}
-
 /// One shelf the player has put games on.
 struct Collection: Codable, Identifiable, Hashable {
     let name: String
@@ -468,15 +456,6 @@ struct KeypadArrangement: Codable {
     let scale: Int
     let custom: Bool
     let keys: [KeyOffset]
-}
-
-/// Whether a clip is being recorded, and how long it has got.
-struct Recording: Codable {
-    let recording: Bool
-    let frames: Int
-    let tenths: Int
-    let full: Bool
-    let maxSeconds: Int
 }
 
 struct ScreenshotsResponse: Codable {

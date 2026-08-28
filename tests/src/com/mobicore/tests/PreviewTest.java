@@ -4,7 +4,6 @@ import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.tools.CrashScreen;
 import com.mobicore.tools.DetailScreen;
 import com.mobicore.tools.ImportScreen;
-import com.mobicore.tools.LinkScreen;
 import com.mobicore.tools.ProfileScreen;
 import com.mobicore.tools.SlotsScreen;
 import com.mobicore.tools.VmScreen;
@@ -47,7 +46,6 @@ public final class PreviewTest extends Test {
         clear("Cài đặt game", new ProfileScreen(fixtureDir).render());
         clear("Máy ảo", new VmScreen(fixtureDir).render());
         clear("Chỗ lưu", new SlotsScreen(fixtureDir).render());
-        clear("Nhập từ liên kết", new LinkScreen(fixtureDir).render());
         clear("Game hỏng", new CrashScreen(fixtureDir).render());
         clear("Game treo", new CrashScreen(fixtureDir, "demo.HangDemo").render());
     }

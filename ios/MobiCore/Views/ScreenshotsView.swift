@@ -26,7 +26,7 @@ struct ScreenshotsView: View {
                     Text("Chưa có ảnh nào")
                         .font(.headline)
                         .foregroundStyle(Palette.text)
-                    Text("Trong lúc chơi, mở Menu rồi chọn \"Chụp màn hình\" hoặc \"Quay màn hình\".")
+                    Text("Trong lúc chơi, mở Menu rồi chọn \"Chụp màn hình\".")
                         .font(.footnote)
                         .foregroundStyle(Palette.textDim)
                         .multilineTextAlignment(.center)
@@ -44,34 +44,6 @@ struct ScreenshotsView: View {
                                         .resizable()
                                         .interpolation(.medium)
                                         .aspectRatio(contentMode: .fit)
-                                }
-                                // A clip and a picture share the gallery, so
-                                // the clip says which it is; the thumbnail is
-                                // its first frame.
-                                if shot.isClip {
-                                    Label("Đoạn quay", systemImage: "video")
-                                        .font(.caption2)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 3)
-                                        .background(Palette.background.opacity(0.75),
-                                                    in: RoundedRectangle(cornerRadius: 6))
-                                        .foregroundStyle(Palette.text)
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity,
-                                               alignment: .bottomLeading)
-                                        .padding(6)
-                                }
-                                // Sending is the reason a picture was taken,
-                                // so it sits on the picture beside the way to
-                                // delete it.
-                                if opened == shot.name,
-                                   let file = client.prepareShare(suiteId, named: shot.name) {
-                                    ShareLink(item: file) {
-                                        Image(systemName: "square.and.arrow.up")
-                                            .padding(8)
-                                            .foregroundStyle(Palette.accent)
-                                    }
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity,
-                                           alignment: .topLeading)
                                 }
                                 if opened == shot.name {
                                     // The one action a picture needs, shown on

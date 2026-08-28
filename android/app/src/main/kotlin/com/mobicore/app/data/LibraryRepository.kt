@@ -14,8 +14,6 @@ import com.mobicore.core.tools.SaveScanner
 import com.mobicore.core.model.AppSettings
 import com.mobicore.core.model.AutoSetup
 import com.mobicore.core.library.CollectionStore
-import com.mobicore.core.library.ShareExport
-import com.mobicore.core.library.UrlInstaller
 import com.mobicore.core.midp.MidpFiles
 import com.mobicore.core.net.HttpTransport
 import com.mobicore.core.net.NetworkPolicy
@@ -549,43 +547,6 @@ class LibraryRepository(filesDir: String) {
         _collections.value = shelves.names()
     }
 
-    /**
-     * Installs a game from a link.
-     *
-     * These games arrive as a link before they arrive as a file. Fetching one
-     * in a browser, finding it in Downloads and picking it out of a file
-     * chooser is three steps for something this does in one.
-     *
-     * @return what happened, in words to show the player
-     */
-    fun installFromUrl(url: String): String = runCatching {
-        val download = UrlInstaller.fetch({ target ->
-            val request = NetworkTransport.Request(target)
-            // A handset asked for exactly this, and a few servers of the era
-            // still refuse anything that does not.
-            request.headers["Accept"] =
-                "text/vnd.sun.j2me.app-descriptor, application/java-archive, */*"
-            downloads.perform(request)
-        }, url)
-        library.setClock(System.currentTimeMillis())
-        val result = library.install(download.jar(), download.jad())
-        refresh()
-        "Đã cài ${result.entry().title()}"
-    }.getOrElse { "Không tải được: ${it.message}" }
-
-    /**
-     * Where downloads go through.
-     *
-     * Separate from a game's network: a game has to ask before it connects,
-     * and a download the player asked for by typing an address does not. It
-     * still goes through a policy and a monitor, so the same rules about what
-     * is recorded apply.
-     */
-    private val downloads: NetworkStack by lazy {
-        val policy = NetworkPolicy()
-        policy.setMode(GameProfile.NETWORK_ALLOWED)
-        NetworkStack(policy).also { it.setTransport(HttpTransport()) }
-    }
 
     /**
      * The files a game has written for itself through JSR-75.
@@ -619,31 +580,7 @@ class LibraryRepository(filesDir: String) {
         return library.storage().delete(full)
     }
 
-    /**
-     * Gets one picture or clip ready to leave the app.
-     *
-     * Inside the app it is called `1700000000000.png`, which is the right name
-     * for a file the app itself reads and says nothing at all in a chat. So a
-     * copy is made under a readable name, and it is the copy that goes.
-     *
-     * @return the copy's path and what to call it, or null when there is
-     *     nothing to send
-     */
-    fun prepareShare(suiteId: String, name: String): Pair<String, String>? {
-        val bytes = library.readScreenshot(suiteId, name) ?: return null
-        if (bytes.isEmpty()) {
-            return null
-        }
-        val title = library.find(suiteId)?.title() ?: "MobiCore"
-        val share = ShareExport(library.storage(), library.layout())
-        return runCatching {
-            share.prepare(title, name, bytes) to ShareExport.mimeOf(name)
-        }.getOrNull()
-    }
 
-    /** Keeps a recorded clip beside the pictures; returns where it went. */
-    fun writeClip(suiteId: String, gif: ByteArray): String =
-        library.writeClip(suiteId, gif)
 
     /** Every picture taken of one game, newest first. */
     fun screenshots(suiteId: String): List<String> =

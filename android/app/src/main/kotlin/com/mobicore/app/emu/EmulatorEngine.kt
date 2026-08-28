@@ -322,42 +322,6 @@ class EmulatorEngine(
         session?.releaseTilt()
     }
 
-    // ------------------------------------------------------------ recording
-
-    /**
-     * True while a clip is being recorded.
-     *
-     * Mirrored into Compose state rather than read off the session on every
-     * frame: the toolbar has to redraw when it changes, and it changes twice
-     * in a session.
-     */
-    var recording by mutableStateOf(false)
-        private set
-
-    /** How much of the clip is recorded, in tenths of a second. */
-    fun clipTenths(): Int = session?.clip()?.tenths() ?: 0
-
-    /** True once the clip is as long as one is allowed to be. */
-    fun clipFull(): Boolean = session?.clip()?.isFull ?: false
-
-    fun startRecording() {
-        val active = session ?: return
-        active.clip().start(active.vm().host().currentTimeMillis())
-        recording = true
-    }
-
-    /**
-     * Ends the clip and encodes it.
-     *
-     * Encoding happens here rather than while playing: a GIF's colour table
-     * is chosen from the whole clip at once, so there is nothing to encode
-     * until the clip is whole.
-     */
-    fun stopRecording(): ByteArray? {
-        recording = false
-        return runCatching { session?.clip()?.stop() }.getOrNull()
-    }
-
     fun stop() {
         stopRequested.set(true)
         // Một game kẹt trong vòng lặp của chính nó không bao giờ đọc tới cờ

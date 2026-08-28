@@ -25,7 +25,6 @@ public final class Runner {
         tests.add(new NokiaTest(fixtures));
         tests.add(new BatchImportTest(fixtures));
         tests.add(new CollectionTest(fixtures));
-        tests.add(new ShareTest(fixtures));
         tests.add(new TiltTest(fixtures));
         tests.add(new ContinueTest(fixtures));
         tests.add(new CrashTest(fixtures));
@@ -43,9 +42,7 @@ public final class Runner {
         tests.add(new StdlibTest(fixtures));
         tests.add(new TransformTest(fixtures));
         tests.add(new BridgeTest());
-        tests.add(new DownloadTest(fixtures));
         tests.add(new FileTest(fixtures));
-        tests.add(new GifTest());
         tests.add(new ProfileTest());
         tests.add(new LibraryTest(fixtures));
         tests.add(new FacadeTest(fixtures));

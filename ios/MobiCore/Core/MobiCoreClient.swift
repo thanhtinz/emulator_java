@@ -305,24 +305,6 @@ final class MobiCoreClient: ObservableObject {
         report(decode(bridge.takeScreenshot()))
     }
 
-    /// Starts recording the screen as an animation.
-    ///
-    /// A picture says where the player got to; a clip says how, and a GIF
-    /// plays wherever a picture plays.
-    func startRecording() {
-        report(decode(bridge.startRecording()))
-    }
-
-    /// Ends the recording and saves it beside the screenshots.
-    func stopRecording() {
-        report(decode(bridge.stopRecording()))
-    }
-
-    /// Whether a clip is being recorded, and how long it has got.
-    func recording() -> Recording? {
-        decode(bridge.recordingJSON())
-    }
-
     /// Every picture taken of one game, newest first. A screenshot nothing
     /// can show again is a dead end.
     func screenshots(_ suiteId: String) -> [Screenshot] {
@@ -338,18 +320,6 @@ final class MobiCoreClient: ObservableObject {
         return Image(uiImage: image)
     }
 
-    /// Gets one picture or clip ready to send.
-    ///
-    /// Inside the app it is called `1700000000000.png` — the right name for a
-    /// file the app itself reads, and one that says nothing in a chat. So a
-    /// copy is made under a readable name, and it is the copy that goes.
-    func prepareShare(_ suiteId: String, named name: String) -> URL? {
-        let shared: SharedFile? = decode(bridge.shareScreenshot(name, forSuite: suiteId))
-        guard let path = shared?.path else {
-            return nil
-        }
-        return URL(fileURLWithPath: path)
-    }
 
     func deleteScreenshot(_ suiteId: String, named name: String) {
         report(decode(bridge.deleteScreenshot(forSuite: suiteId, named: name)))
@@ -444,18 +414,6 @@ final class MobiCoreClient: ObservableObject {
 
     // ------------------------------------------------------------- from a link
 
-    /// Installs a game from a link.
-    ///
-    /// These games arrive as a link before they arrive as a file. Fetching one
-    /// in Safari, finding it in Files and picking it out of a document picker
-    /// is three steps for something this does in one.
-    ///
-    /// - Returns: what happened, in words to show the player.
-    func installFromUrl(_ url: String) -> String {
-        guard let data = bridge.installFromURL(url).data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return "Không tải được"
-        }
         refresh()
         if json["ok"] as? Bool != true {
             return json["error"] as? String ?? "Không tải được"

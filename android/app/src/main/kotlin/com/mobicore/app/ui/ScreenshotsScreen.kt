@@ -21,16 +21,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import android.content.Context
-import android.content.Intent
-import androidx.core.content.FileProvider
-import java.io.File
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -113,40 +108,6 @@ fun ScreenshotsScreen(
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
-                    // A clip and a picture sit in the same gallery, so the
-                    // clip says which it is. The thumbnail is its first
-                    // frame, which is what a still of it would have been.
-                    if (name.endsWith(".gif")) {
-                        Row(
-                            Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(6.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(MobiColors.Background.copy(alpha = 0.75f))
-                                .padding(horizontal = 6.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Filled.Videocam,
-                                contentDescription = "Đoạn quay",
-                                tint = MobiColors.Accent,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text("Đoạn quay", color = MobiColors.Text, fontSize = 11.sp)
-                        }
-                    }
-                    if (opened == name) {
-                        // Sending is the reason a picture was taken, so it
-                        // sits on the picture beside the way to delete it.
-                        IconButton(
-                            onClick = { shareScreenshot(context, library, suiteId, name) },
-                            modifier = Modifier.align(Alignment.TopStart),
-                        ) {
-                            Icon(Icons.Filled.Share, contentDescription = "Chia sẻ",
-                                tint = MobiColors.Accent)
-                        }
-                    }
                     if (opened == name) {
                         // The one action a picture needs, shown on the picture
                         // rather than behind a long press nobody discovers.
@@ -169,49 +130,6 @@ fun ScreenshotsScreen(
     }
 }
 
-/**
- * "3 ảnh, 1 đoạn quay" — the two kinds counted separately.
- *
- * They share a folder, but a player looking for the clip they recorded should
- * be able to see from the heading that it is in here.
- */
-private fun galleryCount(names: List<String>): String {
-    val clips = names.count { it.endsWith(".gif") }
-    val stills = names.size - clips
-    if (clips == 0) {
-        return "$stills ảnh"
-    }
-    if (stills == 0) {
-        return "$clips đoạn quay"
-    }
-    return "$stills ảnh, $clips đoạn quay"
-}
+/** "3 ảnh" — how many are in here, for the heading. */
+private fun galleryCount(names: List<String>): String = "${names.size} ảnh"
 
-/**
- * Hands one picture or clip to whatever the phone can send it with.
- *
- * The file another app receives is the prepared copy in the cache, reached
- * through the provider: the app's own storage — a game's saves, its files, the
- * library index — is never exposed, only what the player asked to send.
- */
-private fun shareScreenshot(
-    context: Context,
-    library: LibraryRepository,
-    suiteId: String,
-    name: String,
-) {
-    val prepared = library.prepareShare(suiteId, name) ?: return
-    // The path is already absolute — the library's own root lives under the
-    // app's files directory, which is exactly what the provider maps.
-    val file = File(prepared.first)
-    if (!file.exists()) {
-        return
-    }
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.share", file)
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = prepared.second
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    context.startActivity(Intent.createChooser(intent, "Chia sẻ"))
-}

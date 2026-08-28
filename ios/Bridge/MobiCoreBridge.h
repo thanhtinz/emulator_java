@@ -248,11 +248,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// Labels the running screen has mapped to the two softkeys, as JSON.
 - (NSString *)softKeysJSON;
 
-/// Records the screen as an animation; saved beside the screenshots.
-- (NSString *)startRecording;
-- (NSString *)stopRecording;
-- (NSString *)cancelRecording;
-- (NSString *)recordingJSON;
 
 /// How solid the running game's keypad should be drawn now, in percent.
 - (NSInteger)keypadDrawOpacity;
@@ -286,8 +281,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// Người chơi đã đọc xong; game đã chết cũng được dọn luôn.
 - (NSString *)dismissCrash;
 
-/// Gets one picture or clip ready to leave the app, under a readable name.
-- (NSString *)shareScreenshot:(NSString *)name forSuite:(NSString *)suiteId;
 
 /// Shelves the player puts their games on.
 - (NSString *)collectionsJSONForSuite:(NSString *)suiteId;
@@ -298,10 +291,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// The games on one shelf, in the library's own listing shape.
 - (NSString *)collectionJSON:(NSString *)name;
 
-/// Installs a game from a link; these games arrive as a link first.
-- (NSString *)installFromURL:(NSString *)url;
-/// What the installer fetched, so the player can see where a game came from.
-- (NSString *)downloadsJSON;
 
 /// The files a game has written for itself through JSR-75.
 - (NSString *)gameFilesJSONForSuite:(NSString *)suiteId;

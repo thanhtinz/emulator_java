@@ -310,41 +310,6 @@ private fun GameMenu(
                     open = false
                 },
             )
-            // A picture says where the player got to; a clip says how. It is
-            // capped at ten seconds because the frames are held in memory
-            // until the clip is whole.
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        if (engine.recording) "Dừng quay (%.1f giây)".format(
-                            engine.clipTenths() / 10f)
-                        else "Quay màn hình"
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        if (engine.recording) Icons.Filled.StopCircle
-                        else Icons.Filled.Videocam,
-                        contentDescription = null,
-                        tint = if (engine.recording) MobiColors.Bad else MobiColors.Text,
-                    )
-                },
-                onClick = {
-                    if (engine.recording) {
-                        val gif = engine.stopRecording()
-                        note = if (gif != null) {
-                            library.writeClip(suiteId, gif)
-                            "Đã lưu đoạn quay"
-                        } else {
-                            "Chưa quay được khung hình nào"
-                        }
-                    } else {
-                        engine.startRecording()
-                        note = "Đang quay — tối đa 10 giây"
-                    }
-                    open = false
-                },
-            )
             DropdownMenuItem(
                 text = { Text("Bàn phím") },
                 trailingIcon = {

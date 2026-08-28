@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -81,7 +80,6 @@ fun HomeScreen(
     onOpen: (String) -> Unit,
     onImport: () -> Unit,
     /** Pasting a link, which is how most of these games are found. */
-    onImportLink: () -> Unit = {},
     onTools: () -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -105,7 +103,6 @@ fun HomeScreen(
                 searching = it
                 if (!it) query = ""
             },
-            onImportLink = onImportLink,
             onTools = onTools,
             onSettings = onSettings,
         )
@@ -204,7 +201,6 @@ private fun ToolBar(
     searching: Boolean,
     onQuery: (String) -> Unit,
     onSearching: (Boolean) -> Unit,
-    onImportLink: () -> Unit,
     onTools: () -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -276,11 +272,6 @@ private fun ToolBar(
                         )
                     },
                     onClick = { library.cycleTheme(); menuOpen = false },
-                )
-                DropdownMenuItem(
-                    text = { Text("Nhập từ liên kết") },
-                    leadingIcon = { Icon(Icons.Filled.Link, contentDescription = null) },
-                    onClick = { menuOpen = false; onImportLink() },
                 )
                 DropdownMenuItem(
                     text = { Text("Công cụ") },

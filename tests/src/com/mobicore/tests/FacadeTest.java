@@ -272,7 +272,6 @@ public final class FacadeTest extends Test {
                 "and a control bound to nothing presses nothing");
 
         // A picture says where the player got to; a clip says how.
-        clip(facade, suiteId);
 
         facade.pauseGame();
         facade.resumeGame();
@@ -504,57 +503,6 @@ public final class FacadeTest extends Test {
             }
         }
         return "";
-    }
-
-    /**
-     * Recording a few seconds of play as an animation.
-     *
-     * <p>Saved beside the screenshots, because to a player a clip is a
-     * screenshot that moves and two galleries would mean choosing which one to
-     * open before remembering which one they took.</p>
-     */
-    private void clip(MobiCoreFacade facade, String suiteId) throws Exception {
-        check(!Json.bool(Json.readObject(facade.recordingJson()), "recording", true),
-                "nothing is being recorded to begin with");
-        check(!Json.bool(Json.readObject(facade.stopRecording()), "ok", true),
-                "and there is nothing to save");
-
-        Map<String, Object> started = Json.readObject(facade.startRecording());
-        check(Json.bool(started, "recording", false), "recording starts when asked");
-        eq(10, Json.integer(started, "maxSeconds", 0), "and says how long it may run");
-        for (int i = 0; i < 40; i++) {
-            facade.renderFrame();
-            Thread.sleep(6);
-        }
-        check(Json.integer(Json.readObject(facade.recordingJson()), "frames", 0) > 1,
-                "frames pile up while the game runs");
-
-        Map<String, Object> saved = Json.readObject(facade.stopRecording());
-        check(Json.bool(saved, "ok", false), "the clip saves: "
-                + Json.string(saved, "error", ""));
-        check(Json.string(saved, "path", "").endsWith(".gif"),
-                "as a GIF: " + Json.string(saved, "path", ""));
-        check(Json.integer(saved, "bytes", 0) > 100, "with something in it");
-
-        List<Object> gallery = Json.array(
-                Json.readObject(facade.screenshotsJson(suiteId)), "screenshots");
-        eq(1, gallery.size(), "and shows up in the same gallery as the pictures");
-        Map<String, Object> entry = (Map<String, Object>) gallery.get(0);
-        check(Json.bool(entry, "clip", false), "marked as the moving kind");
-        String name = Json.string(entry, "name", "");
-        byte[] gif = facade.screenshot(suiteId, name);
-        check(gif.length > 100 && gif[0] == 'G' && gif[1] == 'I' && gif[2] == 'F',
-                "and reads back as a GIF");
-        facade.deleteScreenshot(suiteId, name);
-
-        // Cancelling throws the frames away rather than saving them.
-        facade.startRecording();
-        facade.renderFrame();
-        facade.cancelRecording();
-        check(!Json.bool(Json.readObject(facade.recordingJson()), "recording", true),
-                "a cancelled recording stops");
-        eq(0, Json.integer(Json.readObject(facade.recordingJson()), "frames", -1),
-                "and keeps nothing");
     }
 
     /**

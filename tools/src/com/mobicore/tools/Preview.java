@@ -76,7 +76,6 @@ public final class Preview {
         write(vfs, outDir, "35-own-loop.png", loopScreen(fixtures));
         write(vfs, outDir, "36-clock.png", clockScreen(fixtures));
         write(vfs, outDir, "37-flip.png", flipScreen(fixtures));
-        write(vfs, outDir, "27-install-link.png", new LinkScreen(fixtures).render());
         write(vfs, outDir, "28-crash.png", new CrashScreen(fixtures).render());
         write(vfs, outDir, "29-hang.png", new CrashScreen(fixtures, "demo.HangDemo").render());
         // The keypad in the other shape and faded back, which is what the
