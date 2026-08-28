@@ -50,6 +50,10 @@ public final class Preview {
                 new DevToolsScreen(fixtures, DevToolsScreen.TAB_NETWORK).render());
         write(vfs, outDir, "32-tools-files.png",
                 new DevToolsScreen(fixtures, DevToolsScreen.TAB_RESOURCES).render());
+        write(vfs, outDir, "33-tools-mods.png",
+                new DevToolsScreen(fixtures, DevToolsScreen.TAB_MODS).render());
+        write(vfs, outDir, "34-tools-data.png",
+                new DevToolsScreen(fixtures, DevToolsScreen.TAB_DATA).render());
         write(vfs, outDir, "08-list.png", new MenuScreen(fixtures, "list").render());
         write(vfs, outDir, "09-form.png", new MenuScreen(fixtures, "form").render());
         write(vfs, outDir, "10-options-menu.png", new MenuScreen(fixtures, "menu").render());

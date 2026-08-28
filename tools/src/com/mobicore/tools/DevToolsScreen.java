@@ -323,19 +323,31 @@ public final class DevToolsScreen {
         String[] labels = {"Vật phẩm", "Tệp game", "Mạng", "Mod", "Dữ liệu"};
         int y = tabStrip(ui, labels, tab, width) + 14;
 
+
+        // Mỗi thẻ vẽ đúng phần của nó: một thẻ mà bày ra cả nội dung của
+        // thẻ bên cạnh thì chia thẻ để làm gì.
         if (tab == TAB_TREASURE) {
             drawTreasure(ui, margin, y, width, fieldX, fieldWidth);
-            Framebuffer page = Preview.fit(frame, Ui.TAB_BAR);
-            new Ui(page).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
-            return page;
-        }
-        if (tab == TAB_RESOURCES) {
+        } else if (tab == TAB_RESOURCES) {
             drawResources(ui, library, entry, mods, margin, y, width, fieldX, fieldWidth);
-            Framebuffer only = Preview.fit(frame, Ui.TAB_BAR);
-            new Ui(only).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
-            return only;
+        } else if (tab == TAB_NETWORK) {
+            drawNetwork(ui, session, margin, y, width, fieldX, fieldWidth);
+        } else if (tab == TAB_MODS) {
+            drawMods(ui, mods, margin, y, width, fieldX, fieldWidth);
+        } else {
+            drawData(ui, library, entry, rms, margin, y, width, fieldX, fieldWidth);
         }
 
+        // Thanh thẻ nằm đáy trang, nên nó được vẽ sau khi trang đã cắt về
+        // đúng chiều cao thật — vẽ trước thì nó dính vào đáy tấm thừa.
+        Framebuffer page = Preview.fit(frame, Ui.TAB_BAR);
+        new Ui(page).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
+        return page;
+    }
+
+    /** Bảng theo dõi mạng: http, socket, cổng chờ, gói tin. */
+    private void drawNetwork(Ui ui, EmulatorSession session, int margin, int y, int width,
+                             int fieldX, int fieldWidth) {
         // Network monitor ------------------------------------------------
         List<NetworkMonitor.Exchange> exchanges = session.network().monitor().exchanges();
         int entryHeight = ui.mediumBold().height() + ui.small().height() + 8;
@@ -366,12 +378,13 @@ public final class DevToolsScreen {
             row += entryHeight;
         }
         y += netHeight + 14;
-        if (tab == TAB_NETWORK) {
-            Framebuffer only = Preview.fit(ui.frame(), Ui.TAB_BAR);
-            new Ui(only).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
-            return only;
-        }
+    }
 
+    /** Những bản mod đang phủ lên game. */
+    private void drawMods(Ui ui, ModManager mods, int margin, int y, int width,
+                          int fieldX, int fieldWidth) throws Exception {
+        int entryHeight = ui.mediumBold().height() + ui.small().height() + 8;
+        int row;
         // Mods -----------------------------------------------------------
         List<ModPackage> installed = mods.installed();
         int modHeight = 12 + ui.small().height() + 8 + installed.size() * entryHeight + 6;
@@ -389,12 +402,14 @@ public final class DevToolsScreen {
             row += entryHeight;
         }
         y += modHeight + 14;
-        if (tab == TAB_MODS) {
-            Framebuffer only = Preview.fit(ui.frame(), Ui.TAB_BAR);
-            new Ui(only).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
-            return only;
-        }
+    }
 
+    /** Mô tả bộ cài và phần lưu, hai thứ hay phải soi cùng lúc. */
+    private void drawData(Ui ui, GameLibrary library, LibraryEntry entry, RmsEditor rms,
+                          int margin, int y, int width, int fieldX, int fieldWidth)
+            throws Exception {
+        int entryHeight = ui.mediumBold().height() + ui.small().height() + 8;
+        int row;
         // Descriptor -----------------------------------------------------
         JadEditor editor = new JadEditor(library.load(entry.suiteId()).info().attributes());
         List<JadEditor.Problem> problems = editor.validate();
@@ -428,11 +443,5 @@ public final class DevToolsScreen {
                     fieldX, row + ui.mediumBold().height() + 2, Theme.TEXT_DIM);
             row += entryHeight;
         }
-
-        // Thanh thẻ nằm đáy trang, nên nó được vẽ sau khi trang đã cắt về
-        // đúng chiều cao thật — vẽ trước thì nó dính vào đáy tấm thừa.
-        Framebuffer page = Preview.fit(frame, Ui.TAB_BAR);
-        new Ui(page).tabBar(new String[]{"Trang chủ", "Công cụ", "Cài đặt"}, 1);
-        return page;
     }
 }
