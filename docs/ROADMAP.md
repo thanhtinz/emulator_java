@@ -2303,3 +2303,38 @@ khoá, chạy có hạn giờ — kẹt thì bộ kiểm báo hỏng chứ khôn
 ngoài khối `synchronized` ném `VmError` — thứ game không bắt được — thay vì
 `NullPointerException` và `IllegalMonitorStateException`. Một game khoá sai chỗ
 vẫn phải bắt được lỗi của chính nó, chứ không được kéo sập cả máy ảo.
+
+## Giai đoạn 57 — bỏ những thứ không thuộc về một trình giả lập
+
+Sau năm mươi sáu giai đoạn, MobiCore mang nhiều thứ hơn mức cần. Đợt này bỏ đi
+ba nhóm, mỗi nhóm xoá đủ bốn mặt: lõi, cầu nối, hai ứng dụng, và bộ kiểm.
+
+**Tua lại, chỉnh tốc độ, liên thanh.** Không thứ nào có trong J2ME Loader và
+không thứ nào thuộc về việc giả lập. Chúng ngồi ngay cạnh "Chụp màn hình" và
+"Thoát" trong một cái menu người ta mở lúc đang vội. Đồng hồ của máy ảo giờ là
+đồng hồ thật, không còn một lớp bọc chỉ để nhân thời gian lên.
+
+**Quay GIF, chia sẻ, cài từ liên kết.** Quay màn chơi kéo theo một bộ mã hoá
+GIF 518 dòng và giữ mọi khung hình trong bộ nhớ tới lúc quay xong. Chụp màn
+hình và thư viện ảnh giữ nguyên — thư viện giờ chỉ đếm ảnh, vì không còn loại
+thứ hai để phân biệt.
+
+**Công cụ còn đúng một trang.** Năm thẻ, bốn trong số đó là dụng cụ của người
+viết máy ảo: xem tệp trong gói, bảng theo dõi mạng, mod, trình sửa JAD và RMS
+ở dạng byte thô. Còn lại phần vật phẩm game — tìm hai lượt, bảng vật phẩm đã
+đặt tên, ô số lượng và nút gửi.
+
+Cùng lúc: màn Công cụ bỏ thanh thẻ dưới đáy cho khớp với hai ứng dụng thật,
+màn nhật ký âm thanh (một bản in chẩn đoán) bị bỏ, và hai lớp
+`LoopbackSockets`, `LoopbackTransport` — đồ giả lập cho bộ kiểm mà lại nằm
+trong mã sản phẩm — chuyển hẳn sang `tests/`.
+
+Vài chỗ cố ý:
+
+- **`NetworkMonitor` giữ nguyên.** Nó luồn qua đường xét quyền của socket chứ
+  không phải một tính năng riêng, và gỡ ra là viết lại phần mạng đang chạy
+  tốt. Thứ bỏ đi là *bảng theo dõi*, không phải khả năng nối mạng.
+- **Khả năng nối mạng của game giữ nguyên** — `NetworkStack`, `NetworkPolicy`,
+  `HttpTransport`, `SocketTransport`, `RealSockets`.
+
+Tổng cộng khoảng 2.600 dòng ít đi, và bộ kiểm vẫn xanh: 37 bộ, 1503 phép kiểm.
