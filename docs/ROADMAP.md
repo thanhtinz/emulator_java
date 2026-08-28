@@ -1778,6 +1778,46 @@ Bộ cài mẫu nay mang theo `res/photo.jpg`, và `demo.PhotoDemo` vẽ nó ra:
 trong ảnh chụp màn hình là ảnh thật, do bộ đọc này giải mã, vẽ bởi một MIDlet
 thật.
 
+### Rà lỗi sau khi làm xong
+
+Một bộ đọc ảnh chạy đúng với bốn tấm ảnh lành chưa chứng minh được gì: thứ nó
+gặp ngoài đời là tệp tải dở, thẻ nhớ lỗi, gói game bị cắt. Nên bản đầu được đem
+ra **thử phá**: cắt cụt ở mọi độ dài, lật byte ngẫu nhiên, và rác hoàn toàn —
+hơn hai chục nghìn tệp hỏng.
+
+- **310 tệp hỏng làm lọt ra `ArrayIndexOutOfBoundsException`.** Với game thì đó
+  là khác biệt sống còn: `IOException` là thứ game viết sẵn `try/catch` để bắt
+  và tự xử lý, còn lỗi kia thì không ai bắt và cả khung hình chết theo. Nguyên
+  nhân là mấy chỗ đọc thẳng vào bảng mà không kiểm số hiệu bảng, và mấy chỗ đọc
+  quá đuôi tệp. Nay mỗi chỗ tự kiểm, cộng một lưới an toàn cuối cùng, và **hai
+  mươi nghìn tệp hỏng không còn tệp nào lọt**.
+- **Một tệp khai ảnh 65535×65535** thì bộ đọc xin gần mười bảy tỉ điểm ảnh và
+  máy hết bộ nhớ trước khi kịp biết là tệp hỏng. Nay có hạn.
+- **Giãn phần màu bị thô.** Đối chiếu với thư viện JPEG chuẩn thì ảnh thường
+  lệch trung bình khoảng 1 mức trên 256, nhưng ảnh nhỏ và ảnh có cạnh lẻ lệch
+  tới **17 mức** — vì phần màu được giãn bằng cách lặp lại điểm gần nhất, và
+  mỗi mẫu màu phủ đúng một ô 2×2. Nay nội suy giữa hai mẫu kề nhau, canh theo
+  *tâm* điểm ảnh chứ không theo mép, và mức lệch xuống còn **0,5 trên mọi cỡ
+  ảnh đã thử** — kể cả 8×8, 37×23 hay 100×3.
+
+Cả ba đều có bài kiểm tra riêng, và cả ba bài đều được thử ngược lại bằng cách
+cố ý làm hỏng mã: bỏ lưới an toàn thì bài kiểm tệp hỏng đỏ, quay về lấy mẫu lặp
+lại thì bài kiểm độ mượt đỏ. Một bài kiểm tra không đỏ khi mã sai thì không
+kiểm gì cả.
+
+### Bỏ con số trên đầu màn game
+
+Thanh trên cùng lúc chơi ghi `240×320 · 30 hình/giây`. Cỡ màn hình thì cả đời
+máy ảo chỉ có một, nên nó nói một chuyện ai cũng biết; còn số hình mỗi giây là
+con số của người viết máy ảo, và một con số nhảy liên tục ngay trên đầu màn
+game thì kéo mắt đi khỏi đúng thứ người ta đang nhìn. Nay giữa thanh để trống:
+còn lại đúng đường ra thư viện và nút menu.
+
+Công tắc "Hiện số khung hình" trong cài đặt cũng bỏ theo — một công tắc không
+còn bật tắt được gì thì tệ hơn là không có — và cùng với nó là bộ đếm hình mỗi
+giây trong cả hai máy chạy game, thứ từ nay không ai đọc.
+
+
 ## Giai đoạn 47 — nối thẳng bằng socket
 
 Lớp mạng cho tới giờ chỉ biết **hỏi một câu rồi nghe một câu trả lời**: đúng

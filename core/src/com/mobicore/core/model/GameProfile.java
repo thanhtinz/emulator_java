@@ -95,7 +95,6 @@ public final class GameProfile {
     private int frameLimit = 30;
     private int volume = 70;
     private boolean muted;
-    private boolean showFps;
     /**
      * Whether the phone may buzz for this game.
      *
@@ -393,14 +392,6 @@ public final class GameProfile {
         this.vibration = vibration;
     }
 
-    public boolean showFps() {
-        return showFps;
-    }
-
-    public void setShowFps(boolean showFps) {
-        this.showFps = showFps;
-    }
-
     public boolean keepAspect() {
         return keepAspect;
     }
@@ -557,7 +548,6 @@ public final class GameProfile {
         json.put("frameLimit", Integer.valueOf(frameLimit));
         json.put("volume", Integer.valueOf(volume));
         json.put("muted", Boolean.valueOf(muted));
-        json.put("showFps", Boolean.valueOf(showFps));
         json.put("vibration", Boolean.valueOf(vibration));
         json.put("keepAspect", Boolean.valueOf(keepAspect));
         json.put("smoothing", Boolean.valueOf(smoothing));
@@ -593,7 +583,6 @@ public final class GameProfile {
         profile.frameLimit = Json.integer(json, "frameLimit", 30);
         profile.volume = Json.integer(json, "volume", 70);
         profile.muted = Json.bool(json, "muted", false);
-        profile.showFps = Json.bool(json, "showFps", false);
         profile.vibration = Json.bool(json, "vibration", true);
         profile.keepAspect = Json.bool(json, "keepAspect", true);
         profile.smoothing = Json.bool(json, "smoothing", true);

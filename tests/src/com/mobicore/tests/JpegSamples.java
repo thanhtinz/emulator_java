@@ -88,6 +88,24 @@ public final class JpegSamples {
             + "IP/aAAgBAgEBPxAf/wD/xAAWEAADAAAAAAAAAAAAAAAAAAAAITH/2gAIAQEAAT8QkiSJIkiS"
             + "JIkiSJIkiSJIkiSJIkj/2Q==";
 
+    /** 37×23: kích thước không chia hết cho khối 8×8, cũng không cho 16×16. */
+    private static final String ODD =
+            "/9j/4AAQSkZJRgABAgAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQY"
+            + "GBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYa"
+            + "KCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAAR"
+            + "CAAXACUDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAA"
+            + "AgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkK"
+            + "FhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWG"
+            + "h4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl"
+            + "5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREA"
+            + "AgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYk"
+            + "NOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOE"
+            + "hYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk"
+            + "5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwe20bp8ta9ro3T5a7K10bp8ta1ro3T5ax"
+            + "rZp5nnZbnO2pxtto3T5a17bRuny12Vro3T5a17XRuny15NbNPM/QctznbU4qHRvk+7RXpMOj"
+            + "fL92ivPeaa7n2FPOfdWpnWukDjgVr2ukDjgUUV5davPufyLluJqaamtbaQOOBWvbaQOOBRRX"
+            + "k1q8+5+gZZiammpqw6QNvQUUUV5zrzvufY08TU5Vqf/Z";
+
     public static byte[] fullColour() {
         return Base64.getDecoder().decode(FULL_COLOUR);
     }
@@ -102,5 +120,9 @@ public final class JpegSamples {
 
     public static byte[] progressive() {
         return Base64.getDecoder().decode(PROGRESSIVE);
+    }
+
+    public static byte[] odd() {
+        return Base64.getDecoder().decode(ODD);
     }
 }

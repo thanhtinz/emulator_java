@@ -66,7 +66,6 @@ fun GameSettingsScreen(
     var scaleMode by remember { mutableIntStateOf(profile.scaleMode()) }
     var frameLimit by remember { mutableIntStateOf(profile.frameLimit()) }
     var volume by remember { mutableIntStateOf(profile.volume()) }
-    var showFps by remember { mutableStateOf(profile.showFps()) }
     var smoothing by remember { mutableStateOf(profile.smoothing()) }
     var vibration by remember { mutableStateOf(profile.vibration()) }
     var networkMode by remember { mutableIntStateOf(profile.networkMode()) }
@@ -249,17 +248,6 @@ fun GameSettingsScreen(
                         Switch(checked = smoothing, onCheckedChange = {
                             smoothing = it
                             persist { profile -> profile.setSmoothing(it) }
-                        })
-                    }
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Hiện số khung hình", color = MobiColors.TextDim, fontSize = 14.sp)
-                        Switch(checked = showFps, onCheckedChange = {
-                            showFps = it
-                            persist { profile -> profile.setShowFps(it) }
                         })
                     }
                 }
