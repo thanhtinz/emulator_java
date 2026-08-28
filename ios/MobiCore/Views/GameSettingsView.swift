@@ -327,12 +327,6 @@ struct GameSettingsView: View {
                                 }
                             }
                             .font(.footnote)
-
-                            Toggle("Hiện số khung hình", isOn: Binding(
-                                get: { current.showFps },
-                                set: { current.showFps = $0; save(current) }
-                            ))
-                            .font(.footnote)
                         }
                     }
 

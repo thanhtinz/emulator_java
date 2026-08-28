@@ -172,22 +172,11 @@ fun EmulatorScreen(
                 fontSize = 15.sp,
                 modifier = Modifier.clickable { engine.stop(); onExit() },
             )
-            // Deliberately not the game's title: the MIDlet has its own title
-            // bar inside the screen, and repeating it invites confusion with
-            // the game's own commands.
-            // The frame counter is behind its own switch: it is a number for
-            // someone working out why a game runs badly, and a number that
-            // changes ten times a second is a distraction for everyone else.
-            Text(
-                text = if (profile?.showFps() == true) {
-                    "${engine.screenWidth()}×${engine.screenHeight()}  ·  " +
-                        "${engine.measuredFps} hình/giây"
-                } else {
-                    "${engine.screenWidth()}×${engine.screenHeight()}"
-                },
-                color = MobiColors.TextDim,
-                fontSize = 12.sp,
-            )
+            // Giữa thanh này để trống có chủ ý: tên game thì MIDlet tự vẽ ở
+            // trong màn hình của nó, còn cỡ màn hình và số hình mỗi giây là
+            // con số của người viết máy ảo — một con số nhảy liên tục ngay
+            // trên đầu màn game chỉ kéo mắt đi khỏi thứ đang chơi.
+            Spacer(Modifier.weight(1f))
             Text(
                 text = if (engine.paused) "Tiếp tục" else "Tạm ngưng",
                 color = MobiColors.Accent,

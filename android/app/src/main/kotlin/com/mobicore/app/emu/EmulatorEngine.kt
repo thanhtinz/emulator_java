@@ -59,9 +59,6 @@ class EmulatorEngine(
     var lastError by mutableStateOf<String?>(null)
         private set
 
-    var measuredFps by mutableIntStateOf(0)
-        private set
-
     /** Bumped whenever the running screen's commands change. */
     var commandRevision by mutableIntStateOf(0)
         private set
@@ -128,20 +125,11 @@ class EmulatorEngine(
                 active.start()
             }
             val limit = profile.frameLimit()
-            var framesThisSecond = 0
-            var secondMark = System.nanoTime()
 
             while (!stopRequested.get() && !active.isFinished) {
                 val frameStart = System.nanoTime()
                 if (!paused && active.renderFrame()) {
                     publish(active)
-                }
-                framesThisSecond++
-                val now = System.nanoTime()
-                if (now - secondMark >= 1_000_000_000L) {
-                    measuredFps = framesThisSecond
-                    framesThisSecond = 0
-                    secondMark = now
                 }
                 // The frame budget follows the speed control: at double speed
                 // the game's own clock runs twice as fast, and drawing at the

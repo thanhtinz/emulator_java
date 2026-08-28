@@ -44,7 +44,6 @@ struct GameSettings: Codable, Hashable {
     var frameLimit: Int
     var volume: Int
     var muted: Bool
-    var showFps: Bool
     /// Whether the phone may buzz for this game.
     var vibration: Bool
     var keepAspect: Bool

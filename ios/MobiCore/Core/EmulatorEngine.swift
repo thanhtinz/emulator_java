@@ -18,7 +18,6 @@ final class EmulatorEngine: ObservableObject {
     @Published private(set) var frame: CGImage?
     @Published private(set) var isRunning = false
     @Published private(set) var isPaused = false
-    @Published private(set) var measuredFps = 0
     @Published private(set) var error: String?
     /// Vì sao game vừa chết, khi nó chết. Xem `CrashReading`.
     @Published private(set) var crash: CrashReading?
@@ -43,8 +42,6 @@ final class EmulatorEngine: ObservableObject {
     private var displayLink: CADisplayLink?
     private var running = false
     private var frameLimit = 30
-    private var framesThisSecond = 0
-    private var secondMark = CACurrentMediaTime()
 
     func start(suiteId: String, settings: GameSettings?) {
         stop()
@@ -121,13 +118,6 @@ final class EmulatorEngine: ObservableObject {
                 running = false
                 isRunning = false
             }
-        }
-        framesThisSecond += 1
-        let now = CACurrentMediaTime()
-        if now - secondMark >= 1 {
-            measuredFps = framesThisSecond
-            framesThisSecond = 0
-            secondMark = now
         }
     }
 

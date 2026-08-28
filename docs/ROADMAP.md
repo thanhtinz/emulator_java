@@ -1794,3 +1794,15 @@ Cả ba đều có bài kiểm tra riêng, và cả ba bài đều được th�
 cố ý làm hỏng mã: bỏ lưới an toàn thì bài kiểm tệp hỏng đỏ, quay về lấy mẫu lặp
 lại thì bài kiểm độ mượt đỏ. Một bài kiểm tra không đỏ khi mã sai thì không
 kiểm gì cả.
+
+### Bỏ con số trên đầu màn game
+
+Thanh trên cùng lúc chơi ghi `240×320 · 30 hình/giây`. Cỡ màn hình thì cả đời
+máy ảo chỉ có một, nên nó nói một chuyện ai cũng biết; còn số hình mỗi giây là
+con số của người viết máy ảo, và một con số nhảy liên tục ngay trên đầu màn
+game thì kéo mắt đi khỏi đúng thứ người ta đang nhìn. Nay giữa thanh để trống:
+còn lại đúng đường ra thư viện và nút menu.
+
+Công tắc "Hiện số khung hình" trong cài đặt cũng bỏ theo — một công tắc không
+còn bật tắt được gì thì tệ hơn là không có — và cùng với nó là bộ đếm hình mỗi
+giây trong cả hai máy chạy game, thứ từ nay không ai đọc.

@@ -134,9 +134,6 @@ public final class EmulatorScreen {
     public EmulatorSession boot() throws Exception {
         SuiteLoader suite = SuiteLoader.load(SampleSuite.jar(fixtureDir), SampleSuite.jad());
         session = EmulatorSession.create(suite, gameWidth, gameHeight, new FixedClock());
-        // The preview shows the frame counter, because a screenshot of it
-        // switched off shows less than one with it on.
-        session.profile().setShowFps(true);
         if (midletClass != null) {
             session.start(midletClass);
             return session;
@@ -425,13 +422,10 @@ public final class EmulatorScreen {
         int glyph = ui.medium().height() + 4;
         Icons.draw(frame, Icons.BACK, Ui.PAD, (barHeight - glyph) / 2, glyph, Theme.ACCENT);
         ui.text(ui.medium(), "Thư viện", Ui.PAD + glyph + 4, textY, Theme.ACCENT);
-        // The frame counter is behind its own switch; the preview shows a
-        // profile that has it on, because a screenshot of it off shows less.
-        String measured = session.profile().showFps()
-                ? gameWidth + "×" + gameHeight + "  ·  30 hình/giây"
-                : gameWidth + "×" + gameHeight;
-        ui.textCenter(ui.small(), measured,
-                width / 2, (barHeight - ui.small().height()) / 2, Theme.TEXT_DIM);
+        // Giữa thanh này để trống có chủ ý. Cỡ màn hình và số hình mỗi giây là
+        // con số của người viết máy ảo, không phải của người đang chơi — và
+        // một con số nhảy liên tục ngay trên đầu màn game thì kéo mắt đi khỏi
+        // đúng thứ người ta đang nhìn.
         ui.textRight(ui.medium(), "Menu", width - Ui.PAD, textY, Theme.ACCENT);
     }
 

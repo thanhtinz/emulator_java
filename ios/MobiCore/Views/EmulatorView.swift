@@ -33,19 +33,10 @@ struct EmulatorView: View {
                     client.refresh()
                     dismiss()
                 }
-                Spacer()
-                // Deliberately not the game's title: the MIDlet has its own
-                // title bar inside the screen, and repeating it invites
-                // confusion with the game's own commands.
-                // The frame counter is behind its own switch: a number for
-                // someone working out why a game runs badly, and a
-                // distraction for everyone else.
-                Text((settings?.showFps ?? false)
-                     ? "\(Int(engine.screenSize.width))×\(Int(engine.screenSize.height))"
-                        + "  ·  \(engine.measuredFps) hình/giây"
-                     : "\(Int(engine.screenSize.width))×\(Int(engine.screenSize.height))")
-                    .font(.caption)
-                    .foregroundStyle(Palette.textDim)
+                // Giữa thanh này để trống có chủ ý: tên game thì MIDlet tự vẽ
+                // ở trong màn hình của nó, còn cỡ màn hình và số hình mỗi giây
+                // là con số của người viết máy ảo — một con số nhảy liên tục
+                // ngay trên đầu màn game chỉ kéo mắt đi khỏi thứ đang chơi.
                 Spacer()
                 Button(engine.isPaused ? "Tiếp tục" : "Tạm ngưng") {
                     engine.isPaused ? engine.resume() : engine.pause()
