@@ -1,0 +1,23 @@
+package javax.microedition.io;
+
+import java.io.IOException;
+
+/** Compile-time stub; the emulator implements this natively. */
+public interface DatagramConnection extends Connection {
+
+    int getMaximumLength() throws IOException;
+
+    int getNominalLength() throws IOException;
+
+    Datagram newDatagram(int size) throws IOException;
+
+    Datagram newDatagram(int size, String address) throws IOException;
+
+    Datagram newDatagram(byte[] buffer, int size) throws IOException;
+
+    Datagram newDatagram(byte[] buffer, int size, String address) throws IOException;
+
+    void send(Datagram datagram) throws IOException;
+
+    void receive(Datagram datagram) throws IOException;
+}

@@ -239,19 +239,32 @@ public final class VmClass {
     }
 
     private VmMethod findInterfaceMethod(String name, String descriptor) {
+        // A default method wins over a declaration, so the whole hierarchy is
+        // searched for one before settling for the declaration. But settling
+        // still has to happen: resolving a call written against an interface —
+        // a game holding a StreamConnection and closing it — finds nothing but
+        // declarations, and refusing them would fail the call before dispatch
+        // ever looked at the object in hand.
+        VmMethod declaration = null;
         for (VmClass type = this; type != null; type = type.superClass) {
             for (VmClass candidate : type.interfaces) {
                 VmMethod method = candidate.declaredMethod(name, descriptor);
                 if (method != null && !method.isAbstract()) {
                     return method;
                 }
+                if (method != null && declaration == null) {
+                    declaration = method;
+                }
                 VmMethod inherited = candidate.findInterfaceMethod(name, descriptor);
-                if (inherited != null) {
+                if (inherited != null && !inherited.isAbstract()) {
                     return inherited;
+                }
+                if (inherited != null && declaration == null) {
+                    declaration = inherited;
                 }
             }
         }
-        return null;
+        return declaration;
     }
 
     public VmField declaredField(String name) {

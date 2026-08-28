@@ -573,6 +573,9 @@ public final class EmulatorSession {
      */
     public void requestStop() {
         vm.setCancelled(true);
+        // Đếm lệnh không gỡ được một luồng đang chờ đọc socket: nó có chạy
+        // lệnh nào đâu mà đếm. Cắt đường truyền mới là thứ đánh thức nó.
+        network.closeAll();
     }
 
     public void destroy() {
@@ -594,6 +597,7 @@ public final class EmulatorSession {
         } catch (IOException e) {
             log.error("Cannot flush record stores: " + e.getMessage());
         }
+        network.closeAll();
         state = STATE_DESTROYED;
         log.info("MIDlet destroyed");
     }

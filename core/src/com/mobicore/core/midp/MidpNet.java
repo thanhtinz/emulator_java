@@ -71,6 +71,9 @@ public final class MidpNet {
                 .define();
 
         httpConnection(vm, network);
+        // Sockets before the connector, for the same reason files are: the
+        // connector only hands out what has been installed.
+        MidpSockets.install(vm, network);
         connector(vm, network);
     }
 
@@ -134,10 +137,14 @@ public final class MidpNet {
             return MidpFiles.open(vm, url, mode);
         }
         if (!"http".equals(scheme) && !"https".equals(scheme)) {
-            // Sockets, datagrams, comm ports and the rest are not emulated;
-            // saying so is better than pretending the connection succeeded.
+            VmObject socket = MidpSockets.open(vm, network, scheme, url);
+            if (socket != null) {
+                return socket;
+            }
+            // Comm ports, infrared and the rest are not emulated; saying so is
+            // better than pretending the connection succeeded.
             throw vm.raise(CONNECTION_NOT_FOUND,
-                    "MobiCore supports http and https connections, not " + scheme);
+                    "MobiCore does not carry " + scheme + " connections");
         }
         VmObject connection = vm.newInstance(HTTP_CONNECTION);
         connection.host = new HttpState(url);

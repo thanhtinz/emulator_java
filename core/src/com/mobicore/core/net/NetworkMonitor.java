@@ -34,6 +34,8 @@ public final class NetworkMonitor {
         private int responseBytes;
         private String requestPreview;
         private String responsePreview;
+        private byte[] requestSample = new byte[0];
+        private byte[] responseSample = new byte[0];
 
         Exchange(String url, String method, long startedAt) {
             this.url = url;
@@ -120,6 +122,46 @@ public final class NetworkMonitor {
             if (keepPreview && body != null) {
                 requestPreview = preview(body, limit);
             }
+        }
+
+        /**
+         * Counts bytes a still-open connection has sent.
+         *
+         * <p>A socket has no single request body: it carries whatever the game
+         * types for as long as the connection lives. So the counters add up
+         * rather than being set, and the preview keeps only the opening of the
+         * conversation — which is the part that says what protocol this is.</p>
+         */
+        public void addRequestBytes(byte[] data, int offset, int length,
+                                    boolean keepPreview, int limit) {
+            requestBytes += Math.max(0, length);
+            if (keepPreview && data != null && length > 0) {
+                requestSample = append(requestSample, data, offset, length, limit);
+                requestPreview = preview(requestSample, limit);
+            }
+        }
+
+        /** Counts bytes a still-open connection has received. */
+        public void addResponseBytes(byte[] data, int offset, int length,
+                                     boolean keepPreview, int limit) {
+            responseBytes += Math.max(0, length);
+            if (keepPreview && data != null && length > 0) {
+                responseSample = append(responseSample, data, offset, length, limit);
+                responsePreview = preview(responseSample, limit);
+            }
+        }
+
+        private static byte[] append(byte[] sample, byte[] data, int offset, int length,
+                                     int limit) {
+            int room = limit - sample.length;
+            if (room <= 0) {
+                return sample;
+            }
+            int take = Math.min(room, length);
+            byte[] grown = new byte[sample.length + take];
+            System.arraycopy(sample, 0, grown, 0, sample.length);
+            System.arraycopy(data, offset, grown, sample.length, take);
+            return grown;
         }
 
         public void recordResponseBody(byte[] body, boolean keepPreview, int limit) {
