@@ -27,8 +27,92 @@ public final class Ui {
     private final UiFont largeBold = UiFont.of(UiFont.SIZE_LARGE, UiFont.STYLE_BOLD);
     private final UiFont title = UiFont.of(UiFont.SIZE_TITLE, UiFont.STYLE_BOLD);
 
+    /**
+     * Mọi khung đã vẽ và mọi dòng chữ đã vẽ, để soi lại chữ tràn khung.
+     *
+     * <p>Chữ tràn khỏi khung là lỗi lặp đi lặp lại, và mắt người soi ảnh
+     * chụp thì bỏ sót. Nên chỗ vẽ tự ghi lại: {@link #panel} nhớ cái khung,
+     * {@link #text} nhớ dòng chữ, rồi {@link #overflows()} nói thẳng dòng nào
+     * chạy ra ngoài khung gần nhất bọc nó. Không màn hình nào phải khai báo
+     * gì thêm.</p>
+     */
+    private static final java.util.List<int[]> boxes = new java.util.ArrayList<int[]>();
+    private static final java.util.List<Object[]> inked = new java.util.ArrayList<Object[]>();
+    /** Mực được phép nhô ra ngoài viền bấy nhiêu điểm, cho phần khử răng cưa. */
+    private static final int SLACK = 1;
+
     public Ui(Framebuffer frame) {
         this.frame = frame;
+    }
+
+    /** Quên hết những gì đã vẽ, để soi màn hình kế tiếp từ đầu. */
+    public static void forgetInk() {
+        boxes.clear();
+        inked.clear();
+    }
+
+    /**
+     * Những dòng chữ chạy ra ngoài khung bọc nó, mỗi dòng một câu tiếng Việt.
+     *
+     * <p>Khung bọc một dòng chữ là khung nhỏ nhất chứa điểm đầu dòng. Không
+     * khung nào chứa thì lấy chính tấm vẽ làm khung.</p>
+     */
+    public static java.util.List<String> overflows(int canvasWidth, int canvasHeight) {
+        java.util.List<String> out = new java.util.ArrayList<String>();
+        for (Object[] t : inked) {
+            int x = ((Integer) t[0]).intValue(), y = ((Integer) t[1]).intValue();
+            int w = ((Integer) t[2]).intValue(), h = ((Integer) t[3]).intValue();
+            String value = (String) t[4];
+            int[] self = (int[]) t[5];
+            if (w <= 0 || h <= 0) {
+                continue;
+            }
+            // Một dòng chữ có thể nằm đè lên một cái ô nhỏ trang trí — ô biểu
+            // tượng của tệp chẳng hạn — mà cái ô đó không phải chỗ chứa nó.
+            // Nên câu hỏi không phải "khung nhỏ nhất là khung nào" mà là "có
+            // khung nào chứa trọn dòng này không". Có thì thôi; không có thì
+            // mới là tràn, và cái khung to nhất bọc lấy đầu dòng chính là chỗ
+            // lẽ ra phải chứa nó.
+            int[] widest = null;
+            boolean held = false;
+            for (int[] b : boxes) {
+                if (b == self) continue;
+                if (x + 1 < b[0] || x + 1 >= b[0] + b[2]) continue;
+                if (y + h / 2 < b[1] || y + h / 2 >= b[1] + b[3]) continue;
+                if (x >= b[0] - SLACK && x + w <= b[0] + b[2] + SLACK
+                        && y >= b[1] - SLACK && y + h <= b[1] + b[3] + SLACK) {
+                    held = true;
+                    break;
+                }
+                if (widest == null || b[2] * b[3] > widest[2] * widest[3]) {
+                    widest = b;
+                }
+            }
+            if (held) {
+                continue;
+            }
+            if (widest == null) {
+                // Không khung nào bọc: chữ vẽ thẳng lên nền, chỉ còn mép tấm
+                // vẽ làm khung.
+                if (x + w > canvasWidth || x < 0) {
+                    out.add(value + " tràn khỏi mép tấm vẽ rộng " + canvasWidth);
+                }
+                continue;
+            }
+            String where = "khung " + widest[0] + "," + widest[1]
+                    + " rộng " + widest[2] + " cao " + widest[3];
+            int right = widest[0] + widest[2], bottom = widest[1] + widest[3];
+            if (x + w > right + SLACK) {
+                out.add(value + " tràn phải " + (x + w - right) + " điểm khỏi " + where);
+            } else if (x < widest[0] - SLACK) {
+                out.add(value + " tràn trái " + (widest[0] - x) + " điểm khỏi " + where);
+            } else if (y + h > bottom + SLACK) {
+                out.add(value + " tràn đáy " + (y + h - bottom) + " điểm khỏi " + where);
+            } else {
+                out.add(value + " tràn đỉnh " + (widest[1] - y) + " điểm khỏi " + where);
+            }
+        }
+        return out;
     }
 
     public Framebuffer frame() {
@@ -68,6 +152,11 @@ public final class Ui {
     }
 
     public void panel(int x, int y, int w, int h, int fill, int border) {
+        int[] box = new int[]{x, y, w, h};
+        boxes.add(box);
+        // Một cái khung con cũng phải nằm gọn trong khung cha, y như chữ.
+        inked.add(new Object[]{Integer.valueOf(x), Integer.valueOf(y), Integer.valueOf(w),
+                Integer.valueOf(h), "khung " + w + "x" + h, box});
         frame.setColor(fill);
         frame.fillRoundRect(x, y, w, h, 18, 18);
         frame.setColor(border);
@@ -95,6 +184,11 @@ public final class Ui {
     }
 
     public int text(UiFont font, String value, int x, int y, int color) {
+        if (value != null && value.trim().length() > 0) {
+            inked.add(new Object[]{Integer.valueOf(x), Integer.valueOf(y),
+                    Integer.valueOf(font.stringWidth(value)),
+                    Integer.valueOf(font.height()), "chữ \"" + value + "\"", null});
+        }
         return font.draw(frame, value, x, y, color);
     }
 
@@ -224,6 +318,7 @@ public final class Ui {
         int padding = 9;
         int width = small.stringWidth(label) + padding * 2;
         int height = small.height() + 6;
+        pill(label, x, y, width, height);
         frame.setColor(fillColor);
         frame.fillRoundRect(x, y, width, height, height, height);
         text(small, label, x + padding, y + 3, textColor);
@@ -232,6 +327,22 @@ public final class Ui {
 
     public int chipHeight() {
         return small.height() + 6;
+    }
+
+    /**
+     * Ghi lại vệt tròn của một cái chip, để nó cũng bị soi như chữ.
+     *
+     * <p>Chip là chỗ tràn khung hay gặp nhất: nó rộng hơn chữ bên trong, nên
+     * một hàng chip vừa chữ vẫn có thể lòi cái vệt tròn ra ngoài viền.</p>
+     */
+    private void pill(String label, int x, int y, int width, int height) {
+        inked.add(new Object[]{Integer.valueOf(x), Integer.valueOf(y), Integer.valueOf(width),
+                Integer.valueOf(height), "chip \"" + label + "\"", null});
+    }
+
+    /** Bề ngang {@link #chip} sẽ chiếm, để xếp một hàng chip trước khi vẽ. */
+    public int chipWidth(String label) {
+        return small.stringWidth(label) + 18;
     }
 
     /** Application title bar. */
@@ -350,6 +461,7 @@ public final class Ui {
         int glyph = small.height() + 2;
         int width = glyph + 5 + small.stringWidth(label) + padding * 2;
         int height = small.height() + 6;
+        pill(label, x, y, width, height);
         frame.setColor(fillColor);
         frame.fillRoundRect(x, y, width, height, height, height);
         Icons.draw(frame, icon, x + padding, y + (height - glyph) / 2, glyph, textColor);

@@ -35,6 +35,9 @@ public final class Preview {
 
     public static void main(String[] args) throws Exception {
         String outDir = args.length > 0 ? args[0] : "build/screenshots";
+        // Bắt đầu từ tờ giấy trắng: vết mực của lần chạy trước không được
+        // tính vào màn hình đầu tiên của lần này.
+        Ui.forgetInk();
         Vfs vfs = new LocalVfs();
         vfs.mkdirs(outDir);
 
@@ -172,6 +175,20 @@ public final class Preview {
     }
 
     static void write(Vfs vfs, String dir, String name, Framebuffer frame) throws IOException {
+        // Chữ tràn khung thì dừng ngay ở đây. Đây là lỗi lặp lại nhiều lần
+        // và lần nào cũng do mắt người soi ảnh bỏ sót: một cái chip không vừa
+        // hàng, một cái nhãn dài hơn hôm qua, một chiều cao khung gõ tay
+        // không theo kịp nội dung. Ui đã tự ghi lại từng khung và từng dòng
+        // chữ nó vẽ, nên chỗ này chỉ việc hỏi lại rồi ném.
+        java.util.List<String> spilled = Ui.overflows(frame.width(), frame.height());
+        Ui.forgetInk();
+        if (!spilled.isEmpty()) {
+            StringBuilder why = new StringBuilder("Chữ tràn khung trong " + name + ":");
+            for (String line : spilled) {
+                why.append("\n  ").append(line);
+            }
+            throw new IllegalStateException(why.toString());
+        }
         vfs.write(dir + "/" + name, PngWriter.encode(frame));
         System.out.println("  " + name + "  " + frame.width() + "x" + frame.height());
     }

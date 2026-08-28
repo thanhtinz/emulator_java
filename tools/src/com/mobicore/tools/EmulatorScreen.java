@@ -283,21 +283,40 @@ public final class EmulatorScreen {
 
         // Hàng bộ bàn phím: sắp một lần rồi dùng cho mọi game, nên chỗ chọn
         // bộ phải nằm ngay tại chỗ đang sắp.
-        int chipsY = y + panelHeight + 10;
-        int chipsHeight = ui.chipHeight() + 26;
-        ui.panel(Ui.PAD, chipsY, frame.width() - Ui.PAD * 2, chipsHeight,
-                Theme.SURFACE, Theme.BORDER);
-        ui.text(ui.small(), "BỘ BÀN PHÍM", Ui.PAD + 14, chipsY + 8, Theme.TEXT_DIM);
+        //
+        // Hàng này tự xếp lấy: đo trước bề ngang từng chip, xuống dòng khi
+        // hết chỗ, rồi mới lấy số hàng đó tính chiều cao khung. Trước đây
+        // chiều cao là một con số gõ tay và chip nào không vừa thì bị lặng lẽ
+        // bỏ đi — chữ thì tràn đáy khung, mà bộ bàn phím thứ tư thì mất tăm.
         String[] layouts = {"Mặc định", "Cầm một tay", "Nhẹ nhàng", "+ Lưu"};
+        int chipsY = y + panelHeight + 10;
+        int chipsWidth = frame.width() - Ui.PAD * 2;
+        int room = chipsWidth - 28;
+        int[] rowOf = new int[layouts.length];
+        int rows = 1;
+        int used = 0;
+        for (int i = 0; i < layouts.length; i++) {
+            int width = ui.chipWidth(layouts[i]);
+            if (used > 0 && used + width > room) {
+                rows++;
+                used = 0;
+            }
+            rowOf[i] = rows - 1;
+            used += width + 8;
+        }
+        int rowStep = ui.chipHeight() + 8;
+        int chipsHeight = 8 + ui.small().height() + 4 + rows * rowStep - 8 + 10;
+        ui.panel(Ui.PAD, chipsY, chipsWidth, chipsHeight, Theme.SURFACE, Theme.BORDER);
+        ui.text(ui.small(), "BỘ BÀN PHÍM", Ui.PAD + 14, chipsY + 8, Theme.TEXT_DIM);
         int chipX = Ui.PAD + 14;
-        int chipY = chipsY + 8 + ui.small().height() + 4;
+        int firstRowY = chipsY + 8 + ui.small().height() + 4;
         for (int i = 0; i < layouts.length; i++) {
             boolean chosen = i == 1;
             boolean action = i == layouts.length - 1;
-            int width = ui.iconChipWidth(layouts[i]);
-            if (chipX + width > frame.width() - Ui.PAD - 14) {
-                break;
+            if (i > 0 && rowOf[i] != rowOf[i - 1]) {
+                chipX = Ui.PAD + 14;
             }
+            int chipY = firstRowY + rowOf[i] * rowStep;
             chipX += ui.chip(layouts[i], chipX, chipY,
                     chosen || action ? Theme.ACCENT : Theme.TEXT_DIM,
                     chosen ? Theme.ACCENT_DIM : Theme.SURFACE_ALT) + 8;

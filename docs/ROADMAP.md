@@ -2097,3 +2097,34 @@ Cầu nối: `keypadLayoutsJson`, `saveKeypadLayout`, `applyKeypadLayout`,
 Đây là thứ J2ME Loader gọi là *button layouts* — bên ấy lưu được bố cục riêng
 cạnh những bố cục dựng sẵn, và lý do giống hệt: bàn tay chỉ có một, còn game
 thì nhiều.
+
+## Giai đoạn 52 — chỗ vẽ tự bắt chữ tràn khung
+
+Chữ lọt ra khỏi khung là lỗi đã phải sửa nhiều lần, và lần nào cũng chỉ lộ ra
+khi có người phóng to tấm ảnh chụp lên nhìn. Sửa từng chỗ thì hết chỗ này lại
+ra chỗ khác, vì nguyên do luôn giống nhau: một con số chiều cao gõ tay không
+theo kịp nội dung bên trong nó.
+
+Nên lần này không sửa một chỗ nào cả, mà bắt chính chỗ vẽ tự khai. `Ui` nhớ lại
+mọi cái khung nó vẽ ra, mọi dòng chữ và mọi cái chip nó đặt xuống; `overflows`
+hỏi lại một câu duy nhất — *có cái khung nào bọc trọn vệt mực này không?* Không
+có thì `Preview` ném ngay tại chỗ ghi ảnh, kèm tên ảnh, câu chữ và số điểm bị
+lòi ra.
+
+Vài chỗ cố ý:
+
+- **Hỏi "có khung nào bọc trọn" chứ không hỏi "khung nhỏ nhất là khung nào".**
+  Một dòng chữ hay nằm đè lên cái ô vuông nhỏ vẽ biểu tượng của tệp; cái ô đó
+  không phải chỗ chứa nó, và hỏi theo lối kia thì mọi dòng như vậy đều bị kêu
+  oan.
+- **Chip cũng bị soi như chữ.** Chip rộng hơn chữ bên trong, nên một hàng chip
+  vừa chữ vẫn có thể lòi cái vệt tròn ra ngoài viền — đúng thứ vừa xảy ra ở
+  hàng bộ bàn phím.
+- **Khung con phải nằm gọn trong khung cha**, cùng một phép kiểm.
+- **Hàng chip tự xuống dòng.** Trước đây chip nào không vừa thì bị lặng lẽ bỏ
+  đi: khung không tràn, nhưng bộ bàn phím thứ tư thì mất tăm. Giờ nó đo trước
+  bề ngang, xuống dòng khi hết chỗ, rồi lấy số hàng đó tính chiều cao khung.
+
+Phép kiểm nằm trong bộ test (`OverflowTest`) và chạy qua mọi màn hình xem
+trước, cả nền sáng lẫn nền tối. Màn hình thêm vào sau này được soi luôn, không
+ai phải nhớ khai báo thêm.
