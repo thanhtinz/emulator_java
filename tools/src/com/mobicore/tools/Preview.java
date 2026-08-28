@@ -74,6 +74,7 @@ public final class Preview {
         write(vfs, outDir, "23-nokia.png", nokiaScreen(fixtures));
         write(vfs, outDir, "30-photo.png", photoScreen(fixtures));
         write(vfs, outDir, "35-own-loop.png", loopScreen(fixtures));
+        write(vfs, outDir, "36-clock.png", clockScreen(fixtures));
         write(vfs, outDir, "27-install-link.png", new LinkScreen(fixtures).render());
         write(vfs, outDir, "28-crash.png", new CrashScreen(fixtures).render());
         write(vfs, outDir, "29-hang.png", new CrashScreen(fixtures, "demo.HangDemo").render());
@@ -129,6 +130,22 @@ public final class Preview {
         for (int i = 0; i < 40; i++) {
             session.vm().callVirtual(session.context().midlet(), "step", "()V");
         }
+        return screen.render();
+    }
+
+    /**
+     * Một game xem giờ, như game phần thưởng mỗi ngày vẫn làm.
+     *
+     * <p>Giờ, thứ và ngày trong ảnh do chính máy ảo tính ra từ lịch của nó,
+     * và dòng chữ dưới cùng là một tệp chữ trong gói game, đọc bằng
+     * {@code InputStreamReader}.</p>
+     */
+    private static Framebuffer clockScreen(String fixtures) throws Exception {
+        EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.ClockDemo");
+        EmulatorSession session = screen.boot();
+        // Múi giờ Việt Nam, để cái đồng hồ trong ảnh là một giờ có thật ở đây.
+        session.vm().setTimeZone("Asia/Ho_Chi_Minh", 7 * 60 * 60000);
+        session.renderFrame();
         return screen.render();
     }
 

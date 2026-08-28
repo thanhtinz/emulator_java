@@ -92,6 +92,10 @@ class EmulatorEngine(
         // defaults to; the profile's volume is already applied inside the
         // emulator, so the track only has to play what it is handed.
         created.setAudio(audio)
+        // Múi giờ của chiếc máy này, giờ mùa hè đã tính sẵn trong độ lệch.
+        // Phần lõi không mang bảng múi giờ của thế giới, nên chỗ biết thì nói.
+        val zone = java.util.TimeZone.getDefault()
+        created.vm().setTimeZone(zone.id, zone.getOffset(System.currentTimeMillis()))
         // A J2ME game's only physical feedback was the handset shaking.
         vibration?.let { created.setVibration(it) }
         session = created

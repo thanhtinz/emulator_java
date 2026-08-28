@@ -2175,3 +2175,56 @@ Vài chỗ cố ý:
   lúc ấy nó đổi: đây là thứ để nhìn, chứ không phải thứ để dựa vào.
 - **Sổ của luồng đã tắt được gộp vào tổng rồi bỏ đi**, nên game mở rồi đóng
   nhiều luồng không làm bảng đếm lệnh tụt xuống.
+
+## Giai đoạn 54 — phần thư viện chuẩn còn thiếu
+
+Không có tính năng nào để bắt đầu ở đây cả: chỉ có một câu hỏi — máy ảo còn
+thiếu gì của CLDC 1.1? Nên đi rà thật: năm mươi ba lời gọi mà game hay dùng,
+mỗi lời gọi một hàm nhỏ, chạy từng cái qua máy ảo. **Mười chín cái chết.**
+
+Chết chứ không phải chạy sai. CLDC không có phản chiếu, không có đường vòng:
+game gọi một hàm không có thì dừng ngay tại dòng đó, trước cả khi kịp vẽ gì.
+Bốn lớp vắng hẳn:
+
+- **`java.util.Calendar` và `java.util.TimeZone`** — phần thưởng mỗi ngày, cái
+  đồng hồ trong góc màn hình, dấu thời gian trên ô lưu, mầm cho bộ sinh số
+  ngẫu nhiên: tất cả đi qua `Calendar.getInstance()`.
+- **`java.io.Reader`, `Writer`, `InputStreamReader`, `OutputStreamWriter`** —
+  cách game đọc chữ trong chính gói của nó: màn chơi, lời thoại, bảng chữ.
+- **`java.lang.Short` và `java.lang.Byte`** — game đọc dữ liệu nhị phân của
+  chính nó thì dựng cái vỏ ở đây.
+
+Và mười lăm hàm lẻ: `String.regionMatches` (cả hai dạng), `String.intern`,
+`String.valueOf(char[],int,int)`, `new String(byte[],String)`,
+`StringBuffer.delete`, `StringBuffer.setCharAt`, `Integer.toString(int,int)`,
+`Integer.toOctalString`, `Long.toString(long,int)`, `Long.parseLong(String,int)`,
+`Math.round` (cả `float` lẫn `double`), `Character.isLowerCase`,
+`Character.isUpperCase`, `Vector.lastIndexOf`, `Vector.setSize`,
+`Hashtable.contains`.
+
+Vài chỗ cố ý:
+
+- **Lịch tính bằng số học thuần, không mượn lịch của máy chủ.** Phần lõi phải
+  dịch được sang iOS. Phép đổi dùng cách đếm ngày từ một mốc dời về đầu tháng
+  ba, nên không có chỗ nào phải chia trường hợp năm nhuận.
+- **Đây là lịch Gregory suốt dọc**, không có chỗ nhảy sang lịch Julius năm
+  1582 như `GregorianCalendar` của Java. Khác nhau chỉ ở những năm trước 1582,
+  và không game nào hỏi tới đó.
+- **Máy ảo không mang bảng múi giờ của thế giới**, chỉ mang đúng một con số:
+  độ lệch chiếc điện thoại đang chạy, giờ mùa hè đã tính sẵn trong đó. Câu
+  game hay hỏi là "bây giờ mấy giờ" và câu ấy đúng; câu "tháng bảy sang năm
+  lệch bao nhiêu" thì không, và `useDaylightTime()` nói thẳng là không.
+  Android và iOS nói múi giờ thật vào qua `setTimeZone`.
+- **`Hashtable.contains` hỏi về giá trị, không phải khoá** — chỗ hay lẫn, nên
+  làm cho đúng chứ không mượn `containsKey`.
+- **`Vector.setSize` lấp chỗ mới bằng `null`**, đúng như lớp ấy hứa: game dựng
+  sẵn một mảng chỗ rồi mới điền vào dựa vào đó.
+
+Kiểm bằng cách đối chiếu, không bằng vài mốc chọn tay: lịch được so với lịch
+của máy chủ trên **400.000 mốc ngẫu nhiên**, trên bốn múi giờ, cả đọc lẫn đặt
+từng trường — sai một ngày trong lịch là thứ không nhìn ra bằng ba phép thử.
+Mười chín góc kia được chạy hai lần, một lần trong máy ảo một lần trên máy
+chủ, rồi đem hai kết quả ra so, nên phép kiểm không thể trôi theo thời gian.
+
+Ảnh chụp: **36-clock.png** — một game xem giờ, giờ và thứ do máy ảo tính, và
+dòng chữ dưới cùng là một tệp trong gói game đọc bằng `InputStreamReader`.

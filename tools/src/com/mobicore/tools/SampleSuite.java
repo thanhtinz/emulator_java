@@ -37,6 +37,7 @@ public final class SampleSuite {
             + "MIDlet-13: Piggy Bank,,demo.PiggyBank\n"
             + "MIDlet-14: Loop Demo,,demo.LoopDemo\n"
             + "MIDlet-15: Thread Demo,,demo.ThreadDemo\n"
+            + "MIDlet-16: Clock Demo,,demo.ClockDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 
@@ -61,6 +62,7 @@ public final class SampleSuite {
             + "MIDlet-13: Piggy Bank,,demo.PiggyBank\n"
             + "MIDlet-14: Loop Demo,,demo.LoopDemo\n"
             + "MIDlet-15: Thread Demo,,demo.ThreadDemo\n"
+            + "MIDlet-16: Clock Demo,,demo.ClockDemo\n"
             + "MicroEdition-Configuration: CLDC-1.1\n"
             + "MicroEdition-Profile: MIDP-2.0\n";
 
@@ -141,6 +143,8 @@ public final class SampleSuite {
         entries.put("res/level1.dat", new byte[1024]);
         entries.put("res/level2.dat", new byte[2048]);
         entries.put("res/theme.mid", midi());
+        // Một tệp chữ thật trong gói, để game đọc bằng InputStreamReader.
+        entries.put("message.txt", "Chúc một ngày lành".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         entries.put("res/photo.jpg", java.util.Base64.getDecoder().decode(PHOTO));
         return zip(entries);
     }

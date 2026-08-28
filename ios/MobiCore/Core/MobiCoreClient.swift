@@ -27,6 +27,11 @@ final class MobiCoreClient: ObservableObject {
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first?.path ?? NSTemporaryDirectory()
         _ = bridge.open(atPath: root)
+        // Múi giờ của chiếc máy này. Phần lõi không mang theo bảng múi giờ
+        // của thế giới, nên chỗ biết thì nói — giờ mùa hè đã nằm trong đó.
+        let zone = TimeZone.current
+        _ = bridge.setTimeZone(zone.identifier,
+                               offsetMinutes: Int32(zone.secondsFromGMT() / 60))
         refresh()
     }
 

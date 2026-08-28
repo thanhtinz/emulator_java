@@ -494,6 +494,7 @@ public final class MobiCoreFacade {
             gameSockets = sockets;
         }
         if (session != null) {
+            session.vm().setTimeZone(timeZoneId, timeZoneOffsetMinutes * 60000);
             session.network().setTransport(gameTransport);
             session.network().setSocketTransport(gameSockets);
         }
@@ -875,6 +876,28 @@ public final class MobiCoreFacade {
         json.put("properties", SystemProperties.toJson());
         return Json.write(json);
     }
+
+    /**
+     * Múi giờ chiếc điện thoại đang ở, để game xem giờ thấy đúng giờ.
+     *
+     * <p>Phần lõi không mang theo bảng múi giờ của thế giới — nó phải dịch
+     * được sang iOS. Nền tảng thì biết, nên nền tảng nói vào đây: một cái tên
+     * và độ lệch đang có hiệu lực, giờ mùa hè đã tính sẵn trong đó. Gọi lại
+     * khi người dùng đổi múi giờ hoặc khi giờ mùa hè đổi.</p>
+     *
+     * @param offsetMinutes lệch bao nhiêu phút so với GMT; dương là về phía đông
+     */
+    public String setTimeZone(String id, int offsetMinutes) {
+        timeZoneId = id == null || id.length() == 0 ? "GMT" : id;
+        timeZoneOffsetMinutes = offsetMinutes;
+        if (session != null) {
+            session.vm().setTimeZone(timeZoneId, timeZoneOffsetMinutes * 60000);
+        }
+        return ok("timeZone", timeZoneId);
+    }
+
+    private String timeZoneId = "GMT";
+    private int timeZoneOffsetMinutes;
 
     /**
      * Những luồng game đang chạy, và mỗi luồng đang ở trong hàm nào.
@@ -1786,6 +1809,7 @@ public final class MobiCoreFacade {
             // policy in front still decides: handing the session a working
             // transport is what makes "allow this game online" mean something,
             // not a licence to connect.
+            session.vm().setTimeZone(timeZoneId, timeZoneOffsetMinutes * 60000);
             session.network().setTransport(gameTransport);
             session.network().setSocketTransport(gameSockets);
             if (audioSink != null) {

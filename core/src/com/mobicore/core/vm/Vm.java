@@ -40,6 +40,30 @@ public final class Vm {
     private volatile Throwable threadFailure;
 
     /**
+     * Múi giờ chiếc điện thoại đang chạy: một cái tên và một độ lệch.
+     *
+     * <p>Phần lõi không mang theo bảng múi giờ của thế giới — nó phải dịch
+     * được sang iOS và không dựa vào thư viện nào. Nền tảng biết múi giờ thật
+     * thì nói vào đây; giờ mùa hè đã nằm sẵn trong con số ấy.</p>
+     */
+    private volatile String timeZoneId = "GMT";
+    private volatile int timeZoneOffsetMillis;
+
+    public String timeZoneId() {
+        return timeZoneId;
+    }
+
+    public int timeZoneOffsetMillis() {
+        return timeZoneOffsetMillis;
+    }
+
+    /** Đặt múi giờ game nhìn thấy; độ lệch tính bằng mili giây. */
+    public void setTimeZone(String id, int offsetMillis) {
+        this.timeZoneId = id == null || id.length() == 0 ? "GMT" : id;
+        this.timeZoneOffsetMillis = offsetMillis;
+    }
+
+    /**
      * Đối tượng {@code Thread} của luồng đang gọi, dựng lấy nếu chưa có.
      *
      * <p>Luồng do game mở thì đã có sẵn từ lúc {@code start()}; luồng của

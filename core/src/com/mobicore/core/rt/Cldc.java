@@ -16,6 +16,8 @@ public final class Cldc {
         LangClasses.install(vm);
         IoClasses.install(vm);
         UtilClasses.install(vm);
+        ReaderClasses.install(vm);
+        CalendarClasses.install(vm);
         return TimerClasses.install(vm);
     }
 }

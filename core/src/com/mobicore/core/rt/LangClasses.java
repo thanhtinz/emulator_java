@@ -202,6 +202,13 @@ public final class LangClasses {
                         return null;
                     }
                 })
+                .method("<init>", "([BLjava/lang/String;)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        byte[] raw = Rt.array(args, 0).bytes();
+                        self.host = decode(raw, 0, raw.length, Rt.s(vm, args, 1));
+                        return null;
+                    }
+                })
                 .method("<init>", "([BIILjava/lang/String;)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         self.host = decode(Rt.array(args, 0).bytes(), Rt.i(args, 1), Rt.i(args, 2),
@@ -397,7 +404,45 @@ public final class LangClasses {
                         return vm.newString(new String(Rt.array(args, 0).chars()));
                     }
                 })
+                .staticMethod("valueOf", "([CII)Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        char[] chars = Rt.array(args, 0).chars();
+                        int offset = Rt.i(args, 1), count = Rt.i(args, 2);
+                        if (offset < 0 || count < 0 || offset + count > chars.length) {
+                            throw vm.raise("java/lang/StringIndexOutOfBoundsException",
+                                    offset + "+" + count);
+                        }
+                        return vm.newString(new String(chars, offset, count));
+                    }
+                })
+                .method("regionMatches", "(ILjava/lang/String;II)Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Rt.box(text(self).regionMatches(Rt.i(args, 0),
+                                vm.stringOf(Rt.obj(args, 1)), Rt.i(args, 2), Rt.i(args, 3)));
+                    }
+                })
+                .method("regionMatches", "(ZILjava/lang/String;II)Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Rt.box(text(self).regionMatches(Rt.bool(args, 0), Rt.i(args, 1),
+                                vm.stringOf(Rt.obj(args, 2)), Rt.i(args, 3), Rt.i(args, 4)));
+                    }
+                })
+                .method("intern", "()Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        // Máy ảo đã gộp chuỗi hằng khi nạp lớp, nên chuỗi cùng
+                        // nội dung dựng lại từ đây cũng phải ra cùng một đối
+                        // tượng — game nào so chuỗi bằng == sau intern() thì
+                        // đó là điều nó dựa vào.
+                        return vm.internString(text(self));
+                    }
+                })
                 .define();
+    }
+
+    /** Số nguyên viết theo cơ số, dùng chung cho Integer và Long. */
+    private static String inRadix(long value, int radix) {
+        // Cơ số ngoài khoảng cho phép thì Java quay về hệ mười, không kêu.
+        return Long.toString(value, radix < 2 || radix > 36 ? 10 : radix);
     }
 
     private static Object substring(Vm vm, String value, int start, int end) {
@@ -537,6 +582,30 @@ public final class LangClasses {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         Rt.builder(self).reverse();
                         return self;
+                    }
+                })
+                .method("delete", "(II)" + descriptor, new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        StringBuilder buffer = Rt.builder(self);
+                        int start = Rt.i(args, 0), end = Rt.i(args, 1);
+                        if (start < 0 || start > buffer.length() || start > end) {
+                            throw vm.raise("java/lang/StringIndexOutOfBoundsException",
+                                    start + ".." + end);
+                        }
+                        buffer.delete(start, Math.min(end, buffer.length()));
+                        return self;
+                    }
+                })
+                .method("setCharAt", "(IC)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        StringBuilder buffer = Rt.builder(self);
+                        int at = Rt.i(args, 0);
+                        if (at < 0 || at >= buffer.length()) {
+                            throw vm.raise("java/lang/StringIndexOutOfBoundsException",
+                                    String.valueOf(at));
+                        }
+                        buffer.setCharAt(at, (char) Rt.i(args, 1));
+                        return null;
                     }
                 })
                 .method("setLength", "(I)V", new NativeMethod() {
@@ -753,6 +822,16 @@ public final class LangClasses {
                         return Double.valueOf(Math.ceil(Rt.d(args, 0)));
                     }
                 })
+                .staticMethod("round", "(F)I", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Integer.valueOf(Math.round(Rt.f(args, 0)));
+                    }
+                })
+                .staticMethod("round", "(D)J", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Long.valueOf(Math.round(Rt.d(args, 0)));
+                    }
+                })
                 .staticMethod("toRadians", "(D)D", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         return Double.valueOf(Math.toRadians(Rt.d(args, 0)));
@@ -839,6 +918,16 @@ public final class LangClasses {
                         return vm.newString(Integer.toBinaryString(Rt.i(args, 0)));
                     }
                 })
+                .staticMethod("toOctalString", "(I)Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return vm.newString(Integer.toOctalString(Rt.i(args, 0)));
+                    }
+                })
+                .staticMethod("toString", "(II)Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return vm.newString(inRadix(Rt.i(args, 0), Rt.i(args, 1)));
+                    }
+                })
                 .define();
         setStaticInt(vm, "java/lang/Integer", "MAX_VALUE", Integer.MAX_VALUE);
         setStaticInt(vm, "java/lang/Integer", "MIN_VALUE", Integer.MIN_VALUE);
@@ -877,6 +966,21 @@ public final class LangClasses {
                 .staticMethod("toString", "(J)Ljava/lang/String;", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         return vm.newString(String.valueOf(Rt.l(args, 0)));
+                    }
+                })
+                .staticMethod("toString", "(JI)Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return vm.newString(inRadix(Rt.l(args, 0), Rt.i(args, 1)));
+                    }
+                })
+                .staticMethod("parseLong", "(Ljava/lang/String;I)J", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        try {
+                            return Long.valueOf(Long.parseLong(Rt.s(vm, args, 0).trim(),
+                                    Rt.i(args, 1)));
+                        } catch (NumberFormatException e) {
+                            throw vm.raise("java/lang/NumberFormatException", Rt.s(vm, args, 0));
+                        }
                     }
                 })
                 .define();
@@ -940,6 +1044,152 @@ public final class LangClasses {
                 .staticMethod("digit", "(CI)I", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         return Integer.valueOf(Character.digit((char) Rt.i(args, 0), Rt.i(args, 1)));
+                    }
+                })
+                .staticMethod("isLowerCase", "(C)Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Rt.box(Character.isLowerCase((char) Rt.i(args, 0)));
+                    }
+                })
+                .staticMethod("isUpperCase", "(C)Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Rt.box(Character.isUpperCase((char) Rt.i(args, 0)));
+                    }
+                })
+                .method("toString", "()Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return vm.newString(String.valueOf(self.host));
+                    }
+                })
+                .define();
+
+        // Short và Byte là phần của CLDC 1.1 như mọi lớp bọc khác. Thiếu hai
+        // lớp này thì một game đọc dữ liệu nhị phân của chính nó — bảng ô,
+        // bản đồ, chỉ số nhân vật — chết ngay tại dòng nó dựng cái vỏ.
+        vm.builtin("java/lang/Short", Vm.OBJECT)
+                .method("<init>", "(S)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        self.host = Short.valueOf((short) Rt.i(args, 0));
+                        return null;
+                    }
+                })
+                .method("shortValue", "()S", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Integer.valueOf(((Number) self.host).shortValue());
+                    }
+                })
+                .method("intValue", "()I", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Integer.valueOf(((Number) self.host).intValue());
+                    }
+                })
+                .method("longValue", "()J", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Long.valueOf(((Number) self.host).longValue());
+                    }
+                })
+                .method("floatValue", "()F", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Float.valueOf(((Number) self.host).floatValue());
+                    }
+                })
+                .method("doubleValue", "()D", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Double.valueOf(((Number) self.host).doubleValue());
+                    }
+                })
+                .method("equals", "(Ljava/lang/Object;)Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        VmObject other = Rt.obj(args, 0);
+                        return Rt.box(other != null && self.host.equals(other.host));
+                    }
+                })
+                .method("hashCode", "()I", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Integer.valueOf(self.host.hashCode());
+                    }
+                })
+                .method("toString", "()Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return vm.newString(String.valueOf(self.host));
+                    }
+                })
+                .staticMethod("parseShort", "(Ljava/lang/String;)S", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        try {
+                            return Integer.valueOf(Short.parseShort(Rt.s(vm, args, 0).trim()));
+                        } catch (NumberFormatException e) {
+                            throw vm.raise("java/lang/NumberFormatException", Rt.s(vm, args, 0));
+                        }
+                    }
+                })
+                .staticMethod("toString", "(S)Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return vm.newString(String.valueOf((short) Rt.i(args, 0)));
+                    }
+                })
+                .define();
+
+        vm.builtin("java/lang/Byte", Vm.OBJECT)
+                .method("<init>", "(B)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        self.host = Byte.valueOf((byte) Rt.i(args, 0));
+                        return null;
+                    }
+                })
+                .method("byteValue", "()B", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Integer.valueOf(((Number) self.host).byteValue());
+                    }
+                })
+                .method("intValue", "()I", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Integer.valueOf(((Number) self.host).intValue());
+                    }
+                })
+                .method("longValue", "()J", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Long.valueOf(((Number) self.host).longValue());
+                    }
+                })
+                .method("floatValue", "()F", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Float.valueOf(((Number) self.host).floatValue());
+                    }
+                })
+                .method("doubleValue", "()D", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Double.valueOf(((Number) self.host).doubleValue());
+                    }
+                })
+                .method("equals", "(Ljava/lang/Object;)Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        VmObject other = Rt.obj(args, 0);
+                        return Rt.box(other != null && self.host.equals(other.host));
+                    }
+                })
+                .method("hashCode", "()I", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return Integer.valueOf(self.host.hashCode());
+                    }
+                })
+                .method("toString", "()Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return vm.newString(String.valueOf(self.host));
+                    }
+                })
+                .staticMethod("parseByte", "(Ljava/lang/String;)B", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        try {
+                            return Integer.valueOf(Byte.parseByte(Rt.s(vm, args, 0).trim()));
+                        } catch (NumberFormatException e) {
+                            throw vm.raise("java/lang/NumberFormatException", Rt.s(vm, args, 0));
+                        }
+                    }
+                })
+                .staticMethod("toString", "(B)Ljava/lang/String;", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        return vm.newString(String.valueOf((byte) Rt.i(args, 0)));
                     }
                 })
                 .define();

@@ -190,6 +190,37 @@ public final class UtilClasses {
                         return Integer.valueOf(indexOf(self, Rt.obj(args, 0)));
                     }
                 })
+                .method("lastIndexOf", "(Ljava/lang/Object;)I", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        List<Object> items = list(self);
+                        Object wanted = Rt.obj(args, 0);
+                        for (int i = items.size() - 1; i >= 0; i--) {
+                            if (same(items.get(i), wanted)) {
+                                return Integer.valueOf(i);
+                            }
+                        }
+                        return Integer.valueOf(-1);
+                    }
+                })
+                .method("setSize", "(I)V", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        int wanted = Rt.i(args, 0);
+                        if (wanted < 0) {
+                            throw vm.raise("java/lang/ArrayIndexOutOfBoundsException",
+                                    String.valueOf(wanted));
+                        }
+                        List<Object> items = list(self);
+                        while (items.size() > wanted) {
+                            items.remove(items.size() - 1);
+                        }
+                        // Chỗ mới thêm là null, đúng như Vector hứa: game nào
+                        // dựng sẵn một mảng chỗ rồi mới điền vào dựa vào đó.
+                        while (items.size() < wanted) {
+                            items.add(null);
+                        }
+                        return null;
+                    }
+                })
                 .method("size", "()I", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         return Integer.valueOf(list(self).size());
@@ -242,6 +273,11 @@ public final class UtilClasses {
     }
 
     /** Element search using the same value equality as {@link Key}. */
+    /** Hai giá trị coi là một, theo đúng equals mà game định nghĩa. */
+    private static boolean same(Object left, Object right) {
+        return new Key((VmObject) left).equals(new Key((VmObject) right));
+    }
+
     private static int indexOf(VmObject self, VmObject target) {
         List<Object> items = list(self);
         Key key = new Key(target);
@@ -328,6 +364,23 @@ public final class UtilClasses {
                 .method("containsKey", "(Ljava/lang/Object;)Z", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         return Rt.box(table(self).containsKey(new Key(Rt.obj(args, 0))));
+                    }
+                })
+                .method("contains", "(Ljava/lang/Object;)Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        // contains của Hashtable hỏi về giá trị, không phải
+                        // khoá — chỗ hay lẫn, nên làm cho đúng chứ không mượn
+                        // containsKey.
+                        Object wanted = Rt.obj(args, 0);
+                        if (wanted == null) {
+                            throw vm.raise("java/lang/NullPointerException", "contains(null)");
+                        }
+                        for (Object value : table(self).values()) {
+                            if (same(value, wanted)) {
+                                return Rt.box(true);
+                            }
+                        }
+                        return Rt.box(false);
                     }
                 })
                 .method("size", "()I", new NativeMethod() {
