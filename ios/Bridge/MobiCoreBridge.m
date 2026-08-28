@@ -423,6 +423,10 @@
     [_facade pressButtonWithNSString:button];
 }
 
+- (NSString *)setTimeZone:(NSString *)identifier offsetMinutes:(int32_t)offsetMinutes {
+    return [_facade setTimeZoneWithNSString:identifier withInt:(jint)offsetMinutes];
+}
+
 - (NSString *)softKeysJSON {
     return [_facade softKeysJson];
 }

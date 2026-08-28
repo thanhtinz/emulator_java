@@ -237,7 +237,7 @@ public final class Interpreter {
 
         if (method.isSynchronized()) {
             frame.monitor = method.isStatic() ? vm.mirrorOf(method.owner()) : self;
-            Monitors.enter(frame.monitor);
+            Monitors.enter(vm, frame.monitor);
         }
         if (stack.isEmpty()) {
             // Lời gọi ngoài cùng: đồng hồ đo "người chơi đã đợi bao lâu" bắt
@@ -262,7 +262,7 @@ public final class Interpreter {
                 watch.start = 0;
             }
             if (frame.monitor != null) {
-                Monitors.exit(frame.monitor);
+                Monitors.exit(vm, frame.monitor);
             }
         }
     }
@@ -680,10 +680,10 @@ public final class Interpreter {
                             break;
                         }
                         case Opcodes.MONITORENTER:
-                            Monitors.enter((VmObject) frame.popRef());
+                            Monitors.enter(vm, (VmObject) frame.popRef());
                             break;
                         case Opcodes.MONITOREXIT:
-                            Monitors.exit((VmObject) frame.popRef());
+                            Monitors.exit(vm, (VmObject) frame.popRef());
                             break;
                         case Opcodes.WIDE:
                             wide(frame, code);

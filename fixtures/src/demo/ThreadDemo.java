@@ -118,6 +118,56 @@ public final class ThreadDemo extends MIDlet {
         other.join();
     }
 
+    /** How many items made it from one side to the other. */
+    public int handedOver;
+
+    private final java.util.Vector queue = new java.util.Vector();
+    private static final int BATCH = 200;
+
+    /**
+     * A producer and a consumer passing items through one lock.
+     *
+     * <p>The oldest shape in the book, and the one a J2ME game uses to move
+     * frames from its loop thread to the painter: one side waits on a lock,
+     * the other adds and notifies. Both sides go through {@code wait} and
+     * {@code notify} on the <em>same</em> object hundreds of times in a row,
+     * which is exactly the traffic that finds a lock taken in the wrong
+     * order.</p>
+     */
+    public void handOff() throws InterruptedException {
+        handedOver = 0;
+        queue.removeAllElements();
+        Thread consumer = new Thread(new Runnable() {
+            public void run() {
+                for (int i = 0; i < BATCH; i++) {
+                    synchronized (lock) {
+                        while (queue.isEmpty()) {
+                            try {
+                                lock.wait(2000);
+                            } catch (InterruptedException stop) {
+                                return;
+                            }
+                        }
+                        queue.removeElementAt(0);
+                        handedOver++;
+                        lock.notifyAll();
+                    }
+                }
+            }
+        }, "bên nhận");
+        consumer.start();
+        for (int i = 0; i < BATCH; i++) {
+            synchronized (lock) {
+                queue.addElement("món " + i);
+                lock.notifyAll();
+                while (queue.size() > 2) {
+                    lock.wait(2000);
+                }
+            }
+        }
+        consumer.join();
+    }
+
     /** Starts a loop thread that never comes back, the classic way to freeze. */
     public void hangOnThread() {
         Thread stuck = new Thread(new Runnable() {

@@ -401,8 +401,11 @@ public final class MidpGfx {
         }
         Framebuffer patch = new Framebuffer(width, height);
         System.arraycopy(copy, 0, patch.pixels(), 0, copy.length);
-        int[] placed = anchor(toX + target.translateX(), toY + target.translateY(),
-                anchor, width, height, 0);
+        // Chỗ đích để nguyên, không cộng phép tịnh tiến: drawFramebuffer đi
+        // qua drawPixels, và chỗ ấy đã cộng rồi. Cộng ở cả hai nơi thì mảng
+        // chép ra rơi xa gấp đôi — và phép kiểm cũ chạy với tịnh tiến 0 nên
+        // không thấy gì.
+        int[] placed = anchor(toX, toY, anchor, width, height, 0);
         int saved = target.blendMode();
         target.setBlendMode(Framebuffer.BLEND_REPLACE);
         target.drawFramebuffer(patch, placed[0], placed[1]);

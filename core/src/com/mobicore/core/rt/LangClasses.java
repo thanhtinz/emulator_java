@@ -66,13 +66,13 @@ public final class LangClasses {
                 })
                 .method("notify", "()V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        Monitors.signal(self, false);
+                        Monitors.signal(vm, self, false);
                         return null;
                     }
                 })
                 .method("notifyAll", "()V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        Monitors.signal(self, true);
+                        Monitors.signal(vm, self, true);
                         return null;
                     }
                 })
@@ -91,7 +91,7 @@ public final class LangClasses {
 
     private static Object await(Vm vm, VmObject self, long millis) {
         try {
-            Monitors.await(self, millis);
+            Monitors.await(vm, self, millis);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw vm.raise("java/lang/InterruptedException", "wait interrupted");

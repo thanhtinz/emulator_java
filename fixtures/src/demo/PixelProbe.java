@@ -64,10 +64,21 @@ public final class PixelProbe extends MIDlet {
 
     /** Chép một mảnh của tấm vẽ sang chỗ khác, kể cả khi hai vùng chồng nhau. */
     public String copied(int toX, int toY) {
+        return copied(toX, toY, 0);
+    }
+
+    /**
+     * Cùng phép chép, nhưng sau khi đã dời gốc toạ độ.
+     *
+     * <p>Phép tịnh tiến là chỗ dễ cộng hai lần: một lần ở chỗ tính điểm đích,
+     * một lần nữa ở chỗ vẽ. Chép với gốc toạ độ đã dời ra thì lỗi ấy lộ ngay.</p>
+     */
+    public String copied(int toX, int toY, int shift) {
         Image img = Image.createImage(W, H);
         Graphics g = img.getGraphics();
         g.setColor(0xFFFFFF);
         g.fillRect(0, 0, W, H);
+        g.translate(shift, shift);
         g.setColor(0x000000);
         g.fillRect(1, 1, 2, 1);
         g.copyArea(1, 1, 2, 1, toX, toY, Graphics.TOP | Graphics.LEFT);

@@ -630,7 +630,7 @@ final class MobiCoreClient: ObservableObject {
     }
 
     func resource(_ path: String, in suiteId: String) -> Data? {
-        bridge.resource(named: path, inSuite: suiteId)
+        bridge.resourceNamed(path, inSuite: suiteId)
     }
 
     // MARK: - Bộ bàn phím

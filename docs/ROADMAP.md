@@ -2268,3 +2268,38 @@ Vài chỗ cố ý:
 Ảnh chụp: **37-flip.png** — cùng một hình dưới cả tám phép. Hình cố ý không
 đối xứng, có một chỗ khuyết đỏ ở góc, vì hình đối xứng giấu đúng cái lỗi vừa
 bắt được.
+
+## Giai đoạn 56 — nối lại iOS, và ba lỗi tự mình vừa gây ra
+
+Một lượt rà toàn bộ `core/src` tìm được bốn mươi bảy chỗ. Ba chỗ nặng nhất là
+do chính hai giai đoạn vừa rồi đưa vào, và một chỗ nữa nằm ở ứng dụng iOS —
+nơi không ai nhìn, vì iOS không được biên dịch ở đây.
+
+**Ứng dụng iOS không biên dịch được, ba chỗ.** `setTimeZone` được Swift gọi
+suốt từ giai đoạn 54 mà cầu nối chưa hề có hàm ấy. `bridge.press(...)` và
+`bridge.release(...)` gọi vào hai hàm tên thật là `pressButton:` và
+`releaseButton:`. `bridge.resource(named:inSuite:)` gọi vào `resourceNamed:` —
+Swift chỉ tách giới từ ở cuối tên hàm, mà "Named" không phải giới từ.
+
+Ba lỗi biên dịch nằm im được là vì không có Xcode ở đây. Nên bộ kiểm mới
+(`BridgeTest`) không cần trình biên dịch: nó đọc tên hàm trong
+`MobiCoreBridge.h`, đọc mọi chỗ Swift gọi `bridge.…`, rồi đối chiếu — có tính
+đến lối Swift tách giới từ (`openAtPath:` thành `open(atPath:)`). Chỗ thứ ba là
+do chính nó tìm ra.
+
+**`copyArea` cộng phép tịnh tiến hai lần.** Chỗ tính điểm đích cộng một lần,
+rồi `drawFramebuffer` đi qua `drawPixels` cộng thêm lần nữa. Game cuộn thanh
+trạng thái bằng `copyArea` vẽ lệch gấp đôi. Phép kiểm cũ chạy với gốc toạ độ 0
+nên không thấy gì — phép kiểm mới dời gốc toạ độ ra rồi mới chép.
+
+**`wait()` lấy lại khoá khi còn đang giữ hàng đợi — treo cứng.** Luồng đang đợi
+giữ hàng đợi rồi chờ khoá của đối tượng; luồng đang giữ khoá ấy lại chờ hàng
+đợi để báo. Hai bên đứng im nhìn nhau, và chó canh tám giây cũng không sủa
+được vì không luồng nào chạy lệnh nào để nó ngó tới. Giờ khoá chỉ lấy lại sau
+khi đã buông hàng đợi. Kiểm bằng hai bên chuyền nhau hai trăm món qua một cái
+khoá, chạy có hạn giờ — kẹt thì bộ kiểm báo hỏng chứ không đứng luôn.
+
+**Khoá ném sai loại lỗi.** `monitorenter`/`monitorexit` trên null và `wait()`
+ngoài khối `synchronized` ném `VmError` — thứ game không bắt được — thay vì
+`NullPointerException` và `IllegalMonitorStateException`. Một game khoá sai chỗ
+vẫn phải bắt được lỗi của chính nó, chứ không được kéo sập cả máy ảo.

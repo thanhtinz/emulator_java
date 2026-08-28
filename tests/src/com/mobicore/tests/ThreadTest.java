@@ -35,6 +35,7 @@ public final class ThreadTest extends Test {
     public void run() throws Exception {
         theLoopThread();
         waitMeansWait();
+        aHandOffThatMustNotSeizeUp();
         aThreadThatHangs();
         aThreadThatDies();
         theThreadTable();
@@ -119,6 +120,44 @@ public final class ThreadTest extends Test {
         int wakeups = ((Integer) game.get("wakeups")).intValue();
         check(wakeups >= 1 && wakeups <= 3,
                 "bên đợi dậy vì được báo chứ không vì khoá bận: dậy " + wakeups + " lần");
+    }
+
+    /**
+     * Hai bên chuyền nhau hai trăm món qua một cái khoá, không được kẹt.
+     *
+     * <p>Chỗ lấy lại khoá sau khi thôi đợi từng nằm <em>bên trong</em> hàng
+     * đợi: luồng đang đợi giữ hàng đợi rồi chờ khoá, còn luồng đang giữ khoá
+     * lại chờ hàng đợi để báo — hai bên đứng im nhìn nhau. Và chó canh tám
+     * giây cũng không sủa được, vì không luồng nào chạy lệnh nào để nó ngó
+     * tới.</p>
+     *
+     * <p>Một lần chuyền thì hiếm khi trúng khe ấy, nên chỗ này chuyền hai
+     * trăm lần. Chạy trên một luồng riêng có hạn giờ, để nếu kẹt thì bộ kiểm
+     * báo hỏng chứ không đứng luôn.</p>
+     */
+    private void aHandOffThatMustNotSeizeUp() throws Exception {
+        final EmulatorSession session = boot("demo.ThreadDemo");
+        final VmObject game = session.context().midlet();
+        final Throwable[] broke = new Throwable[1];
+        Thread runner = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    session.vm().callVirtual(game, "handOff", "()V");
+                } catch (Throwable t) {
+                    broke[0] = t;
+                }
+            }
+        }, "chuyền tay");
+        runner.setDaemon(true);
+        runner.start();
+        runner.join(20000);
+        check(!runner.isAlive(), "hai bên chuyền được hai trăm món mà không kẹt khoá");
+        eq(null, broke[0] == null ? null : String.valueOf(broke[0]),
+                "không bên nào ném ra lỗi giữa chừng");
+        if (!runner.isAlive()) {
+            eq(200, ((Integer) game.get("handedOver")).intValue(),
+                    "bên nhận nhận đủ hai trăm món");
+        }
     }
 
     // ------------------------------------------------- treo trên luồng riêng

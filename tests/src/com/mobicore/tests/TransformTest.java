@@ -100,6 +100,27 @@ public final class TransformTest extends Test {
         eq("kêu", session.vm().stringOf(session.vm().callVirtual(session.context().midlet(),
                         "copyOutside", "()Ljava/lang/String;")),
                 "chép ra ngoài mép tấm vẽ thì kêu, không lặng lẽ bỏ qua");
+
+        // Cùng phép chép ấy sau khi đã dời gốc toạ độ. Điểm đích phải dời đúng
+        // một lần: cộng phép tịnh tiến ở cả chỗ tính lẫn chỗ vẽ thì mảng chép
+        // ra rơi xa gấp đôi, và không phép kiểm nào chạy với gốc toạ độ 0 thấy
+        // được chuyện đó.
+        String shifted = session.vm().stringOf(session.vm().callVirtual(
+                session.context().midlet(), "copied", "(III)Ljava/lang/String;",
+                Integer.valueOf(6), Integer.valueOf(6), Integer.valueOf(2)));
+        eq(4, marks(shifted), "chép sau khi dời gốc toạ độ vẫn ra hai chỗ có hình");
+        eq(8, rowOf(shifted, '#'), "mảng chép ra dời đúng một lần, không dời hai lần");
+    }
+
+    /** Hàng cuối cùng có dấu ấy, để biết mảng chép ra rơi xuống tới đâu. */
+    private int rowOf(String map, char mark) {
+        String[] rows = map.split("\n");
+        for (int y = rows.length - 1; y >= 0; y--) {
+            if (rows[y].indexOf(mark) >= 0) {
+                return y;
+            }
+        }
+        return -1;
     }
 
     /** Bao nhiêu điểm đã vẽ trong một bản đồ điểm. */

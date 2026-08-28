@@ -339,7 +339,7 @@ final class EmulatorEngine: ObservableObject {
     }
 
     func press(_ button: String) {
-        bridge.press(button)
+        bridge.pressButton(button)
         if button == "softLeft" || button == "softRight" {
             // A command may have swapped the screen, and with it the labels.
             refreshSoftKeys()
@@ -414,7 +414,7 @@ final class EmulatorEngine: ObservableObject {
     }
 
     func release(_ button: String) {
-        bridge.release(button)
+        bridge.releaseButton(button)
     }
 
     /// Maps a point in the displayed rectangle back to emulated coordinates.

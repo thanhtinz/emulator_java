@@ -22,6 +22,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Creates the storage tree under `root` (normally Application Support).
 - (NSString *)openAtPath:(NSString *)root;
+
+/// The time zone this handset is in, so a game reading the clock reads the
+/// right one. The core carries no world time-zone table; it carries this one
+/// offset, with daylight saving already folded in.
+- (NSString *)setTimeZone:(NSString *)identifier offsetMinutes:(int32_t)offsetMinutes;
 @property (nonatomic, readonly) BOOL isOpen;
 @property (nonatomic, readonly) NSString *storageRoot;
 
