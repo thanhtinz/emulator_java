@@ -17,6 +17,10 @@ struct ArrangeKeysView: View {
     @EnvironmentObject private var client: MobiCoreClient
     @State private var arrangement: KeypadArrangement?
     @State private var scale: Double = 100
+    /// Những bộ bàn phím đã sắp, và bộ đang dùng.
+    @State private var layouts: KeypadLayouts?
+    @State private var naming = false
+    @State private var layoutName = ""
 
     private var settings: GameSettings? { client.game(suiteId)?.settings }
 
@@ -76,6 +80,49 @@ struct ArrangeKeysView: View {
             .font(.subheadline)
             .foregroundStyle(Palette.accent)
 
+            // Bộ bàn phím: tay người chơi không đổi từ game này sang game
+            // khác, nên sắp một lần rồi dùng lại là đúng cái người ta muốn.
+            Text("BỘ BÀN PHÍM")
+                .font(.caption2)
+                .foregroundStyle(Palette.textDim)
+                .padding(.top, 10)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(layouts?.layouts ?? []) { item in
+                        Button(item.name) {
+                            client.applyKeypadLayout(item.id, for: suiteId)
+                            reload()
+                        }
+                        .font(.footnote.weight(item.id == (layouts?.current ?? "")
+                                               ? .semibold : .regular))
+                        .tint(item.id == (layouts?.current ?? "") ? Palette.accent
+                                                                  : Palette.textDim)
+                    }
+                    Button("+ Lưu") { naming = true }
+                        .font(.footnote)
+                        .tint(Palette.accent)
+                }
+            }
+            if naming {
+                HStack {
+                    TextField("Tên bộ: Tay tôi, Cầm dọc…", text: $layoutName)
+                        .textFieldStyle(.roundedBorder)
+                    Button("Lưu") {
+                        if !layoutName.trimmingCharacters(in: .whitespaces).isEmpty {
+                            client.saveKeypadLayout(layoutName, for: suiteId)
+                            layoutName = ""
+                            naming = false
+                            reload()
+                        }
+                    }
+                    .font(.footnote)
+                    .tint(Palette.accent)
+                    Button("Thôi") { naming = false }
+                        .font(.footnote)
+                        .tint(Palette.textDim)
+                }
+            }
+
             Spacer(minLength: 0)
 
             // The real keypad, at the real size, with the real arrangement:
@@ -96,9 +143,12 @@ struct ArrangeKeysView: View {
         .background(Palette.background)
         .navigationTitle("Sắp xếp bàn phím")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            arrangement = client.keypadArrangement(suiteId)
-            scale = Double(arrangement?.scale ?? 100)
-        }
+        .onAppear { reload() }
+    }
+
+    private func reload() {
+        arrangement = client.keypadArrangement(suiteId)
+        scale = Double(arrangement?.scale ?? 100)
+        layouts = client.keypadLayouts(suiteId)
     }
 }

@@ -628,6 +628,25 @@ final class MobiCoreClient: ObservableObject {
         bridge.resource(named: path, inSuite: suiteId)
     }
 
+    // MARK: - Bộ bàn phím
+
+    /// Những bộ bàn phím đã sắp, kèm bộ đang dùng cho game này.
+    func keypadLayouts(_ suiteId: String) -> KeypadLayouts? {
+        decode(bridge.keypadLayoutsJSON(forSuite: suiteId))
+    }
+
+    func saveKeypadLayout(_ name: String, for suiteId: String) {
+        report(decode(bridge.saveKeypadLayout(name, forSuite: suiteId)))
+    }
+
+    func applyKeypadLayout(_ layoutId: String, for suiteId: String) {
+        report(decode(bridge.applyKeypadLayout(layoutId, forSuite: suiteId)))
+    }
+
+    func deleteKeypadLayout(_ layoutId: String) {
+        report(decode(bridge.deleteKeypadLayout(layoutId)))
+    }
+
     // MARK: - Tìm vàng, ngọc trong phần lưu
 
     /// Lần tìm đầu: con số người chơi đang thấy trên màn hình game.

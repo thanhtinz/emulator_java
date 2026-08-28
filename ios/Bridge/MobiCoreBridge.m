@@ -451,6 +451,22 @@
     return [_facade noteKeypadUse];
 }
 
+- (NSString *)keypadLayoutsJSONForSuite:(NSString *)suiteId {
+    return [_facade keypadLayoutsJsonWithNSString:suiteId];
+}
+
+- (NSString *)saveKeypadLayout:(NSString *)name forSuite:(NSString *)suiteId {
+    return [_facade saveKeypadLayoutWithNSString:suiteId withNSString:name];
+}
+
+- (NSString *)applyKeypadLayout:(NSString *)layoutId forSuite:(NSString *)suiteId {
+    return [_facade applyKeypadLayoutWithNSString:suiteId withNSString:layoutId];
+}
+
+- (NSString *)deleteKeypadLayout:(NSString *)layoutId {
+    return [_facade deleteKeypadLayoutWithNSString:layoutId];
+}
+
 - (NSString *)scanSave:(int64_t)value inSuite:(NSString *)suiteId {
     return [_facade scanSaveWithNSString:suiteId withLong:(jlong) value];
 }

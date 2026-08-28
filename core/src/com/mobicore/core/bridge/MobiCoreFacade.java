@@ -16,6 +16,7 @@ import com.mobicore.core.library.LibraryArchive;
 import com.mobicore.core.library.PresetStore;
 import com.mobicore.core.library.ShareExport;
 import com.mobicore.core.library.UrlInstaller;
+import com.mobicore.core.library.KeypadLayoutStore;
 import com.mobicore.core.library.LibraryEntry;
 import com.mobicore.core.model.DeviceProfile;
 import com.mobicore.core.model.AppSettings;
@@ -2700,6 +2701,121 @@ public final class MobiCoreFacade {
         }
         session.network().policy().denyHost(host);
         return ok("denied", host);
+    }
+
+    // ------------------------------------------------------- bộ bàn phím
+
+    /**
+     * Những bộ bàn phím đã sắp, và bộ nào đang khớp với game này.
+     *
+     * <p>Nằm chung cho cả máy chứ không theo game: tay người chơi không đổi
+     * từ game này sang game khác, nên sắp một lần rồi dùng lại là đúng cái
+     * người ta muốn.</p>
+     */
+    public String keypadLayoutsJson(String suiteId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            KeypadLayoutStore store = keypads();
+            GameProfile profile = library.profile(suiteId);
+            List<KeypadLayoutStore.Layout> layouts = store.all();
+            List<Object> rows = new ArrayList<Object>();
+            String current = "";
+            for (int i = 0; i < layouts.size(); i++) {
+                KeypadLayoutStore.Layout item = layouts.get(i);
+                Map<String, Object> row = item.toJson();
+                boolean matches = profile != null && store.matches(item, profile);
+                if (matches && current.length() == 0) {
+                    current = item.id();
+                }
+                row.put("current", Boolean.valueOf(matches));
+                rows.add(row);
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("layouts", rows);
+            json.put("current", current);
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Cất bàn phím của game này thành một bộ có tên. */
+    public String saveKeypadLayout(String suiteId, String name) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            GameProfile profile = library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            KeypadLayoutStore.Layout saved = keypads().save(name, profile);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("layout", saved.toJson());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
+     * Đặt một bộ bàn phím lên một game.
+     *
+     * <p>Chỉ đụng vào bàn phím: game giữ nguyên cỡ màn hình, âm lượng và mọi
+     * thứ khác của nó.</p>
+     */
+    public String applyKeypadLayout(String suiteId, String layoutId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            GameProfile profile = library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            KeypadLayoutStore store = keypads();
+            KeypadLayoutStore.Layout chosen = store.find(layoutId);
+            if (chosen == null) {
+                return error("Không còn bộ bàn phím này");
+            }
+            store.apply(chosen, profile);
+            library.saveProfile(profile);
+            if (session != null && suiteId.equals(activeSuiteId)) {
+                // Đang chơi thì bàn phím đổi ngay dưới tay: đây là thứ người
+                // ta thử đi thử lại cho vừa ngón, không ai muốn phải mở lại
+                // game sau mỗi lần thử.
+                GameProfile live = session.profile();
+                store.apply(chosen, live);
+            }
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("layout", chosen.toJson());
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /** Xoá một bộ tự sắp; bộ có sẵn thì không xoá được. */
+    public String deleteKeypadLayout(String layoutId) {
+        if (library == null) {
+            return error("The library is not open");
+        }
+        try {
+            return keypads().delete(layoutId)
+                    ? ok("removed", layoutId)
+                    : error("Bộ có sẵn thì không xoá được");
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    private KeypadLayoutStore keypads() {
+        return new KeypadLayoutStore(vfs, layout);
     }
 
     // ----------------------------------------------------------------- mods

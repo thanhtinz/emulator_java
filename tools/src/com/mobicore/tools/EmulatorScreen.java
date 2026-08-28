@@ -280,6 +280,28 @@ public final class EmulatorScreen {
         int resetWidth = ui.small().stringWidth(reset) + 28;
         ui.chip(reset, frame.width() - Ui.PAD - 14 - resetWidth,
                 y + (panelHeight - ui.chipHeight()) / 2, Theme.ACCENT, Theme.ACCENT_DIM);
+
+        // Hàng bộ bàn phím: sắp một lần rồi dùng cho mọi game, nên chỗ chọn
+        // bộ phải nằm ngay tại chỗ đang sắp.
+        int chipsY = y + panelHeight + 10;
+        int chipsHeight = ui.chipHeight() + 26;
+        ui.panel(Ui.PAD, chipsY, frame.width() - Ui.PAD * 2, chipsHeight,
+                Theme.SURFACE, Theme.BORDER);
+        ui.text(ui.small(), "BỘ BÀN PHÍM", Ui.PAD + 14, chipsY + 8, Theme.TEXT_DIM);
+        String[] layouts = {"Mặc định", "Cầm một tay", "Nhẹ nhàng", "+ Lưu"};
+        int chipX = Ui.PAD + 14;
+        int chipY = chipsY + 8 + ui.small().height() + 4;
+        for (int i = 0; i < layouts.length; i++) {
+            boolean chosen = i == 1;
+            boolean action = i == layouts.length - 1;
+            int width = ui.iconChipWidth(layouts[i]);
+            if (chipX + width > frame.width() - Ui.PAD - 14) {
+                break;
+            }
+            chipX += ui.chip(layouts[i], chipX, chipY,
+                    chosen || action ? Theme.ACCENT : Theme.TEXT_DIM,
+                    chosen ? Theme.ACCENT_DIM : Theme.SURFACE_ALT) + 8;
+        }
     }
 
     /**

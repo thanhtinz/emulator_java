@@ -1,5 +1,8 @@
 package com.mobicore.app.ui
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,14 +12,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,6 +61,9 @@ fun ArrangeKeysScreen(
     // Bumped on every drag so the keypad redraws: the arrangement is a plain
     // object, and Compose has no way of knowing a float inside it moved.
     var revision by remember { mutableIntStateOf(0) }
+    /// Đang gõ tên cho bộ bàn phím sắp lưu.
+    var naming by remember { mutableStateOf(false) }
+    var layoutName by remember { mutableStateOf("") }
     var scale by remember { mutableIntStateOf(keys.scale()) }
 
     fun save() {
@@ -94,6 +103,78 @@ fun ArrangeKeysScreen(
                 keys.reset()
                 scale = keys.scale()
                 save()
+            }
+
+            // Bộ bàn phím: tay người chơi không đổi từ game này sang game
+            // khác, nên sắp một lần rồi dùng lại là đúng cái người ta muốn.
+            Spacer(Modifier.height(14.dp))
+            Text("BỘ BÀN PHÍM", color = MobiColors.TextDim, fontSize = 11.sp)
+            Spacer(Modifier.height(6.dp))
+            val layouts = remember(revision) { library.keypadLayouts() }
+            val current = remember(revision) { library.currentKeypadLayout(suiteId) }
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                layouts.forEach { item ->
+                    val chosen = item.id() == current
+                    Text(
+                        text = item.name(),
+                        color = if (chosen) MobiColors.Accent else MobiColors.TextDim,
+                        fontSize = 13.sp,
+                        fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal,
+                        modifier = Modifier
+                            .clickable {
+                                library.applyKeypadLayout(suiteId, item.id())
+                                // Hồ sơ vừa được ghi lại, nên đọc lại cỡ phím
+                                // từ đó chứ không giữ con số cũ trên màn hình.
+                                scale = library.profile(suiteId)
+                                    ?.keypadArrangement()?.scale() ?: scale
+                                revision++
+                            }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
+                Text(
+                    text = "+ Lưu",
+                    color = MobiColors.Accent,
+                    fontSize = 13.sp,
+                    modifier = Modifier
+                        .clickable { naming = true }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                )
+            }
+            if (naming) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = layoutName,
+                    onValueChange = { layoutName = it },
+                    singleLine = true,
+                    label = { Text("Tên bộ: Tay tôi, Cầm dọc…") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        "Lưu bộ này",
+                        color = MobiColors.Accent,
+                        fontSize = 14.sp,
+                        modifier = Modifier.clickable {
+                            if (layoutName.isNotBlank()) {
+                                library.saveKeypadLayout(suiteId, layoutName)
+                                layoutName = ""
+                                naming = false
+                                revision++
+                            }
+                        },
+                    )
+                    Text(
+                        "Thôi",
+                        color = MobiColors.TextDim,
+                        fontSize = 14.sp,
+                        modifier = Modifier.clickable { naming = false },
+                    )
+                }
             }
         }
 

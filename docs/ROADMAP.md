@@ -2057,3 +2057,43 @@ Thử ngược lại bằng cách trả hàm về rỗng thì bài kiểm tra đ
 Đây cũng là thứ J2ME Loader gọi là *immediate processing mode* — bên ấy là một
 công tắc kèm lời cảnh báo "hành vi của midlet sẽ khó đoán"; ở đây nó không phải
 lựa chọn, vì MIDP đã nói rõ hàm này phải làm gì.
+
+## Giai đoạn 51 — bộ bàn phím dùng lại được
+
+Kéo từng phím về đúng chỗ ngón tay mình là việc mất công, và **tay người chơi
+không đổi từ game này sang game khác**. Nhưng thứ sắp được lại nằm trong hồ sơ
+của *một* game, nên game thứ hai phải sắp lại từ đầu — đó mới là chỗ đáng sửa,
+không phải chuyện có thêm một danh sách.
+
+Nay bàn phím sắp xong **cất thành một bộ có tên**, nằm chung cho cả máy, và đặt
+lên game nào cũng được. Bộ chỉ mang những gì thuộc về bàn phím: kiểu phím nào
+hiện ra, hình phím, độ mờ, bao lâu thì mờ đi, vị trí và cỡ từng phím. Không
+mang theo cỡ màn hình hay âm lượng — đó là chuyện của game, không phải của bàn
+tay. Bài kiểm tra canh đúng chỗ ấy: vặn âm lượng game xuống 42, đặt một bộ lên,
+rồi soi xem 42 có còn nguyên không.
+
+Ba bộ có sẵn, mỗi bộ giải một chuyện có thật — không phải ba biến thể cho vui:
+
+- **Mặc định** — bàn phím đứng yên như cũ.
+- **Cầm một tay** — cả cụm hướng dồn về phía ngón cái phải và to lên một chút,
+  vì ngón cái với xa thì kém chính xác.
+- **Nhẹ nhàng** — phím nhỏ lại, mờ đi sau ba giây không chạm, cho người muốn
+  nhìn game nhiều hơn nhìn phím.
+
+Vài chỗ cố ý:
+
+- **Bộ có sẵn không xoá được**, vì xoá xong thì không ai dựng lại được nó; sửa
+  và lưu thành bộ của mình thì được.
+- **Lưu lại cùng tên thì đè lên**: người ta lưu lại một cái tên là vì bộ cũ đã
+  không còn đúng, chứ không phải để có hai dòng giống nhau.
+- **Đổi bộ khi đang chơi ăn ngay dưới tay**, không phải mở lại game: đây là thứ
+  người ta thử đi thử lại cho vừa ngón.
+- **Bỏ dấu trước khi đặt mã bộ.** Hàm rút gọn tên coi chữ có dấu là dấu ngăn,
+  nên "Tay tôi" thành `tay-t-i` — một cái tên không ai gõ lại được.
+
+Cầu nối: `keypadLayoutsJson`, `saveKeypadLayout`, `applyKeypadLayout`,
+`deleteKeypadLayout`.
+
+Đây là thứ J2ME Loader gọi là *button layouts* — bên ấy lưu được bố cục riêng
+cạnh những bố cục dựng sẵn, và lý do giống hệt: bàn tay chỉ có một, còn game
+thì nhiều.

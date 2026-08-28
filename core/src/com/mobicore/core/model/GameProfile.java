@@ -321,6 +321,17 @@ public final class GameProfile {
      * edit, and a setter taking a whole arrangement would mean rebuilding one
      * on every drag.</p>
      */
+    /**
+     * Thay cả cách sắp bàn phím, khi một bộ bàn phím được đặt lên game.
+     *
+     * <p>Nhận nguyên một vật thay vì sửa từng phím: đặt một bộ có sẵn lên
+     * game là thay toàn bộ, và sửa dần từng phím sẽ để lại lẫn lộn giữa bộ cũ
+     * và bộ mới.</p>
+     */
+    public void setKeypadArrangement(KeypadArrangement arrangement) {
+        this.keypadArrangement = arrangement == null ? new KeypadArrangement() : arrangement;
+    }
+
     public KeypadArrangement keypadArrangement() {
         return keypadArrangement;
     }

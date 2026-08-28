@@ -182,6 +182,16 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)inspectJSONForSuite:(NSString *)suiteId;
 - (nullable NSData *)resourceNamed:(NSString *)path inSuite:(NSString *)suiteId;
 
+#pragma mark - Bộ bàn phím
+
+/// Những bộ bàn phím đã sắp, và bộ nào đang khớp với game này.
+- (NSString *)keypadLayoutsJSONForSuite:(NSString *)suiteId;
+/// Cất bàn phím của game này thành một bộ có tên.
+- (NSString *)saveKeypadLayout:(NSString *)name forSuite:(NSString *)suiteId;
+/// Đặt một bộ lên game; chỉ bàn phím đổi.
+- (NSString *)applyKeypadLayout:(NSString *)layoutId forSuite:(NSString *)suiteId;
+- (NSString *)deleteKeypadLayout:(NSString *)layoutId;
+
 #pragma mark - Tìm vàng, ngọc trong phần lưu
 
 /// Lần tìm đầu: mọi chỗ trong phần lưu đang mang con số người chơi thấy.

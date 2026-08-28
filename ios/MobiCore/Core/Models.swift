@@ -254,6 +254,21 @@ struct ContinueCard: Codable {
     let playedName: String?
 }
 
+/// Những bộ bàn phím đã sắp, dùng lại được cho mọi game.
+struct KeypadLayouts: Codable {
+    let layouts: [KeypadLayout]
+    /// Bộ đang khớp với bàn phím của game đang mở, hoặc rỗng.
+    let current: String
+}
+
+struct KeypadLayout: Codable, Identifiable {
+    let id: String
+    let name: String
+    /// Bộ có sẵn: dùng được, nhưng không xoá được.
+    let builtIn: Bool
+    let current: Bool?
+}
+
 /// Bảng vật phẩm của một game: những chỗ đã tìm ra và đặt tên.
 struct ItemTable: Codable {
     let items: [GameItem]

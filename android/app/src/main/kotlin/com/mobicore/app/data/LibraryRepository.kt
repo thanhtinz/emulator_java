@@ -4,6 +4,7 @@ import com.mobicore.core.jar.SuiteLoader
 import com.mobicore.core.library.BatchImport
 import com.mobicore.core.library.GameLibrary
 import com.mobicore.core.library.LibraryArchive
+import com.mobicore.core.library.KeypadLayoutStore
 import com.mobicore.core.library.LibraryEntry
 import com.mobicore.core.library.PresetStore
 import com.mobicore.core.mod.ModManager
@@ -100,6 +101,34 @@ class LibraryRepository(filesDir: String) {
     }
 
     fun load(suiteId: String): SuiteLoader = library.load(suiteId)
+
+    // --------------------------------------------------------- bộ bàn phím
+
+    private val keypads = KeypadLayoutStore(vfs, layout)
+
+    /** Những bộ bàn phím đã sắp, dùng lại được cho mọi game. */
+    fun keypadLayouts(): List<KeypadLayoutStore.Layout> = keypads.all()
+
+    /** Bộ nào đang khớp với bàn phím của game này. */
+    fun currentKeypadLayout(suiteId: String): String {
+        val profile = profile(suiteId) ?: return ""
+        return keypads.all().firstOrNull { keypads.matches(it, profile) }?.id() ?: ""
+    }
+
+    /** Đặt một bộ lên game; chỉ bàn phím đổi, phần còn lại giữ nguyên. */
+    fun applyKeypadLayout(suiteId: String, layoutId: String) {
+        val profile = profile(suiteId) ?: return
+        val chosen = keypads.find(layoutId) ?: return
+        keypads.apply(chosen, profile)
+        saveProfile(profile)
+    }
+
+    fun saveKeypadLayout(suiteId: String, name: String) {
+        val profile = profile(suiteId) ?: return
+        keypads.save(name, profile)
+    }
+
+    fun deleteKeypadLayout(layoutId: String): Boolean = keypads.delete(layoutId)
 
     // ------------------------------------------- tìm vàng, ngọc trong phần lưu
 
