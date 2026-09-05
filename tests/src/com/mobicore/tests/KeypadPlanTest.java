@@ -75,6 +75,13 @@ public final class KeypadPlanTest extends Test {
         }
         KeypadPlan.Key one = full.find("num1");
         check(!one.round(), "full: keys take the shape the player chose");
+
+        // The key in the middle says the same word on all three: a key that
+        // renames itself when the keypad changes is one the thumb learns twice.
+        for (int style = KeypadPlan.STYLE_ARROWS; style <= KeypadPlan.STYLE_GAME; style++) {
+            eq("OK", KeypadPlan.portrait(style, WIDTH, KEY, null).find("fire").label(),
+                    "style " + style + ": the key in the middle says OK");
+        }
     }
 
     /**

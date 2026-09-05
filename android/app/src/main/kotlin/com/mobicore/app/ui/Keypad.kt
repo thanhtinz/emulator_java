@@ -229,7 +229,8 @@ private fun PlacedKey(
             modifier = slot,
         )
         KeypadPlan.KIND_STICK -> StickKey(placed.button(), key, onPress, onRelease, slot)
-        KeypadPlan.KIND_FIRE -> FireKey(onPress, onRelease, key, placed.round(), slot)
+        KeypadPlan.KIND_FIRE ->
+            FireKey(placed.label(), onPress, onRelease, key, placed.round(), slot)
         KeypadPlan.KIND_ARROW -> ArrowKey(
             icon = arrowIcon(placed.arrow()),
             button = placed.button(),
@@ -520,6 +521,7 @@ private fun StickKey(
 
 @Composable
 private fun FireKey(
+    label: String,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
     key: Dp,
@@ -535,9 +537,15 @@ private fun FireKey(
             .placed("fire", key, onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {
-        // "F" is what J2ME Loader writes here, and fire is what MIDP calls
-        // it; this key has never been an "OK" button.
-        Text("F", color = MobiColors.Accent, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        // A word, not a letter, so it is held to one line and shrunk rather
+        // than allowed to run past the edge of a round key.
+        Text(
+            label,
+            color = MobiColors.Accent,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
     }
 }
 

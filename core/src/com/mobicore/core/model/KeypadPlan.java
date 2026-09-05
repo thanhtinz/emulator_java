@@ -70,6 +70,17 @@ public final class KeypadPlan {
     public static final int DOWN_LEFT = 6;
     public static final int DOWN_RIGHT = 7;
 
+    /**
+     * What is written on the key in the middle.
+     *
+     * <p>J2ME Loader writes "F" on it, for fire, and MIDP calls it the fire
+     * key — but nobody playing calls it that. It is the key that says yes, on
+     * every one of the three keypads, and it says the same word on all three:
+     * a key that renames itself when the keypad changes is a key the thumb has
+     * to learn twice.</p>
+     */
+    public static final String FIRE_LABEL = "OK";
+
     private static final String[] ARROW_BUTTONS = {
             "up", "down", "left", "right",
             "upLeft", "upRight", "downLeft", "downRight",
@@ -119,7 +130,7 @@ public final class KeypadPlan {
             return button;
         }
 
-        /** What is written on it: a digit, "F", "L", "R", or nothing. */
+        /** What is written on it: a digit, "OK", "L", "R", or nothing. */
         public String label() {
             return label;
         }
@@ -342,7 +353,7 @@ public final class KeypadPlan {
         int cx = left + key * CLUSTER_LEFT / 100;
         int cy = top + key * CLUSTER_TOP / 100;
 
-        add(arrangement, key, "fire", "F", KIND_FIRE, -1, true,
+        add(arrangement, key, "fire", FIRE_LABEL, KIND_FIRE, -1, true,
                 cx - fire / 2, cy - fire / 2, fire, fire);
         for (int i = 0; i < ARC_BUTTONS.length; i++) {
             int x = cx + ARC_X[i] * radius / 1000 - key / 2;
@@ -505,7 +516,7 @@ public final class KeypadPlan {
         arrow(arrangement, key, LEFT, x, midY, wide, tall);
         arrow(arrangement, key, RIGHT, rightX, midY, wide, tall);
         arrow(arrangement, key, DOWN, midX, lowY, wide, tall);
-        add(arrangement, key, "fire", "F", KIND_FIRE, -1, false, midX, midY, wide, tall);
+        add(arrangement, key, "fire", FIRE_LABEL, KIND_FIRE, -1, false, midX, midY, wide, tall);
     }
 
     // ------------------------------------------------------------- one key

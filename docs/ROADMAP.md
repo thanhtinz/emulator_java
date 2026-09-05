@@ -2490,6 +2490,15 @@ vùng nghỉ giữa cần, bỏ ngưỡng 22,5° — mỗi lần đúng câu tư
 
 Ảnh: `19-keypad-arrows.png`, `03-emulator.png`, `19b-keypad-game.png`.
 
+Phím giữa ghi **"OK"** ở cả ba kiểu. J2ME Loader viết "F" lên nó và MIDP gọi nó
+là phím bắn, nhưng người chơi thì không ai gọi thế — nó là phím nói "được", và
+nói cùng một chữ trên cả ba, vì một phím tự đổi tên theo bàn phím là một phím
+ngón cái phải học hai lần. Chỗ đáng sửa lại không phải cái chữ mà là chỗ nó
+nằm: `Key.label()` đã có sẵn và mọi phím khác đều vẽ từ đó, riêng phím giữa thì
+**cả ba mặt giao diện gõ cứng chữ ấy** — nên đổi một chữ là phải sửa bốn chỗ,
+đúng cái bệnh vừa chữa cho phần hình học. Nay ba mặt đọc nhãn, và chữ tự thu
+nhỏ khi phông lớn không vừa phím tròn.
+
 Dọn kèm: mục "Quay màn hình" vẫn còn trong menu trong game của bản xem trước và
 trong câu hướng dẫn của màn ảnh chụp trên Android, dù tính năng ấy đã bỏ ở giai
 đoạn 57 — bảo người ta bấm một thứ không còn tồn tại.

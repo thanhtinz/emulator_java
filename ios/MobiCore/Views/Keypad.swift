@@ -192,8 +192,9 @@ private struct PlacedKey: View {
             StickKey(button: placed.button, size: min(width, height), key: key,
                      steer: steer, onPress: onPress, onRelease: onRelease)
         case KeypadPlanData.kindFire:
-            FireKey(size: min(width, height), width: width, height: height,
-                    round: placed.round, onPress: onPress, onRelease: onRelease)
+            FireKey(label: placed.label, size: min(width, height),
+                    width: width, height: height, round: placed.round,
+                    onPress: onPress, onRelease: onRelease)
         case KeypadPlanData.kindArrow:
             ArrowKey(symbol: PlacedKey.symbol(placed.arrow), button: placed.button,
                      label: PlacedKey.name(placed.arrow), size: min(width, height),
@@ -485,6 +486,7 @@ private struct StickKey: View {
 }
 
 private struct FireKey: View {
+    let label: String
     let size: CGFloat
     let width: CGFloat
     let height: CGFloat
@@ -498,11 +500,13 @@ private struct FireKey: View {
 
     var body: some View {
         let radius = keyRadius(round ? 2 : shape, size: size, rounded: 14)
-        // "F" is what J2ME Loader writes here, and fire is what MIDP calls
-        // it; this key has never been an "OK" button.
-        Text("F")
-            .font(.system(size: size * 0.4, weight: .semibold))
+        // A word, not a letter, so it is held to one line and shrunk rather
+        // than allowed to run past the edge of a round key.
+        Text(label)
+            .font(.system(size: size * 0.34, weight: .semibold))
             .foregroundStyle(Palette.accent)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
             .frame(width: width, height: height)
             .background(Palette.accentDim.opacity(held ? 0.6 : 1),
                         in: RoundedRectangle(cornerRadius: radius))

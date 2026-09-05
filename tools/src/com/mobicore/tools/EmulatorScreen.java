@@ -526,12 +526,15 @@ public final class EmulatorScreen {
             return;
         }
         if (placed.kind() == KeypadPlan.KIND_FIRE) {
-            // "F" is what J2ME Loader writes on the fire key, and fire is what
-            // MIDP calls it; the pad's middle key was never an "OK" button.
             keyPanel(ui, x, y, w, h, Theme.ACCENT_DIM, Theme.ACCENT, placed.round());
             markMoved(ui, placed.button(), x, y, w, h);
-            ui.textCenter(ui.largeBold(), "F", x + w / 2,
-                    y + (h - ui.largeBold().height()) / 2, Theme.ACCENT);
+            // A word, not a letter, so it takes the smaller face when the
+            // bold one would run past the edge of a round key.
+            com.mobicore.tools.ui.UiFont font =
+                    ui.largeBold().stringWidth(placed.label()) > w - 12
+                            ? ui.mediumBold() : ui.largeBold();
+            ui.textCenter(font, placed.label(), x + w / 2,
+                    y + (h - font.height()) / 2, Theme.ACCENT);
             return;
         }
         if (placed.kind() == KeypadPlan.KIND_ARROW) {
