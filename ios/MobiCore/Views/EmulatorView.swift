@@ -46,15 +46,15 @@ struct EmulatorView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
 
-            if landscape && !engine.wantsText {
+            if landscape && !engine.wantsText && !(settings?.keypadPutAway ?? false) {
                 // Held sideways, the game keeps the middle and each hand gets
                 // a column. A keypad stacked under a wide screen would leave
                 // the game a strip along the top.
                 HStack(spacing: 0) {
                     ControlColumn(directional: true, softKeyLabel: engine.leftSoftKeyLabel,
-                                  showSoftKey: !engine.showsSoftKeyBar,
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) },
+                                  planFor: { w, h, k in columnPlan(left: true, width: w, height: h, key: k) },
                                   shape: settings?.keyShape ?? 0,
                                   opacity: engine.keypadOpacity,
                                   placement: placement)
@@ -62,9 +62,9 @@ struct EmulatorView: View {
                     GameSurface(engine: engine, smooth: settings?.smoothing ?? true)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     ControlColumn(directional: false, softKeyLabel: engine.rightSoftKeyLabel,
-                                  showSoftKey: !engine.showsSoftKeyBar,
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) },
+                                  planFor: { w, h, k in columnPlan(left: false, width: w, height: h, key: k) },
                                   shape: settings?.keyShape ?? 0,
                                   opacity: engine.keypadOpacity,
                                   placement: placement)
@@ -82,18 +82,26 @@ struct EmulatorView: View {
                     GameTextField(engine: engine)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
-                } else {
-                    Keypad(
-                        onPress: { engine.press($0) },
-                        onRelease: { engine.release($0) },
-                        leftSoftKey: engine.leftSoftKeyLabel,
-                        rightSoftKey: engine.rightSoftKeyLabel,
-                        layout: settings?.keypadLayout ?? 0,
-                        showSoftKeys: !engine.showsSoftKeyBar,
-                        shape: settings?.keyShape ?? 0,
-                        opacity: engine.keypadOpacity,
-                        placement: placement
-                    )
+                } else if !(settings?.keypadPutAway ?? false) {
+                    GeometryReader { geometry in
+                        let key = KeyMetrics.upright(placement)
+                        Keypad(
+                            onPress: { engine.press($0) },
+                            onRelease: { engine.release($0) },
+                            leftSoftKey: engine.leftSoftKeyLabel,
+                            rightSoftKey: engine.rightSoftKeyLabel,
+                            plan: client.keypadPlan(suiteId,
+                                                    width: Int(geometry.size.width),
+                                                    height: Int(geometry.size.height),
+                                                    key: Int(key),
+                                                    landscape: false, left: true),
+                            key: key,
+                            shape: settings?.keyShape ?? 0,
+                            opacity: engine.keypadOpacity,
+                            placement: placement
+                        )
+                    }
+                    .frame(height: KeyMetrics.upright * 5)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                 }
@@ -161,6 +169,12 @@ private extension EmulatorView {
         return KeyPlacement(offsets: offsets, scale: arrangement.scale)
     }
 
+    /// One side of the sideways keypad, measured by the core.
+    func columnPlan(left: Bool, width: Int, height: Int, key: Int) -> KeypadPlanData? {
+        client.keypadPlan(suiteId, width: width, height: height, key: key,
+                          landscape: true, left: left)
+    }
+
     /// The menu behind the toolbar, and the reason it exists.
     ///
     /// J2ME Loader keeps exactly this set behind its overflow — a screenshot,
@@ -180,6 +194,15 @@ private extension EmulatorView {
             } label: {
                 Label("Bàn phím: \(settings?.keypadLayoutName ?? "Đầy đủ")",
                       systemImage: "slider.horizontal.3")
+            }
+            // Putting the keypad away is its own item rather than a fourth
+            // keypad on the cycle: coming back has to bring back the one that
+            // was there.
+            Button {
+                client.toggleKeypad(suiteId)
+            } label: {
+                Label(settings?.keypadPutAway == true ? "Hiện bàn phím" : "Ẩn bàn phím",
+                      systemImage: "keyboard")
             }
             Button {
                 client.toggleOrientation(suiteId)

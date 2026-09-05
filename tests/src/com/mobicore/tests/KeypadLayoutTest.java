@@ -58,7 +58,7 @@ public final class KeypadLayoutTest extends Test {
         check(Json.bool(applied, "ok", false),
                 "đặt được bộ có sẵn: " + Json.string(applied, "error", ""));
         Map<String, Object> profile = Json.readObject(facade.profileJson(first));
-        eq(GameProfile.KEYPAD_ARROWS, Json.integer(profile, "keypadLayout", -1),
+        eq(GameProfile.KEYPAD_GAME, Json.integer(profile, "keypadLayout", -1),
                 "bàn phím đổi theo bộ");
         eq(115, Json.integer(Json.child(profile, "keypadArrangement"), "scale", 0),
                 "kể cả cỡ phím");

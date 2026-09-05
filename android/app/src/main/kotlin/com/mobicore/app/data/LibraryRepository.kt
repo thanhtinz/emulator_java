@@ -441,10 +441,24 @@ class LibraryRepository(filesDir: String) {
      */
     fun cycleKeypadLayout(suiteId: String): String {
         val profile = library.profile(suiteId) ?: return ""
-        profile.setKeypadLayout((profile.keypadLayout() + 1) % 4)
+        profile.setKeypadLayout((profile.keypadLayout() + 1) % 3)
         library.saveProfile(profile)
         refresh()
         return profile.keypadLayoutName()
+    }
+
+    /**
+     * Puts the keypad away, or brings it back.
+     *
+     * Kept apart from which keypad is chosen so that bringing it back brings
+     * back the one that was there, not the first of the three.
+     */
+    fun toggleKeypad(suiteId: String): Boolean {
+        val profile = library.profile(suiteId) ?: return false
+        profile.setKeypadHidden(!profile.keypadHidden())
+        library.saveProfile(profile)
+        refresh()
+        return profile.keypadHidden()
     }
 
     /** Keeps a picture of the game; returns where it went. */

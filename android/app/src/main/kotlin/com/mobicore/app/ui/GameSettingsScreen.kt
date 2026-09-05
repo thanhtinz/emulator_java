@@ -72,6 +72,7 @@ fun GameSettingsScreen(
     var preset by remember { mutableStateOf(profile.input().presetName()) }
     var keyOpacity by remember { mutableIntStateOf(profile.keypadOpacity()) }
     var keyShape by remember { mutableIntStateOf(profile.keypadShape()) }
+    var keyLayout by remember { mutableIntStateOf(profile.keypadLayout()) }
     var keyFade by remember { mutableIntStateOf(profile.keypadFadeDelay()) }
     var gamepadOn by remember { mutableStateOf(profile.gamepad().isEnabled) }
     var tiltOn by remember { mutableStateOf(profile.tilt().isEnabled) }
@@ -177,7 +178,7 @@ fun GameSettingsScreen(
             SectionCard(title = "MÀN HÌNH", trailing = profile.device().keypadName()) {
                 Column {
                     FieldRow("Kích thước", profile.device().resolution())
-                    FieldRow("Kiểu bàn phím", profile.device().keypadName())
+                    FieldRow("Chuẩn phím máy", profile.device().keypadName())
                 }
             }
         }
@@ -185,8 +186,19 @@ fun GameSettingsScreen(
         item {
             // Held sideways the keypad sits over the game itself, so how
             // solid it is decides how much of the game is left to look at.
-            SectionCard(title = "BÀN PHÍM ẢO", trailing = "$keyOpacity%") {
+            SectionCard(title = "BÀN PHÍM ẢO", trailing = profile.keypadLayoutName()) {
                 Column {
+                    // Which of the three keypads. Also on the in-game menu,
+                    // because which one suits a game is something a player
+                    // finds out while playing it, not before.
+                    OptionRow(
+                        "Kiểu bàn phím",
+                        GameProfile.KEYPAD_LAYOUT_NAMES.toList(),
+                        keyLayout,
+                    ) {
+                        keyLayout = it
+                        persist { profile -> profile.setKeypadLayout(it) }
+                    }
                     FieldRow("Độ rõ", "$keyOpacity%")
                     Slider(
                         value = keyOpacity.toFloat(),

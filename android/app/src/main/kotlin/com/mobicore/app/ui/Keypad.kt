@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -52,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobicore.core.model.GameProfile
 import com.mobicore.core.model.KeypadArrangement
+import com.mobicore.core.model.KeypadPlan
 
 /**
  * Key metrics taken from J2ME Loader's on-screen keypad, which is the one
@@ -63,12 +63,11 @@ import com.mobicore.core.model.KeypadArrangement
  * `PHONE_KEY_SCALE_X = 2.0f`, `PHONE_KEY_SCALE_Y = 0.75f` — so they read as a
  * wide, shallow bar rather than as two more keys in the grid.
  */
-private const val KEY_DIVISOR_UPRIGHT = 6.5f
-private const val KEY_DIVISOR_TURNED = 12f
-private const val SOFT_SCALE_X = 2.0f
-private const val SOFT_SCALE_Y = 0.75f
+private val KEY_DIVISOR_UPRIGHT = KeypadPlan.KEY_DIVISOR_UPRIGHT
+private val KEY_DIVISOR_TURNED = KeypadPlan.KEY_DIVISOR_TURNED.toFloat()
+private val SOFT_SCALE_Y = KeypadPlan.SOFT_SCALE_Y
 /** A hair of daylight between keys; J2ME Loader snaps its keys together. */
-private val GAP = 4.dp
+private val GAP = KeypadPlan.GAP.dp
 
 /**
  * The shape every key on this keypad is cut to.
@@ -104,17 +103,14 @@ private fun Modifier.placed(
     onHeldChange: (Boolean) -> Unit,
 ): Modifier {
     val placement = LocalKeyPlacement.current
-    val arrangement = placement.arrangement
-    val moved = this.offset(
-        x = key * (arrangement?.offsetX(button) ?: 0f),
-        y = key * (arrangement?.offsetY(button) ?: 0f),
-    )
-    val onMove = placement.onMove ?: return moved.holdable(button, onPress, onRelease, onHeldChange)
+    // Where the key sits is the plan's business — it has already added the
+    // player's drag — so all that is left here is what a touch does.
+    val onMove = placement.onMove ?: return this.holdable(button, onPress, onRelease, onHeldChange)
     // Dragged in keys rather than pixels: a key is a different number of
     // pixels upright, sideways and on every different phone, and one
     // arrangement has to hold for all of them.
     val keyPx = with(LocalDensity.current) { key.toPx() }
-    return moved.pointerInput(button, keyPx) {
+    return this.pointerInput(button, keyPx) {
         detectDragGestures { change, drag ->
             change.consume()
             onMove(button, drag.x / keyPx, drag.y / keyPx)
@@ -128,13 +124,14 @@ private fun arranging(): Boolean = LocalKeyPlacement.current.onMove != null
 
 /** A key's outline, at the given corner radius when it is a rounded one. */
 @Composable
-private fun keyShape(radius: Dp): Shape = when (LocalKeyShape.current) {
-    GameProfile.KEY_SHAPE_RECT -> RectangleShape
-    // On a square key a full-radius corner is a circle, which is what this
-    // setting is for; on the wide softkeys the same call gives a pill.
-    GameProfile.KEY_SHAPE_ROUND -> CircleShape
-    else -> RoundedCornerShape(radius)
-}
+private fun keyShape(radius: Dp, round: Boolean = false): Shape =
+    when (if (round) GameProfile.KEY_SHAPE_ROUND else LocalKeyShape.current) {
+        GameProfile.KEY_SHAPE_RECT -> RectangleShape
+        // On a square key a full-radius corner is a circle, which is what
+        // this setting is for; on the wide softkeys it gives a pill.
+        GameProfile.KEY_SHAPE_ROUND -> CircleShape
+        else -> RoundedCornerShape(radius)
+    }
 
 /**
  * How big one key is drawn, once the player's own size is applied.
@@ -172,16 +169,8 @@ fun Keypad(
     leftSoftKey: String?,
     rightSoftKey: String?,
     modifier: Modifier = Modifier,
-    /** Which keys to show; see `GameProfile.KEYPAD_*`. */
+    /** Which of the three keypads; see `GameProfile.KEYPAD_*`. */
     layout: Int = GameProfile.KEYPAD_FULL,
-    /**
-     * False while the emulated screen carries the command bar: that bar is
-     * drawn with the game's own labels and a tap on it runs the command, so
-     * two more keys saying the same two words are two ways to do one thing.
-     * A game that goes full screen takes the bar away, and then these are the
-     * only way left to reach a command.
-     */
-    showSoftKeys: Boolean = true,
     /** The key shape; see `GameProfile.KEY_SHAPE_*`. */
     shape: Int = GameProfile.KEY_SHAPE_ROUNDED,
     /**
@@ -194,42 +183,86 @@ fun Keypad(
     /** Where the keys have been dragged to, and how big they are drawn. */
     placement: KeyPlacement = KeyPlacement(),
 ) {
-    val arrows = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_ARROWS
-    val numbers = layout == GameProfile.KEYPAD_FULL || layout == GameProfile.KEYPAD_NUMBERS
     val key = uprightKeySize(placement.arrangement)
     CompositionLocalProvider(
         LocalKeyShape provides shape,
         LocalKeyPlacement provides placement,
     ) {
-    Column(modifier.alpha(opacity / 100f), verticalArrangement = Arrangement.spacedBy(GAP * 3)) {
-        // Directly under the screen, so they line up with the labels the
-        // system draws along its bottom edge, as they do on a handset.
-        // The two softkeys and nothing else. The call, end and clear keys a
-        // handset carried are gone from the pad: they were there because the
-        // device was a phone, and on screen they crowd the keys games read.
-        if (showSoftKeys) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                SoftKey(leftSoftKey, "softLeft", onPress, onRelease, key)
-                SoftKey(rightSoftKey, "softRight", onPress, onRelease, key)
-            }
-        }
-        // A pad left on its own takes the middle: there is no reason to keep
-        // a hole where the other half of the keypad used to be.
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement =
-                if (arrows && numbers) Arrangement.SpaceBetween else Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (numbers) {
-                NumericPad(onPress, onRelease, key)
-            }
-            if (arrows) {
-                DirectionalPad(onPress, onRelease, key)
+        BoxWithConstraints(modifier.fillMaxWidth().alpha(opacity / 100f)) {
+            // Measured by the core, so this keypad and the one in the
+            // screenshots cannot be two different keypads.
+            val plan = KeypadPlan.portrait(
+                layout, maxWidth.value.toInt(), key.value.toInt(), placement.arrangement,
+            )
+            Box(Modifier.fillMaxWidth().height(plan.height().dp)) {
+                plan.keys().forEach { placed ->
+                    PlacedKey(placed, key, leftSoftKey, rightSoftKey, onPress, onRelease)
+                }
             }
         }
     }
+}
+
+/** One key of a plan, wherever the plan put it. */
+@Composable
+private fun PlacedKey(
+    placed: KeypadPlan.Key,
+    key: Dp,
+    leftSoftKey: String?,
+    rightSoftKey: String?,
+    onPress: (String) -> Unit,
+    onRelease: (String) -> Unit,
+) {
+    val slot = Modifier
+        .offset(x = placed.x().dp, y = placed.y().dp)
+        .size(placed.width().dp, placed.height().dp)
+    when (placed.kind()) {
+        KeypadPlan.KIND_SOFT -> SoftKey(
+            label = if (placed.button() == "softLeft") leftSoftKey else rightSoftKey,
+            button = placed.button(),
+            onPress = onPress,
+            onRelease = onRelease,
+            key = key,
+            modifier = slot,
+        )
+        KeypadPlan.KIND_FIRE -> FireKey(onPress, onRelease, key, placed.round(), slot)
+        KeypadPlan.KIND_ARROW -> ArrowKey(
+            icon = arrowIcon(placed.arrow()),
+            button = placed.button(),
+            description = arrowName(placed.arrow()),
+            onPress = onPress,
+            onRelease = onRelease,
+            key = key,
+            corner = placed.arrow() >= KeypadPlan.UP_LEFT,
+            round = placed.round(),
+            modifier = slot,
+        )
+        else -> NumberKey(
+            placed.label(), placed.button(), onPress, onRelease, key, placed.round(), slot,
+        )
     }
+}
+
+private fun arrowIcon(direction: Int): ImageVector = when (direction) {
+    KeypadPlan.UP -> Icons.Filled.KeyboardArrowUp
+    KeypadPlan.DOWN -> Icons.Filled.KeyboardArrowDown
+    KeypadPlan.LEFT -> Icons.Filled.KeyboardArrowLeft
+    KeypadPlan.RIGHT -> Icons.Filled.KeyboardArrowRight
+    KeypadPlan.UP_LEFT -> Icons.Filled.NorthWest
+    KeypadPlan.UP_RIGHT -> Icons.Filled.NorthEast
+    KeypadPlan.DOWN_LEFT -> Icons.Filled.SouthWest
+    else -> Icons.Filled.SouthEast
+}
+
+private fun arrowName(direction: Int): String = when (direction) {
+    KeypadPlan.UP -> "Lên"
+    KeypadPlan.DOWN -> "Xuống"
+    KeypadPlan.LEFT -> "Trái"
+    KeypadPlan.RIGHT -> "Phải"
+    KeypadPlan.UP_LEFT -> "Lên trái"
+    KeypadPlan.UP_RIGHT -> "Lên phải"
+    KeypadPlan.DOWN_LEFT -> "Xuống trái"
+    else -> "Xuống phải"
 }
 
 /**
@@ -244,10 +277,11 @@ fun Keypad(
 fun ControlColumn(
     directional: Boolean,
     softKeyLabel: String?,
-    showSoftKey: Boolean,
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Which of the three keypads; see `GameProfile.KEYPAD_*`. */
+    layout: Int = GameProfile.KEYPAD_FULL,
     /** The key shape; see `GameProfile.KEY_SHAPE_*`. */
     shape: Int = GameProfile.KEY_SHAPE_ROUNDED,
     /** How solid to draw the column, in percent. */
@@ -269,24 +303,13 @@ fun ControlColumn(
     BoxWithConstraints(modifier.width(turned * 3 + GAP * 2 + 24.dp).alpha(opacity / 100f)) {
         val room = (maxHeight - GAP * 4) / (4 + SOFT_SCALE_Y)
         val key = minOf(turned, room)
-        Column(
-            Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            if (directional) {
-                DirectionalPad(onPress, onRelease, key)
-            } else {
-                NumericPad(onPress, onRelease, key)
-            }
-            if (showSoftKey) {
-                SoftKey(
-                    label = softKeyLabel,
-                    button = if (directional) "softLeft" else "softRight",
-                    onPress = onPress,
-                    onRelease = onRelease,
-                    key = key,
-                )
+        val plan = KeypadPlan.column(
+            layout, directional, maxWidth.value.toInt(), maxHeight.value.toInt(),
+            key.value.toInt(), placement.arrangement,
+        )
+        Box(Modifier.fillMaxSize()) {
+            plan.keys().forEach { placed ->
+                PlacedKey(placed, key, softKeyLabel, softKeyLabel, onPress, onRelease)
             }
         }
     }
@@ -310,15 +333,13 @@ private fun SoftKey(
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
     key: Dp,
+    modifier: Modifier = Modifier,
 ) {
     var held by remember { mutableStateOf(false) }
     val bound = !label.isNullOrEmpty()
     val mark = if (button == "softLeft") "L" else "R"
     Box(
-        Modifier
-            // Two keys across, three quarters of a key tall: J2ME Loader's
-            // own proportions for these two.
-            .size(key * SOFT_SCALE_X, key * SOFT_SCALE_Y)
+        modifier
             .clip(keyShape(12.dp))
             .background(
                 when {
@@ -355,67 +376,6 @@ private fun SoftKey(
     }
 }
 
-/**
- * The 3x4 grid, laid out the way a handset does.
- *
- * Digits only. The letters printed under them existed because multi-tap was
- * the only way that keypad could enter a name; this phone has a keyboard, and
- * it comes up by itself when a game asks for text.
- */
-@Composable
-private fun NumericPad(onPress: (String) -> Unit, onRelease: (String) -> Unit, key: Dp) {
-    val rows = listOf(
-        listOf("1" to "num1", "2" to "num2", "3" to "num3"),
-        listOf("4" to "num4", "5" to "num5", "6" to "num6"),
-        listOf("7" to "num7", "8" to "num8", "9" to "num9"),
-        listOf("*" to "star", "0" to "num0", "#" to "hash"),
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(GAP)) {
-        rows.forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(GAP)) {
-                row.forEach { (label, button) ->
-                    NumberKey(label, button, onPress, onRelease, key)
-                }
-            }
-        }
-    }
-}
-
-/** The directional cluster, with fire in the middle. */
-/**
- * The directional cluster: eight ways, with fire in the middle.
- *
- * The corners are not keys of their own. MIDP has no diagonal key code and no
- * handset had a diagonal key — a corner of the pad was two directions held at
- * once, which is what these send.
- */
-@Composable
-private fun DirectionalPad(onPress: (String) -> Unit, onRelease: (String) -> Unit, key: Dp) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(GAP),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(GAP)) {
-            ArrowKey(Icons.Filled.NorthWest, "upLeft", "Lên trái", onPress, onRelease, key, true)
-            ArrowKey(Icons.Filled.KeyboardArrowUp, "up", "Lên", onPress, onRelease, key)
-            ArrowKey(Icons.Filled.NorthEast, "upRight", "Lên phải", onPress, onRelease, key, true)
-        }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(GAP),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ArrowKey(Icons.Filled.KeyboardArrowLeft, "left", "Trái", onPress, onRelease, key)
-            FireKey(onPress, onRelease, key)
-            ArrowKey(Icons.Filled.KeyboardArrowRight, "right", "Phải", onPress, onRelease, key)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(GAP)) {
-            ArrowKey(Icons.Filled.SouthWest, "downLeft", "Xuống trái", onPress, onRelease, key, true)
-            ArrowKey(Icons.Filled.KeyboardArrowDown, "down", "Xuống", onPress, onRelease, key)
-            ArrowKey(Icons.Filled.SouthEast, "downRight", "Xuống phải", onPress, onRelease, key, true)
-        }
-    }
-}
-
 @Composable
 private fun NumberKey(
     label: String,
@@ -423,14 +383,15 @@ private fun NumberKey(
     onPress: (String) -> Unit,
     onRelease: (String) -> Unit,
     key: Dp,
+    round: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     var held by remember { mutableStateOf(false) }
     Column(
-        Modifier
-            .size(key)
-            .clip(keyShape(12.dp))
+        modifier
+            .clip(keyShape(12.dp, round))
             .background(if (held) MobiColors.AccentDim else MobiColors.SurfaceAlt)
-            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, keyShape(12.dp))
+            .border(1.dp, if (held) MobiColors.Accent else MobiColors.Border, keyShape(12.dp, round))
             .placed(button, key, onPress, onRelease) { held = it },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -448,14 +409,15 @@ private fun ArrowKey(
     onRelease: (String) -> Unit,
     key: Dp,
     corner: Boolean = false,
+    round: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     var held by remember { mutableStateOf(false) }
     Box(
-        Modifier
-            .size(key)
-            .clip(keyShape(14.dp))
+        modifier
+            .clip(keyShape(14.dp, round))
             .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
-            .border(1.dp, MobiColors.Accent, keyShape(14.dp))
+            .border(1.dp, MobiColors.Accent, keyShape(14.dp, round))
             .placed(button, key, onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {
@@ -467,14 +429,19 @@ private fun ArrowKey(
 }
 
 @Composable
-private fun FireKey(onPress: (String) -> Unit, onRelease: (String) -> Unit, key: Dp) {
+private fun FireKey(
+    onPress: (String) -> Unit,
+    onRelease: (String) -> Unit,
+    key: Dp,
+    round: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
     var held by remember { mutableStateOf(false) }
     Box(
-        Modifier
-            .size(key)
-            .clip(keyShape(14.dp))
+        modifier
+            .clip(keyShape(14.dp, round))
             .background(if (held) MobiColors.Accent.copy(alpha = 0.35f) else MobiColors.AccentDim)
-            .border(1.dp, MobiColors.Accent, keyShape(14.dp))
+            .border(1.dp, MobiColors.Accent, keyShape(14.dp, round))
             .placed("fire", key, onPress, onRelease) { held = it },
         contentAlignment = Alignment.Center,
     ) {

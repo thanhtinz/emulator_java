@@ -199,6 +199,28 @@
     return [_facade cycleKeypadLayoutWithNSString:suiteId];
 }
 
+- (NSString *)setKeypadLayout:(NSInteger)layout forSuite:(NSString *)suiteId {
+    return [_facade setKeypadLayoutWithNSString:suiteId withInt:(jint) layout];
+}
+
+- (NSString *)toggleKeypadForSuite:(NSString *)suiteId {
+    return [_facade toggleKeypadWithNSString:suiteId];
+}
+
+- (NSString *)keypadPlanJSONForSuite:(NSString *)suiteId
+                               width:(NSInteger)width
+                              height:(NSInteger)height
+                                 key:(NSInteger)key
+                           landscape:(BOOL)landscape
+                                left:(BOOL)left {
+    return [_facade keypadPlanJsonWithNSString:suiteId
+                                       withInt:(jint) width
+                                       withInt:(jint) height
+                                       withInt:(jint) key
+                                   withBoolean:landscape
+                                   withBoolean:left];
+}
+
 - (NSString *)takeScreenshot {
     return [_facade takeScreenshot];
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.StopCircle
@@ -204,7 +205,7 @@ fun EmulatorScreen(
         // that was arranged.
         val placement = remember(profile) { KeyPlacement(profile?.keypadArrangement()) }
 
-        if (landscape && !wantsText) {
+        if (landscape && !wantsText && profile?.keypadHidden() != true) {
             // Held sideways, the game keeps the middle and each hand gets a
             // column. A keypad stacked under a wide screen would leave the
             // game a strip along the top.
@@ -212,10 +213,10 @@ fun EmulatorScreen(
                 ControlColumn(
                     directional = true,
                     softKeyLabel = engine.leftSoftKeyLabel(),
-                    showSoftKey = !engine.showsSoftKeyBar(),
                     onPress = { engine.pressButton(it) },
                     onRelease = { engine.releaseButton(it) },
                     modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
+                    layout = profile?.keypadLayout() ?: GameProfile.KEYPAD_FULL,
                     shape = keyShape,
                     opacity = keyOpacity,
                     placement = placement,
@@ -226,10 +227,10 @@ fun EmulatorScreen(
                 ControlColumn(
                     directional = false,
                     softKeyLabel = engine.rightSoftKeyLabel(),
-                    showSoftKey = !engine.showsSoftKeyBar(),
                     onPress = { engine.pressButton(it) },
                     onRelease = { engine.releaseButton(it) },
                     modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
+                    layout = profile?.keypadLayout() ?: GameProfile.KEYPAD_FULL,
                     shape = keyShape,
                     opacity = keyOpacity,
                     placement = placement,
@@ -251,7 +252,7 @@ fun EmulatorScreen(
         // user's hand would be a museum exhibit.
         if (wantsText) {
             GameTextField(engine, Modifier.fillMaxWidth().padding(horizontal = 14.dp))
-        } else {
+        } else if (profile?.keypadHidden() != true) {
             Keypad(
                 onPress = { engine.pressButton(it) },
                 onRelease = { engine.releaseButton(it) },
@@ -259,7 +260,6 @@ fun EmulatorScreen(
                 rightSoftKey = engine.rightSoftKeyLabel(),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
                 layout = profile?.keypadLayout() ?: GameProfile.KEYPAD_FULL,
-                showSoftKeys = !engine.showsSoftKeyBar(),
                 shape = keyShape,
                 opacity = keyOpacity,
                 placement = placement,
@@ -321,6 +321,13 @@ private fun GameMenu(
                 },
                 leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
                 onClick = { library.cycleKeypadLayout(suiteId) },
+            )
+            // Putting the keypad away is its own item, not a fourth keypad on
+            // the cycle: coming back has to bring back the one that was there.
+            DropdownMenuItem(
+                text = { Text(if (profile?.keypadHidden() == true) "Hiện bàn phím" else "Ẩn bàn phím") },
+                leadingIcon = { Icon(Icons.Filled.Keyboard, contentDescription = null) },
+                onClick = { library.toggleKeypad(suiteId) },
             )
             DropdownMenuItem(
                 text = { Text("Màn hình") },

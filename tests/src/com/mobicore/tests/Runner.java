@@ -35,6 +35,7 @@ public final class Runner {
         tests.add(new TreasureTest(fixtures));
         tests.add(new RepaintTest(fixtures));
         tests.add(new KeypadLayoutTest(fixtures));
+        tests.add(new KeypadPlanTest());
         tests.add(new PreviewTest(fixtures));
         tests.add(new OverflowTest(fixtures));
         tests.add(new ThreadTest(fixtures));

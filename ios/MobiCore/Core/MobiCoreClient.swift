@@ -260,11 +260,29 @@ final class MobiCoreClient: ObservableObject {
         refresh()
     }
 
-    /// Which keys the keypad shows, cycled the way J2ME Loader's "switch
-    /// layout" does it: full, arrows only, numbers only, hidden.
+    /// Which of the three keypads is on screen, cycled the way J2ME Loader's
+    /// "switch layout" does it.
     func cycleKeypadLayout(_ suiteId: String) {
         report(decode(bridge.cycleKeypadLayout(forSuite: suiteId)))
         refresh()
+    }
+
+    func setKeypadLayout(_ layout: Int, for suiteId: String) {
+        report(decode(bridge.setKeypadLayout(layout, forSuite: suiteId)))
+        refresh()
+    }
+
+    /// Puts the keypad away, or brings the same one back.
+    func toggleKeypad(_ suiteId: String) {
+        report(decode(bridge.toggleKeypad(forSuite: suiteId)))
+        refresh()
+    }
+
+    /// Where every key of the keypad goes, for a strip or a column this size.
+    func keypadPlan(_ suiteId: String, width: Int, height: Int, key: Int,
+                    landscape: Bool, left: Bool) -> KeypadPlanData? {
+        decode(bridge.keypadPlanJSON(forSuite: suiteId, width: width, height: height,
+                                     key: key, landscape: landscape, left: left))
     }
 
     // MARK: - Presets

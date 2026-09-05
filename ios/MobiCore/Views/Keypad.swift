@@ -78,16 +78,15 @@ extension EnvironmentValues {
 }
 
 extension View {
-    /// Puts one key where the player left it, and says what a touch does.
+    /// Says what a touch on one key does.
     ///
-    /// Dragged in keys rather than points: a key is a different number of
-    /// points upright, sideways and on every different phone, and one
-    /// arrangement has to hold for all of them.
+    /// Where the key sits is the plan's business — it has already added the
+    /// player's drag. Dragging is measured in keys rather than points: a key
+    /// is a different number of points upright, sideways and on every
+    /// different phone, and one arrangement has to hold for all of them.
     func placed(_ button: String, size: CGFloat, placement: KeyPlacement,
                 hold: some Gesture) -> some View {
-        let spot = placement.offset(button)
-        return offset(x: spot.x * size, y: spot.y * size)
-            .gesture(placement.onMove == nil
+        gesture(placement.onMove == nil
                      ? AnyGesture(hold.map { _ in () })
                      : AnyGesture(DragGesture()
                         .onChanged { value in
@@ -134,15 +133,11 @@ struct Keypad: View {
     var leftSoftKey: String?
     var rightSoftKey: String?
 
-    /// Square, and sized off the screen the way J2ME Loader does it. Left
-    /// unset it follows the size the player chose, held to what fits across.
+    /// Where every key goes, measured by the core so that this keypad and the
+    /// one Android draws and the one in the screenshots are one keypad.
+    var plan: KeypadPlanData?
+    /// One key's size, which is what a drag and a corner radius are measured in.
     var key: CGFloat = 0
-    /// Which keys to show; see `GameProfile.KEYPAD_*` in the core.
-    var layout: Int = 0
-    /// False while the emulated screen carries the command bar: that bar is
-    /// drawn with the game's own labels and a tap on it runs the command, so
-    /// two more keys saying the same two words are two ways to do one thing.
-    var showSoftKeys = true
     /// The key shape; see `GameProfile.KEY_SHAPE_*` in the core.
     var shape: Int = 0
     /// How solid to draw the keypad, in percent. Applied to the keypad as a
@@ -152,121 +147,83 @@ struct Keypad: View {
     /// Where the keys have been dragged to, and how big they are drawn.
     var placement = KeyPlacement()
 
-    private var arrows: Bool { layout == 0 || layout == 1 }
-    private var numbers: Bool { layout == 0 || layout == 2 }
-
-    /// The size the keys are actually drawn at.
-    ///
-    /// Set explicitly by the landscape column, which has its own room to fit
-    /// into; otherwise the standard size with the player's own size applied.
     private var keySize: CGFloat { key > 0 ? key : KeyMetrics.upright(placement) }
 
     var body: some View {
-        VStack(spacing: KeyMetrics.gap * 3) {
-            // Directly under the screen, so they line up with the labels the
-            // system draws along its bottom edge, as they do on a handset.
-            if showSoftKeys {
-                HStack {
-                    SoftKey(label: leftSoftKey, button: "softLeft", key: keySize,
-                            onPress: onPress, onRelease: onRelease)
-                    Spacer(minLength: 12)
-                    SoftKey(label: rightSoftKey, button: "softRight", key: keySize,
-                            onPress: onPress, onRelease: onRelease)
-                }
-            }
-            // A pad left on its own takes the middle: no reason to keep a
-            // hole where the other half of the keypad used to be.
-            HStack(alignment: .center) {
-                if numbers {
-                    numericPad
-                }
-                if arrows && numbers {
-                    Spacer(minLength: 12)
-                }
-                if arrows {
-                    directionalPad
-                }
+        ZStack(alignment: .topLeading) {
+            ForEach(plan?.keys ?? [], id: \.button) { placed in
+                PlacedKey(placed: placed, key: keySize,
+                          leftSoftKey: leftSoftKey, rightSoftKey: rightSoftKey,
+                          onPress: onPress, onRelease: onRelease)
+                    .offset(x: CGFloat(placed.x), y: CGFloat(placed.y))
             }
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(height: CGFloat(plan?.height ?? 0))
         .environment(\.keyShape, shape)
         .environment(\.keyPlacement, placement)
         .opacity(Double(opacity) / 100.0)
     }
+}
 
-    /// The 3x4 grid, laid out the way a handset does.
-    private var numericPad: some View {
-        VStack(spacing: KeyMetrics.gap) {
-            ForEach(Self.rows, id: \.first!.button) { row in
-                HStack(spacing: KeyMetrics.gap) {
-                    ForEach(row, id: \.button) { entry in
-                        NumberKey(entry: entry, size: keySize,
-                                  onPress: onPress, onRelease: onRelease)
-                    }
-                }
-            }
+/// One key of a plan, in whatever it turned out to be.
+private struct PlacedKey: View {
+    let placed: PlacedKeyData
+    let key: CGFloat
+    let leftSoftKey: String?
+    let rightSoftKey: String?
+    let onPress: (String) -> Void
+    let onRelease: (String) -> Void
+
+    var body: some View {
+        let width = CGFloat(placed.w)
+        let height = CGFloat(placed.h)
+        switch placed.kind {
+        case KeypadPlanData.kindSoft:
+            SoftKey(label: placed.button == "softLeft" ? leftSoftKey : rightSoftKey,
+                    button: placed.button, key: key, width: width, height: height,
+                    onPress: onPress, onRelease: onRelease)
+        case KeypadPlanData.kindFire:
+            FireKey(size: min(width, height), width: width, height: height,
+                    round: placed.round, onPress: onPress, onRelease: onRelease)
+        case KeypadPlanData.kindArrow:
+            ArrowKey(symbol: PlacedKey.symbol(placed.arrow), button: placed.button,
+                     label: PlacedKey.name(placed.arrow), size: min(width, height),
+                     width: width, height: height,
+                     corner: placed.arrow >= 4, round: placed.round,
+                     onPress: onPress, onRelease: onRelease)
+        default:
+            NumberKey(label: placed.label, button: placed.button,
+                      size: min(width, height), width: width, height: height,
+                      round: placed.round, onPress: onPress, onRelease: onRelease)
         }
     }
 
-    /// The directional cluster: eight ways, with fire in the middle.
-    ///
-    /// The corners are not keys of their own. MIDP has no diagonal key code
-    /// and no handset had a diagonal key — a corner of the pad was two
-    /// directions held at once, which is what these send.
-    private var directionalPad: some View {
-        VStack(spacing: KeyMetrics.gap) {
-            HStack(spacing: KeyMetrics.gap) {
-                ArrowKey(symbol: "arrow.up.left", button: "upLeft", label: "Lên trái", size: keySize,
-                         corner: true, onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "chevron.up", button: "up", label: "Lên", size: keySize,
-                         onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "arrow.up.right", button: "upRight", label: "Lên phải", size: keySize,
-                         corner: true, onPress: onPress, onRelease: onRelease)
-            }
-            HStack(spacing: KeyMetrics.gap) {
-                ArrowKey(symbol: "chevron.left", button: "left", label: "Trái", size: keySize,
-                         onPress: onPress, onRelease: onRelease)
-                FireKey(size: keySize, onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "chevron.right", button: "right", label: "Phải", size: keySize,
-                         onPress: onPress, onRelease: onRelease)
-            }
-            HStack(spacing: KeyMetrics.gap) {
-                ArrowKey(symbol: "arrow.down.left", button: "downLeft", label: "Xuống trái", size: keySize,
-                         corner: true, onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "chevron.down", button: "down", label: "Xuống", size: keySize,
-                         onPress: onPress, onRelease: onRelease)
-                ArrowKey(symbol: "arrow.down.right", button: "downRight", label: "Xuống phải", size: keySize,
-                         corner: true, onPress: onPress, onRelease: onRelease)
-            }
+    static func symbol(_ direction: Int) -> String {
+        switch direction {
+        case 0: return "chevron.up"
+        case 1: return "chevron.down"
+        case 2: return "chevron.left"
+        case 3: return "chevron.right"
+        case 4: return "arrow.up.left"
+        case 5: return "arrow.up.right"
+        case 6: return "arrow.down.left"
+        default: return "arrow.down.right"
         }
     }
 
-    /// The directional half of the pad, for a game held sideways.
-    var directionalColumn: some View { directionalPad }
-
-    /// The numeric half, likewise.
-    var numericColumn: some View { numericPad }
-
-    struct Key {
-        let label: String
-        let button: String
+    static func name(_ direction: Int) -> String {
+        switch direction {
+        case 0: return "Lên"
+        case 1: return "Xuống"
+        case 2: return "Trái"
+        case 3: return "Phải"
+        case 4: return "Lên trái"
+        case 5: return "Lên phải"
+        case 6: return "Xuống trái"
+        default: return "Xuống phải"
+        }
     }
-
-    /// Digits only: the letters under them were for multi-tap, and this phone
-    /// has a keyboard that comes up by itself when a game asks for text.
-    private static let rows: [[Key]] = [
-        [Key(label: "1", button: "num1"),
-         Key(label: "2", button: "num2"),
-         Key(label: "3", button: "num3")],
-        [Key(label: "4", button: "num4"),
-         Key(label: "5", button: "num5"),
-         Key(label: "6", button: "num6")],
-        [Key(label: "7", button: "num7"),
-         Key(label: "8", button: "num8"),
-         Key(label: "9", button: "num9")],
-        [Key(label: "*", button: "star"),
-         Key(label: "0", button: "num0"),
-         Key(label: "#", button: "hash")],
-    ]
 }
 
 /// One hand's worth of keys, for when the phone is held sideways.
@@ -280,9 +237,11 @@ struct ControlColumn: View {
     /// True for the pad hand, false for the numbers.
     let directional: Bool
     let softKeyLabel: String?
-    let showSoftKey: Bool
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
+    /// Asks the core for this column's half of the keypad, once the column
+    /// knows how much room it has. Called with width, height and key size.
+    var planFor: ((Int, Int, Int) -> KeypadPlanData?)?
     /// The key shape; see `GameProfile.KEY_SHAPE_*` in the core.
     var shape: Int = 0
     /// How solid to draw the column, in percent.
@@ -298,21 +257,16 @@ struct ControlColumn: View {
             let room = (geometry.size.height - KeyMetrics.gap * 4)
                 / (4 + KeyMetrics.softScaleY)
             let key = min(placement.sized(KeyMetrics.turned), room)
-            let pad = Keypad(onPress: onPress, onRelease: onRelease, key: key,
-                             placement: placement)
-            VStack(spacing: KeyMetrics.gap * 3) {
-                if directional {
-                    pad.directionalColumn
-                } else {
-                    pad.numericColumn
-                }
-                Spacer(minLength: 0)
-                if showSoftKey {
-                    SoftKey(label: softKeyLabel, button: directional ? "softLeft" : "softRight",
-                            key: key, onPress: onPress, onRelease: onRelease)
+            let plan = planFor?(Int(geometry.size.width), Int(geometry.size.height), Int(key))
+            ZStack(alignment: .topLeading) {
+                ForEach(plan?.keys ?? [], id: \.button) { placed in
+                    PlacedKey(placed: placed, key: key,
+                              leftSoftKey: softKeyLabel, rightSoftKey: softKeyLabel,
+                              onPress: onPress, onRelease: onRelease)
+                        .offset(x: CGFloat(placed.x), y: CGFloat(placed.y))
                 }
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(width: KeyMetrics.turned * 3 + KeyMetrics.gap * 2 + 24)
         .environment(\.keyShape, shape)
@@ -322,8 +276,12 @@ struct ControlColumn: View {
 }
 
 private struct NumberKey: View {
-    let entry: Keypad.Key
+    let label: String
+    let button: String
     let size: CGFloat
+    let width: CGFloat
+    let height: CGFloat
+    var round = false
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
 
@@ -332,19 +290,19 @@ private struct NumberKey: View {
     @Environment(\.keyPlacement) private var placement
 
     var body: some View {
-        let radius = keyRadius(shape, size: size, rounded: 12)
-        Text(entry.label)
+        let radius = keyRadius(round ? 2 : shape, size: size, rounded: 12)
+        Text(label)
             .font(.title3)
             .foregroundStyle(Palette.text)
-        .frame(width: size, height: size)
+        .frame(width: width, height: height)
         .background(held ? Palette.accentDim : Palette.surfaceAlt,
                     in: RoundedRectangle(cornerRadius: radius))
         .overlay(
             RoundedRectangle(cornerRadius: radius)
                 .stroke(held ? Palette.accent : Palette.border, lineWidth: 1)
         )
-        .placed(entry.button, size: size, placement: placement,
-                hold: holdGesture(button: entry.button, held: $held,
+        .placed(button, size: size, placement: placement,
+                hold: holdGesture(button: button, held: $held,
                                   onPress: onPress, onRelease: onRelease))
     }
 }
@@ -361,6 +319,8 @@ private struct SoftKey: View {
     let label: String?
     let button: String
     let key: CGFloat
+    let width: CGFloat
+    let height: CGFloat
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
 
@@ -377,7 +337,7 @@ private struct SoftKey: View {
 
     var body: some View {
         // A wide key, so the round shape gives a pill rather than a circle.
-        let radius = keyRadius(shape, size: key * KeyMetrics.softScaleY, rounded: 12)
+        let radius = keyRadius(shape, size: height, rounded: 12)
         // With no command on it, the key is simply called what it is: an "L"
         // in the middle rather than an "L" in the corner beside a dash
         // standing in for something that is not there.
@@ -386,7 +346,7 @@ private struct SoftKey: View {
             .foregroundStyle(bound ? Palette.text : Palette.accent)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
-            .frame(width: key * KeyMetrics.softScaleX, alignment: .center)
+            .frame(width: width - 24, alignment: .center)
             .overlay(alignment: .leading) {
                 if bound {
                     Text(mark)
@@ -395,7 +355,7 @@ private struct SoftKey: View {
                 }
             }
             .padding(.horizontal, 12)
-            .frame(height: key * KeyMetrics.softScaleY)
+            .frame(height: height)
             .background(held ? Palette.accentDim : (bound ? Palette.surfaceAlt : Palette.background),
                         in: RoundedRectangle(cornerRadius: radius))
             .overlay(
@@ -413,9 +373,12 @@ private struct ArrowKey: View {
     let button: String
     let label: String
     let size: CGFloat
+    let width: CGFloat
+    let height: CGFloat
     /// Corners are drawn quieter: there when a game needs them, not
     /// competing for the thumb.
     var corner = false
+    var round = false
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
 
@@ -424,11 +387,11 @@ private struct ArrowKey: View {
     @Environment(\.keyPlacement) private var placement
 
     var body: some View {
-        let radius = keyRadius(shape, size: size, rounded: 14)
+        let radius = keyRadius(round ? 2 : shape, size: size, rounded: 14)
         Image(systemName: symbol)
             .font(.system(size: corner ? size * 0.34 : size * 0.5, weight: .semibold))
             .foregroundStyle(Palette.accent)
-            .frame(width: size, height: size)
+            .frame(width: width, height: height)
             .background(Palette.accentDim.opacity(held ? 0.6 : 1),
                         in: RoundedRectangle(cornerRadius: radius))
             .overlay(RoundedRectangle(cornerRadius: radius).stroke(Palette.accent, lineWidth: 1))
@@ -441,6 +404,9 @@ private struct ArrowKey: View {
 
 private struct FireKey: View {
     let size: CGFloat
+    let width: CGFloat
+    let height: CGFloat
+    var round = false
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
 
@@ -449,13 +415,13 @@ private struct FireKey: View {
     @Environment(\.keyPlacement) private var placement
 
     var body: some View {
-        let radius = keyRadius(shape, size: size, rounded: 14)
+        let radius = keyRadius(round ? 2 : shape, size: size, rounded: 14)
         // "F" is what J2ME Loader writes here, and fire is what MIDP calls
         // it; this key has never been an "OK" button.
         Text("F")
             .font(.system(size: size * 0.4, weight: .semibold))
             .foregroundStyle(Palette.accent)
-            .frame(width: size, height: size)
+            .frame(width: width, height: height)
             .background(Palette.accentDim.opacity(held ? 0.6 : 1),
                         in: RoundedRectangle(cornerRadius: radius))
             .overlay(RoundedRectangle(cornerRadius: radius).stroke(Palette.accent, lineWidth: 1))

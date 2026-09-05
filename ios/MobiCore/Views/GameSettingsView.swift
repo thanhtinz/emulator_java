@@ -235,8 +235,21 @@ struct GameSettingsView: View {
                     // Held sideways the keypad sits over the game itself, so
                     // how solid it is decides how much of the game is left to
                     // look at.
-                    SectionCard(title: "BÀN PHÍM ẢO", trailing: "\(current.keyOpacity)%") {
+                    SectionCard(title: "BÀN PHÍM ẢO", trailing: current.keypadLayoutName) {
                         VStack(alignment: .leading, spacing: 10) {
+                            // Which of the three keypads. Also on the in-game
+                            // menu, because which one suits a game is
+                            // something a player finds out while playing it.
+                            Picker("Kiểu bàn phím", selection: Binding(
+                                get: { current.keypadLayout },
+                                set: { client.setKeypadLayout($0, for: suiteId); reload() }
+                            )) {
+                                Text("Mũi tên").tag(0)
+                                Text("Đầy đủ").tag(1)
+                                Text("Chơi game").tag(2)
+                            }
+                            .pickerStyle(.segmented)
+
                             FieldRow(label: "Độ rõ", value: "\(current.keyOpacity)%")
                             Slider(
                                 value: Binding(

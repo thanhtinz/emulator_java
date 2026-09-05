@@ -128,15 +128,21 @@ struct ArrangeKeysView: View {
             // The real keypad, at the real size, with the real arrangement:
             // arranging keys on a picture of a keypad would be arranging them
             // somewhere other than where they are used.
-            Keypad(
-                onPress: { _ in },
-                onRelease: { _ in },
-                layout: settings?.keypadLayout ?? 0,
-                showSoftKeys: (settings?.keypadLayout ?? 0) != 3,
-                shape: settings?.keyShape ?? 0,
-                placement: placement
-            )
+            GeometryReader { geometry in
+                let key = KeyMetrics.upright(placement)
+                Keypad(
+                    onPress: { _ in },
+                    onRelease: { _ in },
+                    plan: client.keypadPlan(suiteId, width: Int(geometry.size.width),
+                                            height: Int(geometry.size.height),
+                                            key: Int(key), landscape: false, left: true),
+                    key: key,
+                    shape: settings?.keyShape ?? 0,
+                    placement: placement
+                )
+            }
             .frame(maxWidth: .infinity)
+            .frame(height: KeyMetrics.upright * 5)
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

@@ -30,6 +30,7 @@ struct GameSettings: Codable, Hashable {
     var scaleMode: Int
     var orientation: Int
     var keypadLayout: Int
+    var keypadHidden: Bool?
     /// How solid the keypad is drawn, 20-100 percent.
     var keypadOpacity: Int?
     /// Rounded, square or round; see `GameProfile.KEY_SHAPE_*` in the core.
@@ -64,15 +65,16 @@ struct GameSettings: Codable, Hashable {
     static let scaleModeNames = ["Vừa khung", "Bội số nguyên", "Kéo đầy", "Nguyên cỡ"]
     static let networkModeNames = ["Chặn", "Hỏi trước", "Cho phép"]
 
+    /// The three keypads, in the order the in-game menu cycles them.
+    static let keypadLayoutNames = ["Mũi tên", "Đầy đủ", "Chơi game"]
+
     /// What the in-game menu shows beside "Bàn phím".
     var keypadLayoutName: String {
-        switch keypadLayout {
-        case 1: return "Chỉ phím hướng"
-        case 2: return "Chỉ phím số"
-        case 3: return "Ẩn bàn phím"
-        default: return "Đầy đủ"
-        }
+        Self.keypadLayoutNames[safe: keypadLayout] ?? "Đầy đủ"
     }
+
+    /// True while the keypad is put away — which is not one of the three.
+    var keypadPutAway: Bool { keypadHidden ?? false }
 
     /// The three keypad-look settings, with the defaults an older profile
     /// that predates them is read back with.
@@ -91,9 +93,6 @@ struct GameSettings: Codable, Hashable {
     var keypadFadeDelayName: String {
         keyFadeDelay == 0 ? "Luôn rõ" : "Sau \(keyFadeDelay) giây"
     }
-
-    var showsArrows: Bool { keypadLayout == 0 || keypadLayout == 1 }
-    var showsNumbers: Bool { keypadLayout == 0 || keypadLayout == 2 }
 
     var scaleModeName: String { Self.scaleModeNames[safe: scaleMode] ?? "Bội số nguyên" }
     var networkModeName: String { Self.networkModeNames[safe: networkMode] ?? "Hỏi trước" }
@@ -247,6 +246,34 @@ struct ContinueCard: Codable {
     let action: String?
     let lastPlayed: Int64?
     let playedName: String?
+}
+
+/// Bàn phím đã đo xong: mỗi phím một chỗ, do lõi tính.
+///
+/// Tính ở lõi chứ không tính lại ở đây, vì cùng một bàn phím ấy còn được bản
+/// xem trước và Android vẽ — ba phép tính cho một lưới là ba bàn phím khác
+/// nhau.
+struct KeypadPlanData: Codable {
+    let height: Int
+    let hidden: Bool
+    let keys: [PlacedKeyData]
+
+    static let kindNumber = 0
+    static let kindArrow = 1
+    static let kindFire = 2
+    static let kindSoft = 3
+}
+
+struct PlacedKeyData: Codable {
+    let button: String
+    let label: String
+    let kind: Int
+    let arrow: Int
+    let round: Bool
+    let x: Int
+    let y: Int
+    let w: Int
+    let h: Int
 }
 
 /// Những bộ bàn phím đã sắp, dùng lại được cho mọi game.

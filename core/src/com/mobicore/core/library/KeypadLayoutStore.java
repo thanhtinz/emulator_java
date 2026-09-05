@@ -183,7 +183,17 @@ public final class KeypadLayoutStore {
             return false;
         }
         Map<String, Object> settings = chosen.settings();
-        profile.setKeypadLayout(Json.integer(settings, "keypadLayout", profile.keypadLayout()));
+        if (settings.containsKey("keypadHidden")) {
+            profile.setKeypadLayout(
+                    Json.integer(settings, "keypadLayout", profile.keypadLayout()));
+            profile.setKeypadHidden(Json.bool(settings, "keypadHidden", false));
+        } else {
+            // Một bộ lưu từ trước khi bàn phím còn ba kiểu: số cũ mang nghĩa
+            // khác, nên đọc thẳng là đổi bàn phím của người ta sau lưng họ.
+            int was = Json.integer(settings, "keypadLayout", 0);
+            profile.setKeypadHidden(was == 3);
+            profile.setKeypadLayout(was == 1 ? GameProfile.KEYPAD_ARROWS : GameProfile.KEYPAD_FULL);
+        }
         profile.setKeypadShape(Json.integer(settings, "keypadShape", profile.keypadShape()));
         profile.setKeypadOpacity(Json.integer(settings, "keypadOpacity", profile.keypadOpacity()));
         profile.setKeypadFadeDelay(
@@ -207,6 +217,7 @@ public final class KeypadLayoutStore {
     public static Map<String, Object> capture(GameProfile profile) {
         Map<String, Object> settings = Json.object();
         settings.put("keypadLayout", Integer.valueOf(profile.keypadLayout()));
+        settings.put("keypadHidden", Boolean.valueOf(profile.keypadHidden()));
         settings.put("keypadShape", Integer.valueOf(profile.keypadShape()));
         settings.put("keypadOpacity", Integer.valueOf(profile.keypadOpacity()));
         settings.put("keypadFadeDelay", Integer.valueOf(profile.keypadFadeDelay()));
@@ -234,12 +245,12 @@ public final class KeypadLayoutStore {
         KeypadArrangement oneHand = new KeypadArrangement();
         oneHand.setScale(115);
         String[] keys = {"up", "down", "left", "right", "fire",
-                "upLeft", "upRight", "downLeft", "downRight"};
+                "num1", "num3", "num7", "num9"};
         for (int i = 0; i < keys.length; i++) {
             oneHand.move(keys[i], 0.35f, 0.15f);
         }
         layouts.add(new Layout("mot-tay", "Cầm một tay", true,
-                arrangementOf(oneHand, GameProfile.KEYPAD_ARROWS,
+                arrangementOf(oneHand, GameProfile.KEYPAD_GAME,
                         GameProfile.KEY_SHAPE_ROUND, 100, 0)));
 
         // Nhìn game là chính: phím mờ đi khi không dùng, và nhỏ lại.
@@ -255,6 +266,7 @@ public final class KeypadLayoutStore {
                                               int opacity, int fadeDelay) {
         Map<String, Object> settings = Json.object();
         settings.put("keypadLayout", Integer.valueOf(kind));
+        settings.put("keypadHidden", Boolean.FALSE);
         settings.put("keypadShape", Integer.valueOf(shape));
         settings.put("keypadOpacity", Integer.valueOf(opacity));
         settings.put("keypadFadeDelay", Integer.valueOf(fadeDelay));

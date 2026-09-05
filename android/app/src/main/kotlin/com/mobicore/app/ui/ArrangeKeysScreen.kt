@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobicore.app.data.LibraryRepository
-import com.mobicore.core.model.GameProfile
 
 /**
  * Sắp xếp lại bàn phím ảo.
@@ -192,7 +191,6 @@ fun ArrangeKeysScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     layout = profile.keypadLayout(),
-                    showSoftKeys = profile.keypadLayout() != GameProfile.KEYPAD_HIDDEN,
                     shape = profile.keypadShape(),
                     placement = KeyPlacement(
                         arrangement = keys,

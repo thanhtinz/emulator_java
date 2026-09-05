@@ -23,6 +23,7 @@ import com.mobicore.core.midp.MidpContext;
 import com.mobicore.core.midp.MidpFiles;
 import com.mobicore.core.model.InputProfile;
 import com.mobicore.core.model.KeypadArrangement;
+import com.mobicore.core.model.KeypadPlan;
 import com.mobicore.core.model.MidletEntry;
 import com.mobicore.core.model.TiltProfile;
 import com.mobicore.core.gfx.JpegReader;
@@ -634,7 +635,7 @@ public final class MobiCoreFacade {
             if (profile == null) {
                 return error("No profile for " + suiteId);
             }
-            profile.setKeypadLayout((profile.keypadLayout() + 1) % 4);
+            profile.setKeypadLayout((profile.keypadLayout() + 1) % 3);
             library.saveProfile(profile);
             Map<String, Object> json = Json.object();
             json.put("ok", Boolean.TRUE);
@@ -665,6 +666,91 @@ public final class MobiCoreFacade {
     }
 
     /**
+     * Puts the keypad away, or brings it back.
+     *
+     * <p>Separate from which keypad is chosen, so that putting it away and
+     * bringing it back returns the same one rather than the first.</p>
+     */
+    public String setKeypadHidden(String suiteId, boolean hidden) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            profile.setKeypadHidden(hidden);
+            library.saveProfile(profile);
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("hidden", Boolean.valueOf(profile.keypadHidden()));
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    public String toggleKeypad(String suiteId) {
+        GameProfile profile;
+        try {
+            profile = library == null ? null : library.profile(suiteId);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+        if (profile == null) {
+            return error("No profile for " + suiteId);
+        }
+        return setKeypadHidden(suiteId, !profile.keypadHidden());
+    }
+
+    /**
+     * Where every key of the keypad goes, for a strip this wide.
+     *
+     * <p>Asked of the core rather than worked out on the phone: the preview,
+     * Android and iOS all draw this same keypad, and three sets of arithmetic
+     * for one grid is three keypads that drift apart.</p>
+     *
+     * @param landscape when true, one column of a sideways keypad —
+     *                  {@code width} and {@code height} are that column's
+     * @param left      which column, sideways: the pad's or the numbers'
+     */
+    public String keypadPlanJson(String suiteId, int width, int height, int key,
+                                 boolean landscape, boolean left) {
+        try {
+            GameProfile profile = library == null ? null : library.profile(suiteId);
+            if (profile == null) {
+                return error("No profile for " + suiteId);
+            }
+            KeypadPlan plan = landscape
+                    ? KeypadPlan.column(profile.keypadLayout(), left, width, height, key,
+                            profile.keypadArrangement())
+                    : KeypadPlan.portrait(profile.keypadLayout(), width, key,
+                            profile.keypadArrangement());
+            Map<String, Object> json = Json.object();
+            json.put("ok", Boolean.TRUE);
+            json.put("height", Integer.valueOf(plan.height()));
+            json.put("hidden", Boolean.valueOf(profile.keypadHidden()));
+            List<Object> keys = new ArrayList<Object>();
+            for (int i = 0; i < plan.keys().size(); i++) {
+                KeypadPlan.Key placed = plan.keys().get(i);
+                Map<String, Object> one = Json.object();
+                one.put("button", placed.button());
+                one.put("label", placed.label());
+                one.put("kind", Integer.valueOf(placed.kind()));
+                one.put("arrow", Integer.valueOf(placed.arrow()));
+                one.put("round", Boolean.valueOf(placed.round()));
+                one.put("x", Integer.valueOf(placed.x()));
+                one.put("y", Integer.valueOf(placed.y()));
+                one.put("w", Integer.valueOf(placed.width()));
+                one.put("h", Integer.valueOf(placed.height()));
+                keys.add(one);
+            }
+            json.put("keys", keys);
+            return Json.write(json);
+        } catch (IOException e) {
+            return error(e.getMessage());
+        }
+    }
+
+    /**
      * How the virtual keypad looks: how solid, what shape, when it fades.
      *
      * <p>One call rather than three, because the screen that shows them shows
@@ -681,6 +767,7 @@ public final class MobiCoreFacade {
             json.put("ok", Boolean.TRUE);
             json.put("layout", Integer.valueOf(profile.keypadLayout()));
             json.put("layoutName", profile.keypadLayoutName());
+            json.put("hidden", Boolean.valueOf(profile.keypadHidden()));
             json.put("opacity", Integer.valueOf(profile.keypadOpacity()));
             json.put("shape", Integer.valueOf(profile.keypadShape()));
             json.put("shapeName", profile.keypadShapeName());

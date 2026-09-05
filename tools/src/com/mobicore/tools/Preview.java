@@ -61,6 +61,8 @@ public final class Preview {
         write(vfs, outDir, "18-landscape.png", EmulatorScreen.landscape(fixtures).renderLandscape());
         write(vfs, outDir, "19-keypad-arrows.png", new EmulatorScreen(fixtures)
                 .withKeypad(com.mobicore.core.model.GameProfile.KEYPAD_ARROWS).render());
+        write(vfs, outDir, "19b-keypad-game.png", new EmulatorScreen(fixtures)
+                .withKeypad(com.mobicore.core.model.GameProfile.KEYPAD_GAME).render());
         write(vfs, outDir, "20-game-menu.png", new EmulatorScreen(fixtures).withMenu().render());
         write(vfs, outDir, "21-screenshots.png", new ShotsScreen(fixtures).render());
         write(vfs, outDir, "22-save-slots.png", new SlotsScreen(fixtures).render());
@@ -192,8 +194,8 @@ public final class Preview {
         // corners nobody uses pushed out of the way.
         keys.setScale(112);
         keys.move("fire", 0f, 0.55f);
-        keys.move("upLeft", -0.15f, -0.4f);
-        keys.move("upRight", 0.15f, -0.4f);
+        keys.move("upLeft", -0.2f, 0.1f);
+        keys.move("upRight", 0.2f, 0.1f);
         return screen.render();
     }
 

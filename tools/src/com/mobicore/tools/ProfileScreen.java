@@ -114,7 +114,7 @@ public final class ProfileScreen {
         int deviceHeight = ui.sectionHeight(2);
         row = ui.section(margin, y, width, deviceHeight, "MÀN HÌNH", null);
         ui.field("Kích thước", profile.device().resolution(), fieldX, row, fieldWidth);
-        ui.field("Kiểu bàn phím", profile.device().keypadName(), fieldX, row + Ui.ROW,
+        ui.field("Chuẩn phím máy", profile.device().keypadName(), fieldX, row + Ui.ROW,
                 fieldWidth);
         y += deviceHeight + 14;
 
@@ -124,13 +124,14 @@ public final class ProfileScreen {
         profile.setKeypadOpacity(70);
         profile.setKeypadShape(com.mobicore.core.model.GameProfile.KEY_SHAPE_ROUND);
         profile.setKeypadFadeDelay(10);
-        int keypadHeight = ui.sectionHeight(3);
+        int keypadHeight = ui.sectionHeight(4);
         row = ui.section(margin, y, width, keypadHeight, "BÀN PHÍM ẢO",
-                profile.keypadOpacity() + "%");
-        ui.field("Độ rõ", profile.keypadOpacity() + "%", fieldX, row, fieldWidth);
-        ui.field("Hình phím", profile.keypadShapeName(), fieldX, row + Ui.ROW, fieldWidth);
+                profile.keypadLayoutName());
+        ui.field("Kiểu bàn phím", profile.keypadLayoutName(), fieldX, row, fieldWidth);
+        ui.field("Độ rõ", profile.keypadOpacity() + "%", fieldX, row + Ui.ROW, fieldWidth);
+        ui.field("Hình phím", profile.keypadShapeName(), fieldX, row + Ui.ROW * 2, fieldWidth);
         ui.field("Tự mờ khi không dùng", profile.keypadFadeDelayName(), fieldX,
-                row + Ui.ROW * 2, fieldWidth);
+                row + Ui.ROW * 3, fieldWidth);
         y += keypadHeight + 14;
 
         // Display and audio ----------------------------------------------

@@ -1,5 +1,6 @@
 package com.mobicore.tests;
 
+import com.mobicore.core.model.GameProfile;
 import com.mobicore.core.bridge.MobiCoreFacade;
 import com.mobicore.core.gfx.Framebuffer;
 import com.mobicore.core.gfx.PngWriter;
@@ -123,19 +124,32 @@ public final class FacadeTest extends Test {
         check(!Json.bool(Json.readObject(facade.toggleOrientation("nope")), "ok", true),
                 "a game that is not there cannot be turned");
 
-        // Which keys the keypad shows -------------------------------------
-        eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
-                "the whole keypad is there to begin with");
+        // Which of the three keypads is on screen --------------------------
+        eq(GameProfile.KEYPAD_FULL,
+                Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
+                "a game starts on the keypad a handset had");
         Map<String, Object> cycled = Json.readObject(facade.cycleKeypadLayout(suiteId));
-        eq(1, Json.integer(cycled, "keypadLayout", -1), "and switches to the pad alone");
-        eq("Chỉ phím hướng", Json.string(cycled, "name", ""), "with a name for the menu");
+        eq(GameProfile.KEYPAD_GAME, Json.integer(cycled, "keypadLayout", -1),
+                "and cycles on to the gamepad");
+        eq("Chơi game", Json.string(cycled, "name", ""), "with a name for the menu");
         facade.cycleKeypadLayout(suiteId);
+        eq(GameProfile.KEYPAD_ARROWS,
+                Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
+                "then the pad alone");
         facade.cycleKeypadLayout(suiteId);
-        eq(3, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
-                "then the numbers alone, then out of the way entirely");
-        facade.cycleKeypadLayout(suiteId);
-        eq(0, Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
-                "and round again");
+        eq(GameProfile.KEYPAD_FULL,
+                Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
+                "and round again after three, not four");
+
+        // Putting the keypad away is its own answer, not a fourth keypad.
+        check(Json.bool(Json.readObject(facade.toggleKeypad(suiteId)), "hidden", false),
+                "the keypad can be put away");
+        Map<String, Object> away = Json.readObject(facade.keypadJson(suiteId));
+        check(Json.bool(away, "hidden", false), "and says so");
+        eq(GameProfile.KEYPAD_FULL, Json.integer(away, "layout", -1),
+                "while remembering which keypad it was");
+        check(!Json.bool(Json.readObject(facade.toggleKeypad(suiteId)), "hidden", true),
+                "and comes back");
 
         // How the keypad looks --------------------------------------------
         keypadLook(facade, suiteId);

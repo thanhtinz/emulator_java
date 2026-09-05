@@ -77,7 +77,7 @@ fun ScreenshotsScreen(
             EmptyState(
                 icon = Icons.Filled.PhotoCamera,
                 title = "Chưa có ảnh nào",
-                body = "Trong lúc chơi, mở Menu rồi chọn \"Chụp màn hình\" hoặc \"Quay màn hình\".",
+                body = "Trong lúc chơi, mở Menu rồi chọn \"Chụp màn hình\".",
             )
             return@Column
         }

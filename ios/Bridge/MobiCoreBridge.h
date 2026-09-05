@@ -123,6 +123,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 /** Full keypad, arrows only, numbers only, hidden — and round again. */
 - (NSString *)cycleKeypadLayoutForSuite:(NSString *)suiteId;
+- (NSString *)setKeypadLayout:(NSInteger)layout forSuite:(NSString *)suiteId;
+- (NSString *)toggleKeypadForSuite:(NSString *)suiteId;
+- (NSString *)keypadPlanJSONForSuite:(NSString *)suiteId
+                               width:(NSInteger)width
+                              height:(NSInteger)height
+                                 key:(NSInteger)key
+                           landscape:(BOOL)landscape
+                                left:(BOOL)left;
 
 /** Saves a picture of what the running game is showing. */
 - (NSString *)takeScreenshot;
