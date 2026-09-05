@@ -306,8 +306,12 @@ public final class KeypadPlan {
         }
         int softHeight = (int) (key * SOFT_SCALE_Y);
         int softWidth = (width - MARGIN * 2) * 2 / 5;
-        soft(arrangement, key, "softLeft", "L", MARGIN, 0, softWidth, softHeight);
-        soft(arrangement, key, "softRight", "R", width - MARGIN - softWidth, 0,
+        // Each one centred in its own half rather than pushed out to the
+        // margin: they are a pair, and a pair that hugs the edges reads as
+        // two keys that got away from each other.
+        int softLeftX = width / 4 - softWidth / 2;
+        soft(arrangement, key, "softLeft", "L", softLeftX, 0, softWidth, softHeight);
+        soft(arrangement, key, "softRight", "R", width - softLeftX - softWidth, 0,
                 softWidth, softHeight);
 
         int top = softHeight + GAP * 2;

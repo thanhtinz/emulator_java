@@ -115,6 +115,22 @@ public final class KeypadPlanTest extends Test {
         check(game.find("stick").right() < game.find("fire").x(),
                 "game: the stick is under one thumb and fire under the other");
 
+        // Balanced: the same width, the same gap outside each, and the same
+        // distance in from the middle. A pair that is not is a pair that
+        // looks like a mistake.
+        KeypadPlan.Key gameLeft = game.find("softLeft");
+        KeypadPlan.Key gameRight = game.find("softRight");
+        eq(gameLeft.width(), gameRight.width(), "game: the two softkeys are the same size");
+        eq(gameLeft.x(), WIDTH - gameRight.right(),
+                "game: and the same distance in from either edge");
+        // Centred in its own half, not shoved out to the margin: a pair
+        // pushed to the two edges reads as two keys that got away from each
+        // other rather than as a pair.
+        eq(WIDTH / 4, gameLeft.x() + gameLeft.width() / 2,
+                "game: the left softkey is centred in the left half");
+        eq(WIDTH * 3 / 4, gameRight.x() + gameRight.width() / 2,
+                "game: and the right one in the right half");
+
         String[] both = {"full", "game"};
         KeypadPlan[] plans = {full, game};
         for (int i = 0; i < plans.length; i++) {

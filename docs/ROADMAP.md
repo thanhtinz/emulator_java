@@ -2427,7 +2427,7 @@ tên bên phải. Cái người ta chọn được ("Đầy đủ / Chỉ phím 
 |---|---|---|
 | **Mũi tên** | tám hướng + OK | kẹp hai bên cụm mũi tên |
 | **Đầy đủ** | bàn số + tám hướng + OK | một hàng trên cụm mũi tên |
-| **Chơi game** | **cần điều khiển tròn** + OK + **1, 3, 7, 9**, nút tròn | một dải rộng trên cùng |
+| **Chơi game** | **cần điều khiển tròn** + OK + **1, 3, 7, 9**, nút tròn | hai dải rộng, mỗi cái giữa một nửa trên cùng |
 
 Kiểu **Chơi game** là kiểu đáng nói. Bên trái không phải cụm mũi tên mà là một
 **cần điều khiển**: ngón cái đặt lên rồi tì về phía nào thì giữ hướng ấy, góc
@@ -2443,6 +2443,12 @@ không viết lại ở ba nơi: giữa cần là vùng nghỉ — ngón cái đ
 **không** phải đang đi, nếu không nhân vật tự bước; lệch khỏi một trục dưới
 22,5° vẫn tính là trục ấy, quá thì giữ cả hai hướng, đúng như giữ hai phím một
 lúc trên máy thật.
+
+Hai phím mềm của kiểu này **căn giữa mỗi nửa** chứ không đẩy sát hai mép. Phép
+kiểm đầu tiên viết cho chỗ này chỉ hỏi "hai phím có đối xứng nhau không" — mà
+cách đẩy sát mép cũng đối xứng, nên phá lại chỗ sửa thì phép kiểm **không
+cắn**. Viết lại thành câu đúng: tâm mỗi phím phải nằm ở vạch một phần tư và ba
+phần tư. Phá lại lần nữa thì nó cắn.
 
 **Phím mềm nay là phím của bàn phím**, không còn là một dải riêng vẽ ngoài. Đây
 là chỗ đã đi đọc `VirtualKeyboard.resetLayout` của J2ME Loader chứ không đoán:
