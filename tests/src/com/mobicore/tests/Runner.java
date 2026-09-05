@@ -40,6 +40,7 @@ public final class Runner {
         tests.add(new ThreadTest(fixtures));
         tests.add(new StdlibTest(fixtures));
         tests.add(new TransformTest(fixtures));
+        tests.add(new CollisionTest(fixtures));
         tests.add(new BridgeTest());
         tests.add(new FileTest(fixtures));
         tests.add(new ProfileTest());

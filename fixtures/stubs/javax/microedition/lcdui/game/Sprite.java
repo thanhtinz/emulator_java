@@ -71,6 +71,14 @@ public class Sprite extends Layer {
     public void defineCollisionRectangle(int x, int y, int width, int height) {
     }
 
+    public boolean collidesWith(Image image, int x, int y, boolean pixelLevel) {
+        return false;
+    }
+
+    public boolean collidesWith(TiledLayer layer, boolean pixelLevel) {
+        return false;
+    }
+
     public boolean collidesWith(Sprite other, boolean pixelLevel) {
         return false;
     }

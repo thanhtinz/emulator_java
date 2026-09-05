@@ -2577,3 +2577,34 @@ dưới bốn kiểu sắp xếp — đây là chỗ chứng minh lọc theo k�
 biến mất. Bộ kiểm chữ tràn khung chạy cả `Preview.main` nên nó canh luôn cái
 menu mới ấy: thu bảng menu lại còn 120 điểm thì nó cắn ngay, gọi tên đúng ba
 dòng chữ tràn ra.
+
+## Giai đoạn 63 — va chạm điểm ảnh của sprite
+
+`Sprite.collidesWith(Sprite, boolean pixelLevel)` nhận một tham số nói rõ: so
+hộp bao, hay so từng điểm ảnh. Máy ảo **đọc tham số ấy rồi vứt đi** và lúc nào
+cũng so hộp bao. Đây là loại lỗi người chơi cảm thấy ngay mà không giải thích
+được: đi ngang một thứ, hai góc trong suốt chạm nhau, và chết.
+
+Hai bản nạp chồng còn lại thì **thiếu hẳn** — game gọi tới là dừng ngay tại
+dòng đó: `collidesWith(Image, int, int, boolean)` và
+`collidesWith(TiledLayer, boolean)`. Và `defineCollisionRectangle` cất bốn con
+số vào `SpriteState` rồi **không chỗ nào đọc** — đó là cách game nói "chỉ thân
+tôi mới tính, không tính thanh kiếm đang cầm".
+
+Giờ cả ba đường đều so điểm ảnh thật: lấy khung hình hiện tại **đã lật xoay**
+(`Transforms.apply`, đúng cái `paint` dùng, nên hình va chạm là hình nhìn
+thấy), cắt lấy phần hai ô va chạm giao nhau, rồi hỏi từng điểm một xem cả hai
+bên có cùng vẽ không. Với `TiledLayer` thì duyệt theo **ô**, và **ô rỗng không
+phải bức tường** — một lớp ô vuông phần lớn là lỗ, coi cả khung của nó là đặc
+thì nửa trống của mọi màn chơi hoá thành chỗ đâm phải.
+
+Phép kiểm dựng đúng cái hình mà một bản làm dối không đi qua được: **hai cái
+nêm ngược nhau**, hộp bao chồng nhau bảy cột trong khi không có một điểm ảnh
+nào cả hai cùng vẽ. Cùng một cặp toạ độ, hỏi hai lần với hai giá trị của cờ,
+phải ra hai câu trả lời khác nhau — bỏ qua cờ thì không có cách nào ra hai câu.
+Phá lại ba chỗ để chắc phép kiểm cắn: vứt cờ đi (bảy câu hỏng), coi ô rỗng là
+tường (đúng câu "ô rỗng không phải bức tường" hỏng), bỏ qua ô va chạm (đúng câu
+về ô va chạm hỏng).
+
+Ảnh `39-collide.png` phóng to cái hình ấy lên: khung vàng là chỗ hai hộp chồng
+nhau, và bên trong nó không ô đỏ nào cùng chỗ với ô xanh.

@@ -428,7 +428,48 @@ public final class MidpGame {
                                 || intField(other, "visible") == 0) {
                             return Rt.box(false);
                         }
-                        return Rt.box(overlaps(vm, self, other));
+                        int[] box = overlap(vm, self, other);
+                        if (box == null) {
+                            return Rt.box(false);
+                        }
+                        if (!Rt.bool(args, 1)) {
+                            return Rt.box(true);
+                        }
+                        return Rt.box(pixelsTouch(frameOf(vm, self), intField(self, "x"),
+                                intField(self, "y"), frameOf(vm, other),
+                                intField(other, "x"), intField(other, "y"), box));
+                    }
+                })
+                .method("collidesWith", "(Ljavax/microedition/lcdui/Image;IIZ)Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        VmObject image = Rt.obj(args, 0);
+                        if (image == null || intField(self, "visible") == 0) {
+                            return Rt.box(false);
+                        }
+                        Framebuffer surface = MidpGfx.imageSurface(vm, image);
+                        int imageX = Rt.i(args, 1);
+                        int imageY = Rt.i(args, 2);
+                        Block picture = new Block(surface.pixels(), surface.width(), surface.height());
+                        int[] box = overlap(collisionBox(vm, self),
+                                new int[]{imageX, imageY, surface.width(), surface.height()});
+                        if (box == null) {
+                            return Rt.box(false);
+                        }
+                        if (!Rt.bool(args, 3)) {
+                            return Rt.box(true);
+                        }
+                        return Rt.box(pixelsTouch(frameOf(vm, self), intField(self, "x"),
+                                intField(self, "y"), picture, imageX, imageY, box));
+                    }
+                })
+                .method("collidesWith", "(Ljavax/microedition/lcdui/game/TiledLayer;Z)Z", new NativeMethod() {
+                    public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        VmObject layer = Rt.obj(args, 0);
+                        if (layer == null || intField(self, "visible") == 0
+                                || intField(layer, "visible") == 0) {
+                            return Rt.box(false);
+                        }
+                        return Rt.box(hitsTiles(vm, self, layer, Rt.bool(args, 1)));
                     }
                 })
                 .method("paint", "(Ljavax/microedition/lcdui/Graphics;)V", new NativeMethod() {
@@ -496,16 +537,153 @@ public final class MidpGame {
         return (SpriteState) self.host;
     }
 
-    /** Bounding-box collision using each sprite's collision rectangle. */
-    private static boolean overlaps(Vm vm, VmObject a, VmObject b) {
-        SpriteState first = state(vm, a);
-        SpriteState second = state(vm, b);
-        int ax = intField(a, "x") + first.collisionX;
-        int ay = intField(a, "y") + first.collisionY;
-        int bx = intField(b, "x") + second.collisionX;
-        int by = intField(b, "y") + second.collisionY;
-        return ax < bx + second.collisionWidth && bx < ax + first.collisionWidth
-                && ay < by + second.collisionHeight && by < ay + first.collisionHeight;
+    // ----------------------------------------------------------- collisions
+
+    /**
+     * A rectangle of pixels, kept alongside its size so a collision can look
+     * one up without going back through the object it came from.
+     */
+    static final class Block {
+
+        final int[] pixels;
+        final int width;
+        final int height;
+
+        Block(int[] pixels, int width, int height) {
+            this.pixels = pixels;
+            this.width = width;
+            this.height = height;
+        }
+
+        /** True when this pixel is drawn at all — anything but fully clear. */
+        boolean opaque(int x, int y) {
+            if (x < 0 || y < 0 || x >= width || y >= height) {
+                return false;
+            }
+            return (pixels[y * width + x] >>> 24) != 0;
+        }
+    }
+
+    /** The sprite's current frame, turned the way it is drawn. */
+    private static Block frameOf(Vm vm, VmObject self) {
+        SpriteState sprite = state(vm, self);
+        int frame = sprite.sequence[sprite.sequenceIndex];
+        int sx = (frame % sprite.columns) * sprite.frameWidth;
+        int sy = (frame / sprite.columns) * sprite.frameHeight;
+        int[] block = Transforms.apply(sprite.source.pixels(), sprite.source.width(),
+                sprite.source.height(), sx, sy, sprite.frameWidth, sprite.frameHeight,
+                sprite.transform);
+        return new Block(block,
+                Transforms.resultWidth(sprite.transform, sprite.frameWidth, sprite.frameHeight),
+                Transforms.resultHeight(sprite.transform, sprite.frameWidth, sprite.frameHeight));
+    }
+
+    /** Where on screen this sprite can be hit: x, y, width, height. */
+    private static int[] collisionBox(Vm vm, VmObject self) {
+        SpriteState sprite = state(vm, self);
+        return new int[]{
+                intField(self, "x") + sprite.collisionX,
+                intField(self, "y") + sprite.collisionY,
+                sprite.collisionWidth,
+                sprite.collisionHeight,
+        };
+    }
+
+    /** The part two collision rectangles share, or null when they miss. */
+    private static int[] overlap(int[] a, int[] b) {
+        int left = Math.max(a[0], b[0]);
+        int top = Math.max(a[1], b[1]);
+        int right = Math.min(a[0] + a[2], b[0] + b[2]);
+        int bottom = Math.min(a[1] + a[3], b[1] + b[3]);
+        if (left >= right || top >= bottom) {
+            return null;
+        }
+        return new int[]{left, top, right - left, bottom - top};
+    }
+
+    private static int[] overlap(Vm vm, VmObject a, VmObject b) {
+        return overlap(collisionBox(vm, a), collisionBox(vm, b));
+    }
+
+    /**
+     * True when the two pictures have a drawn pixel in the same place.
+     *
+     * <p>This is what {@code pixelLevel} was always meant to mean and what
+     * the emulator used to throw away: two sprites whose boxes touch at a
+     * transparent corner have not collided, and a game that says they have
+     * kills the player for walking near something.</p>
+     */
+    private static boolean pixelsTouch(Block first, int firstX, int firstY,
+                                       Block second, int secondX, int secondY, int[] box) {
+        for (int y = box[1]; y < box[1] + box[3]; y++) {
+            for (int x = box[0]; x < box[0] + box[2]; x++) {
+                if (first.opaque(x - firstX, y - firstY)
+                        && second.opaque(x - secondX, y - secondY)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A sprite against a tiled layer, cell by cell.
+     *
+     * <p>Only the cells the sprite actually reaches are looked at, and an
+     * empty cell is not a collision however wide the layer is — a layer is
+     * mostly holes, and treating its bounding box as solid would make the
+     * whole screen a wall.</p>
+     */
+    private static boolean hitsTiles(Vm vm, VmObject self, VmObject layer, boolean pixelLevel) {
+        TiledState tiled = tiled(vm, layer);
+        int[] reach = collisionBox(vm, self);
+        int originX = intField(layer, "x");
+        int originY = intField(layer, "y");
+        int firstColumn = Math.max(0, (reach[0] - originX) / tiled.tileWidth);
+        int firstRow = Math.max(0, (reach[1] - originY) / tiled.tileHeight);
+        int lastColumn = Math.min(tiled.columns - 1,
+                (reach[0] + reach[2] - 1 - originX) / tiled.tileWidth);
+        int lastRow = Math.min(tiled.rows - 1,
+                (reach[1] + reach[3] - 1 - originY) / tiled.tileHeight);
+        if (reach[0] + reach[2] <= originX || reach[1] + reach[3] <= originY) {
+            return false;
+        }
+
+        Block frame = pixelLevel ? frameOf(vm, self) : null;
+        int tilesPerRow = Math.max(1, tiled.source.width() / tiled.tileWidth);
+        for (int row = firstRow; row <= lastRow; row++) {
+            for (int column = firstColumn; column <= lastColumn; column++) {
+                int tile = tiled.cells[row * tiled.columns + column];
+                if (tile < 0) {
+                    int index = -tile - 1;
+                    tile = index < tiled.animated.size() ? tiled.animated.get(index)[0] : 0;
+                }
+                if (tile <= 0) {
+                    continue;
+                }
+                int cellX = originX + column * tiled.tileWidth;
+                int cellY = originY + row * tiled.tileHeight;
+                int[] box = overlap(reach,
+                        new int[]{cellX, cellY, tiled.tileWidth, tiled.tileHeight});
+                if (box == null) {
+                    continue;
+                }
+                if (!pixelLevel) {
+                    return true;
+                }
+                int sx = ((tile - 1) % tilesPerRow) * tiled.tileWidth;
+                int sy = ((tile - 1) / tilesPerRow) * tiled.tileHeight;
+                Block cell = new Block(Transforms.apply(tiled.source.pixels(),
+                        tiled.source.width(), tiled.source.height(), sx, sy,
+                        tiled.tileWidth, tiled.tileHeight, Transforms.NONE),
+                        tiled.tileWidth, tiled.tileHeight);
+                if (pixelsTouch(frame, intField(self, "x"), intField(self, "y"),
+                        cell, cellX, cellY, box)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // --------------------------------------------------------- TiledLayer

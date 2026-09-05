@@ -71,6 +71,7 @@ public final class Preview {
         write(vfs, outDir, "35-own-loop.png", loopScreen(fixtures));
         write(vfs, outDir, "36-clock.png", clockScreen(fixtures));
         write(vfs, outDir, "37-flip.png", flipScreen(fixtures));
+        write(vfs, outDir, "39-collide.png", collideScreen(fixtures));
         write(vfs, outDir, "28-crash.png", new CrashScreen(fixtures).render());
         write(vfs, outDir, "29-hang.png", new CrashScreen(fixtures, "demo.HangDemo").render());
         // The keypad in the other shape and faded back, which is what the
@@ -152,6 +153,13 @@ public final class Preview {
      */
     private static Framebuffer flipScreen(String fixtures) throws Exception {
         EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.FlipDemo");
+        screen.boot();
+        screen.session().renderFrame();
+        return screen.render();
+    }
+
+    private static Framebuffer collideScreen(String fixtures) throws Exception {
+        EmulatorScreen screen = new EmulatorScreen(fixtures, "demo.CollideDemo");
         screen.boot();
         screen.session().renderFrame();
         return screen.render();
