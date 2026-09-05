@@ -33,6 +33,7 @@ public final class KeypadPlanTest extends Test {
         nothingOverlaps();
         nothingEscapes();
         draggingSurvivesAChangeOfStyle();
+        leaningOnTheStick();
         sideways();
         oldProfilesKeepTheirKeypad();
     }
@@ -56,10 +57,12 @@ public final class KeypadPlanTest extends Test {
                 "game: the four digits a game reads");
         check(!game.has("num5") && !game.has("num0") && !game.has("star"),
                 "game: and none of the ones it does not");
-        check(!game.has("upLeft") && !game.has("upRight")
-                        && !game.has("downLeft") && !game.has("downRight"),
-                "game: the corners are digits now, not diagonals");
-        eq(11, game.keys().size(), "game: four digits, four ways, fire and two softkeys");
+        check(game.has("stick"), "game: one round pad that steers");
+        check(!game.has("up") && !game.has("left")
+                        && !game.has("upLeft") && !game.has("downRight"),
+                "game: and so no direction keys of its own");
+        eq(KeypadPlan.KIND_STICK, game.find("stick").kind(), "game: the pad is a stick");
+        eq(8, game.keys().size(), "game: a stick, fire, four digits and two softkeys");
 
         for (int i = 0; i < game.keys().size(); i++) {
             KeypadPlan.Key key = game.keys().get(i);
@@ -99,14 +102,24 @@ public final class KeypadPlanTest extends Test {
         check(left.y() < upLeft.bottom() && left.bottom() > upLeft.y(),
                 "arrows: and level with the top row rather than above it");
 
-        int[] northern = {KeypadPlan.STYLE_FULL, KeypadPlan.STYLE_GAME};
-        for (int i = 0; i < northern.length; i++) {
-            KeypadPlan plan = KeypadPlan.portrait(northern[i], WIDTH, KEY, null);
-            KeypadPlan.Key top = plan.find("up");
-            check(plan.find("softLeft").bottom() <= top.y(),
-                    "style " + northern[i] + ": the softkeys sit above the pad");
-            check(plan.find("softLeft").x() < plan.find("softRight").x(),
-                    "style " + northern[i] + ": left on the left, right on the right");
+        KeypadPlan full = KeypadPlan.portrait(KeypadPlan.STYLE_FULL, WIDTH, KEY, null);
+        check(full.find("softLeft").bottom() <= full.find("up").y(),
+                "full: the softkeys sit above the pad");
+
+        // The gamepad puts them across the top, over everything else.
+        KeypadPlan game = KeypadPlan.portrait(KeypadPlan.STYLE_GAME, WIDTH, KEY, null);
+        check(game.find("softLeft").bottom() <= game.find("stick").y(),
+                "game: the softkeys sit above the stick");
+        check(game.find("softRight").bottom() <= game.find("fire").y(),
+                "game: and above the fire key");
+        check(game.find("stick").right() < game.find("fire").x(),
+                "game: the stick is under one thumb and fire under the other");
+
+        String[] both = {"full", "game"};
+        KeypadPlan[] plans = {full, game};
+        for (int i = 0; i < plans.length; i++) {
+            check(plans[i].find("softLeft").x() < plans[i].find("softRight").x(),
+                    both[i] + ": left on the left, right on the right");
         }
     }
 
@@ -180,8 +193,36 @@ public final class KeypadPlanTest extends Test {
 
         KeypadPlan other = KeypadPlan.portrait(KeypadPlan.STYLE_GAME, WIDTH, KEY, moved);
         KeypadPlan otherPlain = KeypadPlan.portrait(KeypadPlan.STYLE_GAME, WIDTH, KEY, null);
-        eq(otherPlain.find("fire").x() + KEY / 2, other.find("fire").x(),
+        int gameKey = otherPlain.find("num1").width();
+        eq(otherPlain.find("fire").x() + gameKey / 2, other.find("fire").x(),
                 "the same drag still means the same thing on another keypad");
+    }
+
+    /**
+     * Which way the stick is being leaned, which is the whole of how the
+     * gamepad steers.
+     */
+    private void leaningOnTheStick() {
+        eq(0, KeypadPlan.stickDirections(0, 0, 100).size(),
+                "a thumb resting in the middle is not steering");
+        eq(0, KeypadPlan.stickDirections(20, 0, 100).size(),
+                "nor is one that has barely moved — the middle is a rest");
+
+        eq("[up]", KeypadPlan.stickDirections(0, -80, 100).toString(), "straight up is up");
+        eq("[down]", KeypadPlan.stickDirections(0, 80, 100).toString(), "and down is down");
+        eq("[left]", KeypadPlan.stickDirections(-80, 0, 100).toString(), "left is left");
+        eq("[right]", KeypadPlan.stickDirections(80, 0, 100).toString(), "right is right");
+
+        // The corner a handset reached with two keys held at once, reached by
+        // leaning into it — which is the reason the pad became a stick.
+        eq("[up, right]", KeypadPlan.stickDirections(60, -60, 100).toString(),
+                "leaning into a corner holds both directions");
+        eq("[down, left]", KeypadPlan.stickDirections(-60, 60, 100).toString(),
+                "and so does the opposite corner");
+
+        // Just off an axis is still that axis: a thumb is not a protractor.
+        eq("[up]", KeypadPlan.stickDirections(20, -90, 100).toString(),
+                "a lean a few degrees off straight up is still up");
     }
 
     /** Turned sideways, each thumb gets a column and its own softkey. */
@@ -189,6 +230,8 @@ public final class KeypadPlanTest extends Test {
         KeypadPlan left = KeypadPlan.column(KeypadPlan.STYLE_FULL, true, 220, 520, KEY, null);
         KeypadPlan right = KeypadPlan.column(KeypadPlan.STYLE_FULL, false, 220, 520, KEY, null);
         check(left.has("fire") && left.has("up"), "sideways: the pad is under one thumb");
+        KeypadPlan stick = KeypadPlan.column(KeypadPlan.STYLE_GAME, true, 220, 520, KEY, null);
+        check(stick.has("stick"), "sideways: the gamepad keeps its stick");
         check(right.has("num5"), "sideways: the numbers under the other");
         check(left.has("softLeft") && !left.has("softRight"),
                 "sideways: one softkey per column, in the corner that thumb rests in");

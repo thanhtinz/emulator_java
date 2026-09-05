@@ -125,6 +125,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)cycleKeypadLayoutForSuite:(NSString *)suiteId;
 - (NSString *)setKeypadLayout:(NSInteger)layout forSuite:(NSString *)suiteId;
 - (NSString *)toggleKeypadForSuite:(NSString *)suiteId;
+- (NSString *)stickDirectionsAtX:(float)dx y:(float)dy radius:(float)radius;
 - (NSString *)keypadPlanJSONForSuite:(NSString *)suiteId
                                width:(NSInteger)width
                               height:(NSInteger)height

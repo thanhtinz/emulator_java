@@ -278,6 +278,13 @@ final class MobiCoreClient: ObservableObject {
         refresh()
     }
 
+    /// Which directions a thumb leaning this far off the stick's middle holds.
+    func stickDirections(dx: CGFloat, dy: CGFloat, radius: CGFloat) -> [String] {
+        let answer = bridge.stickDirections(atX: Float(dx), y: Float(dy),
+                                            radius: Float(radius))
+        return answer.isEmpty ? [] : answer.components(separatedBy: ",")
+    }
+
     /// Where every key of the keypad goes, for a strip or a column this size.
     func keypadPlan(_ suiteId: String, width: Int, height: Int, key: Int,
                     landscape: Bool, left: Bool) -> KeypadPlanData? {

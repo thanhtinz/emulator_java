@@ -138,6 +138,8 @@ struct Keypad: View {
     var plan: KeypadPlanData?
     /// One key's size, which is what a drag and a corner radius are measured in.
     var key: CGFloat = 0
+    /// Which directions a lean on the stick holds; see `PlacedKey.steer`.
+    var steer: ((CGFloat, CGFloat, CGFloat) -> [String])?
     /// The key shape; see `GameProfile.KEY_SHAPE_*` in the core.
     var shape: Int = 0
     /// How solid to draw the keypad, in percent. Applied to the keypad as a
@@ -154,7 +156,7 @@ struct Keypad: View {
             ForEach(plan?.keys ?? [], id: \.button) { placed in
                 PlacedKey(placed: placed, key: keySize,
                           leftSoftKey: leftSoftKey, rightSoftKey: rightSoftKey,
-                          onPress: onPress, onRelease: onRelease)
+                          steer: steer, onPress: onPress, onRelease: onRelease)
                     .offset(x: CGFloat(placed.x), y: CGFloat(placed.y))
             }
         }
@@ -172,6 +174,9 @@ private struct PlacedKey: View {
     let key: CGFloat
     let leftSoftKey: String?
     let rightSoftKey: String?
+    /// Which directions a lean this far off the stick's middle holds, asked
+    /// of the core so the phone and the preview steer alike.
+    var steer: ((CGFloat, CGFloat, CGFloat) -> [String])?
     let onPress: (String) -> Void
     let onRelease: (String) -> Void
 
@@ -183,6 +188,9 @@ private struct PlacedKey: View {
             SoftKey(label: placed.button == "softLeft" ? leftSoftKey : rightSoftKey,
                     button: placed.button, key: key, width: width, height: height,
                     onPress: onPress, onRelease: onRelease)
+        case KeypadPlanData.kindStick:
+            StickKey(button: placed.button, size: min(width, height), key: key,
+                     steer: steer, onPress: onPress, onRelease: onRelease)
         case KeypadPlanData.kindFire:
             FireKey(size: min(width, height), width: width, height: height,
                     round: placed.round, onPress: onPress, onRelease: onRelease)
@@ -242,6 +250,8 @@ struct ControlColumn: View {
     /// Asks the core for this column's half of the keypad, once the column
     /// knows how much room it has. Called with width, height and key size.
     var planFor: ((Int, Int, Int) -> KeypadPlanData?)?
+    /// Which directions a lean on the stick holds; see `PlacedKey.steer`.
+    var steer: ((CGFloat, CGFloat, CGFloat) -> [String])?
     /// The key shape; see `GameProfile.KEY_SHAPE_*` in the core.
     var shape: Int = 0
     /// How solid to draw the column, in percent.
@@ -262,7 +272,7 @@ struct ControlColumn: View {
                 ForEach(plan?.keys ?? [], id: \.button) { placed in
                     PlacedKey(placed: placed, key: key,
                               leftSoftKey: softKeyLabel, rightSoftKey: softKeyLabel,
-                              onPress: onPress, onRelease: onRelease)
+                              steer: steer, onPress: onPress, onRelease: onRelease)
                         .offset(x: CGFloat(placed.x), y: CGFloat(placed.y))
                 }
             }
@@ -399,6 +409,78 @@ private struct ArrowKey: View {
             .placed(button, size: size, placement: placement,
                     hold: holdGesture(button: button, held: $held,
                                       onPress: onPress, onRelease: onRelease))
+    }
+}
+
+/// Cần điều khiển: một phím duy nhất, và hướng là chỗ ngón cái tì vào.
+///
+/// Not four keys drawn as a circle. A thumb rests on it and leans, and the
+/// lean decides which directions are held — so a corner is reached by leaning
+/// into it rather than by finding an edge the thumb cannot feel.
+private struct StickKey: View {
+    let button: String
+    let size: CGFloat
+    let key: CGFloat
+    let steer: ((CGFloat, CGFloat, CGFloat) -> [String])?
+    let onPress: (String) -> Void
+    let onRelease: (String) -> Void
+
+    @State private var held: [String] = []
+    @State private var knob: CGSize = .zero
+    @Environment(\.keyPlacement) private var placement
+
+    var body: some View {
+        Circle()
+            .fill(held.isEmpty ? Palette.accentDim : Palette.accent.opacity(0.35))
+            .overlay(Circle().stroke(Palette.accent, lineWidth: 1))
+            .overlay(
+                // The knob follows the thumb, so the stick shows how far it
+                // is being pushed — which separate keys never could.
+                Circle()
+                    .fill(Palette.surfaceAlt)
+                    .overlay(Circle().stroke(Palette.accent, lineWidth: 1))
+                    .frame(width: size * 0.4, height: size * 0.4)
+                    .offset(x: knob.width / 2, y: knob.height / 2)
+            )
+            .frame(width: size, height: size)
+            .gesture(placement.onMove == nil ? AnyGesture(leaning.map { _ in () })
+                                             : AnyGesture(dragging.map { _ in () }))
+    }
+
+    /// Playing: the lean steers.
+    private var leaning: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let radius = size / 2
+                let dx = value.location.x - radius
+                let dy = value.location.y - radius
+                let want = steer?(dx, dy, radius) ?? []
+                // Released before pressed, so a turn from left to right is
+                // never briefly both at once.
+                for direction in held where !want.contains(direction) {
+                    onRelease(direction)
+                }
+                for direction in want where !held.contains(direction) {
+                    onPress(direction)
+                }
+                held = want
+                knob = want.isEmpty ? .zero : CGSize(width: dx, height: dy)
+            }
+            .onEnded { _ in
+                held.forEach(onRelease)
+                held = []
+                knob = .zero
+            }
+    }
+
+    /// Arranging: the stick is the thing being moved, not played with.
+    private var dragging: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                placement.onMove?(button,
+                                  value.translation.width / key,
+                                  value.translation.height / key)
+            }
     }
 }
 

@@ -51,6 +51,14 @@ public final class KeypadPlan {
     public static final int KIND_ARROW = 1;
     public static final int KIND_FIRE = 2;
     public static final int KIND_SOFT = 3;
+    /**
+     * The round pad of the game keypad: one key that steers.
+     *
+     * <p>Not four keys drawn as a circle — a thumb rests on it and leans,
+     * and where it leans decides which directions are held, so a corner is
+     * reached by leaning into it rather than by finding a separate key.</p>
+     */
+    public static final int KIND_STICK = 4;
 
     /** Arrow directions, in the order the pads have always listed them. */
     public static final int UP = 0;
@@ -278,24 +286,120 @@ public final class KeypadPlan {
     }
 
     /**
-     * Fire, four directions, and the four digits a game actually reads.
+     * The gamepad: a stick under one thumb, fire and four digits under the
+     * other, and the two softkeys across the top.
      *
-     * <p>1, 3, 7 and 9 sit in the corners because that is where they were on
-     * the handset this is imitating — a game that reads them reads them as
-     * corners, and a thumb that learned them learned them there.</p>
+     * <p>This is the layout of every action game written for a touchscreen
+     * since, and it is not a fashion: a keypad drawn as a grid asks the thumb
+     * to find an edge it cannot feel, while a stick only has to be leaned on.
+     * The digits are 1, 3, 7 and 9 — the four a game reads, sitting where the
+     * corners of a handset's keypad were — curved around the fire key at
+     * arm's length from it so that none of them is hit by accident.</p>
      */
     private void gameUpright(int width, int key, KeypadArrangement arrangement) {
-        int padWidth = key * 3 + GAP * 2;
-        int padX = (width - padWidth) / 2;
+        // The whole thing is wider than a grid of the same key size, so when
+        // the screen is narrow the key gives way rather than the layout: a
+        // stick pushed off the side is not a keypad at all.
+        int room = width - MARGIN * 2 - GAP * 2;
+        if (key * GAME_WIDE / 100 > room) {
+            key = keySize(room * 100 / GAME_WIDE);
+        }
         int softHeight = (int) (key * SOFT_SCALE_Y);
-        int softWidth = (padWidth - GAP) / 2;
-        soft(arrangement, key, "softLeft", "L", padX, 0, softWidth, softHeight);
-        soft(arrangement, key, "softRight", "R", padX + padWidth - softWidth, 0,
+        int softWidth = (width - MARGIN * 2) * 2 / 5;
+        soft(arrangement, key, "softLeft", "L", MARGIN, 0, softWidth, softHeight);
+        soft(arrangement, key, "softRight", "R", width - MARGIN - softWidth, 0,
                 softWidth, softHeight);
 
-        int top = softHeight + GAP;
-        gameBlock(arrangement, key, padX, top);
-        height = top + key * 3 + GAP * 2;
+        int top = softHeight + GAP * 2;
+        int stick = key * STICK_KEYS / 100;
+        int band = key * CLUSTER_TALL / 100;
+        if (stick > band) {
+            band = stick;
+        }
+        add(arrangement, key, "stick", "", KIND_STICK, -1, true,
+                MARGIN, top + (band - stick) / 2, stick, stick);
+        actionCluster(arrangement, key, width - MARGIN - key * CLUSTER_WIDE / 100,
+                top + (band - key * CLUSTER_TALL / 100) / 2);
+        height = top + band;
+    }
+
+    /**
+     * Fire, and the four digits curved around it.
+     *
+     * <p>Placed on an arc rather than in a row: a thumb pivots from one
+     * knuckle, so the keys it can reach without moving the hand lie on a
+     * curve, and a row of them puts the far end out of reach.</p>
+     */
+    private void actionCluster(KeypadArrangement arrangement, int key, int left, int top) {
+        int fire = key * FIRE_SIZE / 100;
+        int radius = key * ARC_RADIUS / 100;
+        // The cluster is measured from its own leftmost and topmost key, so
+        // the middle sits that far in from the corner it was given.
+        int cx = left + key * CLUSTER_LEFT / 100;
+        int cy = top + key * CLUSTER_TOP / 100;
+
+        add(arrangement, key, "fire", "F", KIND_FIRE, -1, true,
+                cx - fire / 2, cy - fire / 2, fire, fire);
+        for (int i = 0; i < ARC_BUTTONS.length; i++) {
+            int x = cx + ARC_X[i] * radius / 1000 - key / 2;
+            int y = cy + ARC_Y[i] * radius / 1000 - key / 2;
+            add(arrangement, key, ARC_BUTTONS[i], ARC_LABELS[i], KIND_NUMBER, -1, true,
+                    x, y, key, key);
+        }
+    }
+
+    /** The four digits, from the lower left round to the upper right. */
+    private static final String[] ARC_BUTTONS = {"num1", "num3", "num7", "num9"};
+    private static final String[] ARC_LABELS = {"1", "3", "7", "9"};
+    /** Where each sits on the arc, in thousandths of the radius. */
+    private static final int[] ARC_X = {-966, -819, -174, 500};
+    private static final int[] ARC_Y = {259, -574, -985, -866};
+
+    /** Everything below is in hundredths of one key. */
+    private static final int FIRE_SIZE = 150;
+    private static final int ARC_RADIUS = 175;
+    private static final int STICK_KEYS = 300;
+    private static final int CLUSTER_LEFT = 219;
+    private static final int CLUSTER_TOP = 222;
+    private static final int CLUSTER_WIDE = 357;
+    private static final int CLUSTER_TALL = 317;
+    /** Stick, gap and cluster together, which is what has to fit across. */
+    private static final int GAME_WIDE = STICK_KEYS + CLUSTER_WIDE;
+
+    /**
+     * Which directions a thumb leaning this far off the stick's middle holds.
+     *
+     * <p>Asked of the core so that leaning into a corner means the same thing
+     * on the phone as it does in the preview. The middle third is a rest: a
+     * thumb sitting still on the stick is not steering, and without that the
+     * character walks off on its own.</p>
+     *
+     * @param dx     how far right of the middle, in pixels
+     * @param dy     how far below the middle
+     * @param radius half the stick's width
+     */
+    public static List<String> stickDirections(float dx, float dy, float radius) {
+        List<String> held = new ArrayList<String>();
+        float reach = (float) Math.sqrt(dx * dx + dy * dy);
+        if (radius <= 0 || reach < radius * 0.35f) {
+            return held;
+        }
+        // Within 22.5 degrees of an axis is that axis alone; past that the
+        // lean holds both, which is how a corner of the old pad was reached.
+        float edge = 0.3827f * reach;
+        if (dy < -edge) {
+            held.add("up");
+        }
+        if (dy > edge) {
+            held.add("down");
+        }
+        if (dx < -edge) {
+            held.add("left");
+        }
+        if (dx > edge) {
+            held.add("right");
+        }
+        return held;
     }
 
     // ------------------------------------------------------------- sideways
@@ -326,20 +430,28 @@ public final class KeypadPlan {
 
         int stack;
         if (directional) {
-            stack = plan.style == STYLE_GAME ? key * 3 + GAP * 2 : padKeyHeight(key) * 3 + GAP * 2;
+            stack = plan.style == STYLE_GAME
+                    ? key * STICK_KEYS / 100 : padKeyHeight(key) * 3 + GAP * 2;
+        } else if (plan.style == STYLE_FULL) {
+            stack = key * 4 + GAP * 3;
         } else {
-            stack = plan.style == STYLE_FULL ? key * 4 + GAP * 3 : 0;
+            stack = plan.style == STYLE_GAME ? key * CLUSTER_TALL / 100 : 0;
         }
         int top = stack == 0 ? 0 : Math.max(0, (height - softHeight - 14 - stack) / 2);
 
         if (directional) {
             if (plan.style == STYLE_GAME) {
-                plan.gameBlock(arrangement, key, padX, top);
+                int stick = key * STICK_KEYS / 100;
+                plan.add(arrangement, key, "stick", "", KIND_STICK, -1, true,
+                        (width - stick) / 2, top, stick, stick);
             } else {
                 plan.directions(arrangement, key, padX, top, key, padKeyHeight(key), true);
             }
         } else if (plan.style == STYLE_FULL) {
             plan.numbers(arrangement, key, padX, top);
+        } else if (plan.style == STYLE_GAME) {
+            plan.actionCluster(arrangement, key,
+                    (width - key * CLUSTER_WIDE / 100) / 2, top);
         }
 
         int softY = height - softHeight - 14;
@@ -390,25 +502,6 @@ public final class KeypadPlan {
         arrow(arrangement, key, RIGHT, rightX, midY, wide, tall);
         arrow(arrangement, key, DOWN, midX, lowY, wide, tall);
         add(arrangement, key, "fire", "F", KIND_FIRE, -1, false, midX, midY, wide, tall);
-    }
-
-    /** The gamepad: the four directions with 1, 3, 7, 9 in the corners. */
-    private void gameBlock(KeypadArrangement arrangement, int key, int x, int y) {
-        int midX = x + key + GAP;
-        int rightX = midX + key + GAP;
-        int midY = y + key + GAP;
-        int lowY = midY + key + GAP;
-
-        digit(arrangement, key, "num1", "1", x, y);
-        digit(arrangement, key, "num3", "3", rightX, y);
-        digit(arrangement, key, "num7", "7", x, lowY);
-        digit(arrangement, key, "num9", "9", rightX, lowY);
-
-        arrowRound(arrangement, key, UP, midX, y);
-        arrowRound(arrangement, key, LEFT, x, midY);
-        arrowRound(arrangement, key, RIGHT, rightX, midY);
-        arrowRound(arrangement, key, DOWN, midX, lowY);
-        add(arrangement, key, "fire", "F", KIND_FIRE, -1, true, midX, midY, key, key);
     }
 
     // ------------------------------------------------------------- one key
@@ -470,7 +563,12 @@ public final class KeypadPlan {
             // The pad, plus a margin either side wide enough for a softkey.
             return pad + (key + GAP + MARGIN) * 2;
         }
-        return style == STYLE_FULL ? pad * 2 + MARGIN * 3 : pad + MARGIN * 2;
+        if (style == STYLE_GAME) {
+            // The gamepad shrinks its keys to fit instead, so all it needs is
+            // room for the pair of softkeys.
+            return MARGIN * 2 + GAP * 2 + 8 * GAME_WIDE / 100;
+        }
+        return pad * 2 + MARGIN * 3;
     }
 
     private static int clamp(int style) {

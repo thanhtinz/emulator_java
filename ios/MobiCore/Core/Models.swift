@@ -262,6 +262,7 @@ struct KeypadPlanData: Codable {
     static let kindArrow = 1
     static let kindFire = 2
     static let kindSoft = 3
+    static let kindStick = 4
 }
 
 struct PlacedKeyData: Codable {

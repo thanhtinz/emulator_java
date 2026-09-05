@@ -2,6 +2,7 @@ package com.mobicore.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -32,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -225,6 +228,7 @@ private fun PlacedKey(
             key = key,
             modifier = slot,
         )
+        KeypadPlan.KIND_STICK -> StickKey(placed.button(), key, onPress, onRelease, slot)
         KeypadPlan.KIND_FIRE -> FireKey(onPress, onRelease, key, placed.round(), slot)
         KeypadPlan.KIND_ARROW -> ArrowKey(
             icon = arrowIcon(placed.arrow()),
@@ -425,6 +429,92 @@ private fun ArrowKey(
         // game needs them, not competing for the thumb.
         Icon(icon, contentDescription = description, tint = MobiColors.Accent,
             modifier = Modifier.size(if (corner) key * 0.4f else key * 0.6f))
+    }
+}
+
+/**
+ * Cần điều khiển: một phím duy nhất, và hướng là chỗ ngón cái tì vào.
+ *
+ * Not four keys drawn as a circle. A thumb rests on it and leans, and the lean
+ * decides which directions are held — so a corner is reached by leaning into
+ * it rather than by finding an edge the thumb cannot feel. Which lean means
+ * what is the core's to say, so that the phone and the preview steer alike.
+ */
+@Composable
+private fun StickKey(
+    button: String,
+    key: Dp,
+    onPress: (String) -> Unit,
+    onRelease: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val held = remember { mutableStateListOf<String>() }
+    var knob by remember { mutableStateOf(Offset.Zero) }
+    val moving = arranging()
+
+    fun rest() {
+        held.forEach(onRelease)
+        held.clear()
+        knob = Offset.Zero
+    }
+
+    Box(
+        modifier
+            .clip(CircleShape)
+            .background(if (held.isEmpty()) MobiColors.AccentDim
+                        else MobiColors.Accent.copy(alpha = 0.35f))
+            .border(1.dp, MobiColors.Accent, CircleShape)
+            .then(
+                if (moving) {
+                    Modifier.placed(button, key, {}, {}) {}
+                } else {
+                    Modifier.pointerInput(button) {
+                        val radius = size.width / 2f
+                        awaitPointerEventScope {
+                            while (true) {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                var change = down
+                                while (change.pressed) {
+                                    val lean = Offset(change.position.x - radius,
+                                                      change.position.y - radius)
+                                    val want = KeypadPlan.stickDirections(lean.x, lean.y, radius)
+                                    // Released before pressed, so a turn from
+                                    // left to right is never both at once.
+                                    held.filterNot(want::contains).forEach {
+                                        held.remove(it)
+                                        onRelease(it)
+                                    }
+                                    want.filterNot(held::contains).forEach {
+                                        held.add(it)
+                                        onPress(it)
+                                    }
+                                    knob = if (want.isEmpty()) Offset.Zero else lean
+                                    change.consume()
+                                    val event = awaitPointerEvent()
+                                    change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                }
+                                rest()
+                            }
+                        }
+                    }
+                }
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        // The knob follows the thumb so that the stick shows how far it is
+        // being pushed, which a keypad of separate keys never could.
+        Box(
+            Modifier
+                .offset {
+                    androidx.compose.ui.unit.IntOffset(
+                        knob.x.toInt() / 2, knob.y.toInt() / 2,
+                    )
+                }
+                .fillMaxSize(0.4f)
+                .clip(CircleShape)
+                .background(MobiColors.SurfaceAlt)
+                .border(1.dp, MobiColors.Accent, CircleShape),
+        )
     }
 }
 

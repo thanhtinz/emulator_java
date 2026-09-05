@@ -207,6 +207,10 @@
     return [_facade toggleKeypadWithNSString:suiteId];
 }
 
+- (NSString *)stickDirectionsAtX:(float)dx y:(float)dy radius:(float)radius {
+    return [_facade stickDirectionsWithFloat:dx withFloat:dy withFloat:radius];
+}
+
 - (NSString *)keypadPlanJSONForSuite:(NSString *)suiteId
                                width:(NSInteger)width
                               height:(NSInteger)height

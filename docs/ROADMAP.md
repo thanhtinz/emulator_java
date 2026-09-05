@@ -2427,11 +2427,22 @@ tên bên phải. Cái người ta chọn được ("Đầy đủ / Chỉ phím 
 |---|---|---|
 | **Mũi tên** | tám hướng + OK | kẹp hai bên cụm mũi tên |
 | **Đầy đủ** | bàn số + tám hướng + OK | một hàng trên cụm mũi tên |
-| **Chơi game** | OK + bốn hướng + **1, 3, 7, 9**, nút tròn | một hàng phía trên |
+| **Chơi game** | **cần điều khiển tròn** + OK + **1, 3, 7, 9**, nút tròn | một dải rộng trên cùng |
 
-Kiểu **Chơi game** là kiểu đáng nói: bốn góc của ô 3×3 là 1, 3, 7, 9 — đúng
-chỗ chúng nằm trên bàn số của máy thật, nên ngón cái nào đã quen thì vẫn quen,
-mà không phải mang theo tám phím không bao giờ bấm.
+Kiểu **Chơi game** là kiểu đáng nói. Bên trái không phải cụm mũi tên mà là một
+**cần điều khiển**: ngón cái đặt lên rồi tì về phía nào thì giữ hướng ấy, góc
+thì tì vào góc — chứ không phải đi tìm một cái mép mà ngón cái không sờ thấy.
+Bên phải là nút OK to, và **1, 3, 7, 9** xếp thành một **cung cong** quanh nó,
+vì ngón cái xoay quanh một đốt tay nên những phím nó với tới nằm trên một
+đường cong; xếp thành hàng thì đầu kia ngoài tầm. Bốn con số ấy là bốn con số
+game hay đọc, đúng chỗ chúng nằm ở bốn góc bàn số máy thật.
+
+Cần điều khiển là **một phím**, không phải bốn phím vẽ thành vòng tròn. Luật
+"tì tới đâu thì giữ hướng nào" nằm ở lõi (`KeypadPlan.stickDirections`) chứ
+không viết lại ở ba nơi: giữa cần là vùng nghỉ — ngón cái đặt yên trên cần thì
+**không** phải đang đi, nếu không nhân vật tự bước; lệch khỏi một trục dưới
+22,5° vẫn tính là trục ấy, quá thì giữ cả hai hướng, đúng như giữ hai phím một
+lúc trên máy thật.
 
 **Phím mềm nay là phím của bàn phím**, không còn là một dải riêng vẽ ngoài. Đây
 là chỗ đã đi đọc `VirtualKeyboard.resetLayout` của J2ME Loader chứ không đoán:
@@ -2449,7 +2460,9 @@ phím đang bị chép ba lần** — bản xem trước, Android, iOS — mỗi
 số gõ tay giống hệt nhau. Thêm ba kiểu vào ba chỗ là chín lần cơ hội để chúng
 lệch nhau, và khi ấy ảnh chụp không còn kể đúng chuyện của điện thoại nữa. Nay
 có `core/.../model/KeypadPlan.java`: một chỗ duy nhất nhận kiểu, khổ giấy, cỡ
-phím và phần người chơi đã kéo, rồi trả về từng phím với chỗ đứng của nó. Ba
+phím và phần người chơi đã kéo, rồi trả về từng phím với chỗ đứng của nó — kể
+cả cần điều khiển, và cả việc bàn phím Chơi game **tự thu nhỏ phím** khi màn
+hình hẹp, vì một cái cần bị đẩy lọt ra ngoài mép thì không còn là bàn phím. Ba
 mặt giao diện chỉ còn **vẽ** cái danh sách ấy; iOS đọc qua `keypadPlanJson`.
 Phần dời chỗ vẫn tính theo **đơn vị một phím** nên bản đồ phím người chơi tự
 kéo vẫn còn nguyên nghĩa khi đổi kiểu.
@@ -2463,9 +2476,11 @@ Phép kiểm mới `KeypadPlanTest` hỏi những câu chỉ đo mới trả l�
 phím cho từng kiểu; phím mềm đứng đúng chỗ J2ME Loader đặt; **không phím nào
 chồng lên phím nào**, kể cả trên màn hình hẹp và kể cả khi giao diện còn đang
 tự đo và đưa sang một số không; không phím nào lọt khỏi khung; kéo một phím rồi
-đổi kiểu thì phần kéo vẫn còn. Phá lại bốn chỗ để chắc phép kiểm cắn — bỏ hàng
-phím mềm của kiểu Chơi game, cho hai phím chồng nhau, cho vòng quay về bốn, bỏ
-bước chuyển hệ — mỗi lần đúng câu tương ứng hỏng.
+đổi kiểu thì phần kéo vẫn còn; và cần điều khiển trả lời đúng cho từng hướng tì
+— nghỉ, bốn trục, hai góc, và một cú tì lệch vài độ vẫn là trục ấy. Phá lại sáu
+chỗ để chắc phép kiểm cắn — bỏ hàng phím mềm của kiểu Chơi game, cho hai phím
+chồng nhau, cho vòng quay về bốn, bỏ bước chuyển hệ, bỏ chặn màn hình hẹp, bỏ
+vùng nghỉ giữa cần, bỏ ngưỡng 22,5° — mỗi lần đúng câu tương ứng hỏng.
 
 Ảnh: `19-keypad-arrows.png`, `03-emulator.png`, `19b-keypad-game.png`.
 

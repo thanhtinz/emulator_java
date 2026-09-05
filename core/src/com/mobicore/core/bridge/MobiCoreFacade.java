@@ -751,6 +751,27 @@ public final class MobiCoreFacade {
     }
 
     /**
+     * Which directions a thumb leaning on the game keypad's stick holds.
+     *
+     * <p>Asked of the core on every lean rather than worked out on the phone:
+     * it is a handful of arithmetic, and two copies of it would be two
+     * different sticks.</p>
+     *
+     * @return the button names, separated by commas; empty while at rest
+     */
+    public String stickDirections(float dx, float dy, float radius) {
+        List<String> held = KeypadPlan.stickDirections(dx, dy, radius);
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < held.size(); i++) {
+            if (i > 0) {
+                out.append(',');
+            }
+            out.append(held.get(i));
+        }
+        return out.toString();
+    }
+
+    /**
      * How the virtual keypad looks: how solid, what shape, when it fades.
      *
      * <p>One call rather than three, because the screen that shows them shows

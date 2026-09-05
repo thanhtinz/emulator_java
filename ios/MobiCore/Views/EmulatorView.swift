@@ -55,6 +55,9 @@ struct EmulatorView: View {
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) },
                                   planFor: { w, h, k in columnPlan(left: true, width: w, height: h, key: k) },
+                                  steer: { dx, dy, r in
+                                      client.stickDirections(dx: dx, dy: dy, radius: r)
+                                  },
                                   shape: settings?.keyShape ?? 0,
                                   opacity: engine.keypadOpacity,
                                   placement: placement)
@@ -65,6 +68,9 @@ struct EmulatorView: View {
                                   onPress: { engine.press($0) },
                                   onRelease: { engine.release($0) },
                                   planFor: { w, h, k in columnPlan(left: false, width: w, height: h, key: k) },
+                                  steer: { dx, dy, r in
+                                      client.stickDirections(dx: dx, dy: dy, radius: r)
+                                  },
                                   shape: settings?.keyShape ?? 0,
                                   opacity: engine.keypadOpacity,
                                   placement: placement)
@@ -96,6 +102,9 @@ struct EmulatorView: View {
                                                     key: Int(key),
                                                     landscape: false, left: true),
                             key: key,
+                            steer: { dx, dy, r in
+                                client.stickDirections(dx: dx, dy: dy, radius: r)
+                            },
                             shape: settings?.keyShape ?? 0,
                             opacity: engine.keypadOpacity,
                             placement: placement

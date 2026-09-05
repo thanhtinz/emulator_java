@@ -472,6 +472,28 @@ public final class EmulatorScreen {
         draw(ui, plan(frame.width(), key), 0, y);
     }
 
+    /**
+     * The round pad of the gamepad: a ring to lean in, and the knob it moves.
+     *
+     * <p>Drawn at rest, in the middle, because that is where a thumb finds it
+     * — a stick drawn already pushed reads as a game already being played.</p>
+     */
+    private void drawStick(Ui ui, String button, int x, int y, int w, int h) {
+        Framebuffer frame = ui.frame();
+        frame.setColor(Theme.KEY);
+        frame.fillRoundRect(x, y, w, h, w, h);
+        frame.setColor(Theme.ACCENT);
+        frame.drawRoundRect(x, y, w - 1, h - 1, w, h);
+        int knob = w * 2 / 5;
+        int knobX = x + (w - knob) / 2;
+        int knobY = y + (h - knob) / 2;
+        frame.setColor(Theme.ACCENT_DIM);
+        frame.fillRoundRect(knobX, knobY, knob, knob, knob, knob);
+        frame.setColor(Theme.ACCENT);
+        frame.drawRoundRect(knobX, knobY, knob - 1, knob - 1, knob, knob);
+        markMoved(ui, button, x, y, w, h);
+    }
+
     /** Every key of a plan, at an offset. */
     private void draw(Ui ui, KeypadPlan plan, int originX, int originY) {
         for (int i = 0; i < plan.keys().size(); i++) {
@@ -497,6 +519,10 @@ public final class EmulatorScreen {
                             ? session.leftSoftKeyLabel() : session.rightSoftKeyLabel(),
                     placed.label());
             markMoved(ui, placed.button(), x, y, w, h);
+            return;
+        }
+        if (placed.kind() == KeypadPlan.KIND_STICK) {
+            drawStick(ui, placed.button(), x, y, w, h);
             return;
         }
         if (placed.kind() == KeypadPlan.KIND_FIRE) {
