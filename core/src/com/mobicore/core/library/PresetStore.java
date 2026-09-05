@@ -22,7 +22,7 @@ import java.util.Map;
  *
  * <p>What a preset holds is deliberately only the settings, never the
  * identity: it carries the device, the keypad, scaling, sound and the rest,
- * and never a suite id, a play count or a favourite mark. Applying one to a
+ * and never a suite id or a play count. Applying one to a
  * game must not tell that game it is a different game.</p>
  */
 public final class PresetStore {
@@ -70,7 +70,6 @@ public final class PresetStore {
         // The identity of the game it was taken from has no business
         // travelling to the next game the preset is applied to.
         json.remove("suiteId");
-        json.remove("favourite");
         json.remove("lastPlayed");
         json.remove("playCount");
         json.remove("auto");
@@ -103,7 +102,7 @@ public final class PresetStore {
      * Applies a preset over one game's settings.
      *
      * <p>The game keeps everything that is about it — which suite it is, when
-     * it was last played, whether it is a favourite — and takes everything
+     * it was last played, how long it has been played — and takes everything
      * that is about how it runs. It stops counting as automatically
      * configured, because it no longer is.</p>
      *
@@ -118,7 +117,6 @@ public final class PresetStore {
         Map<String, Object> merged = game.toJson();
         merged.putAll(stored);
         merged.put("suiteId", game.suiteId());
-        merged.put("favourite", Boolean.valueOf(game.isFavourite()));
         merged.put("lastPlayed", Long.valueOf(game.lastPlayed()));
         merged.put("playCount", Integer.valueOf(game.playCount()));
         merged.remove("presetName");

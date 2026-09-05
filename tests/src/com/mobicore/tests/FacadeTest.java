@@ -213,11 +213,6 @@ public final class FacadeTest extends Test {
                         Json.readObject(facade.profileJson(suiteId)), "input"), "preset", ""),
                 "the preset persisted");
 
-        eq("true", Json.string(Json.readObject(facade.toggleFavourite(suiteId)), "favourite", ""),
-                "favourite toggles on");
-        eq("false", Json.string(Json.readObject(facade.toggleFavourite(suiteId)), "favourite", ""),
-                "favourite toggles back off");
-
         Map<String, Object> inspect = Json.readObject(facade.inspectJson(suiteId));
         check(Json.child(inspect, "attributes").size() > 5, "the inspector exposes the descriptor");
         eq(18, Json.array(inspect, "midlets").size(), "the inspector lists every MIDlet");

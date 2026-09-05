@@ -30,7 +30,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) BOOL isOpen;
 @property (nonatomic, readonly) NSString *storageRoot;
 
-/// The whole library as JSON: games, embedded profiles, recent and favourites.
+/// The whole library as JSON: the games and their embedded profiles.
 - (NSString *)libraryJSON;
 
 /// Cover art bytes, or nil when the suite ships none.
@@ -116,7 +116,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)profileJSONForSuite:(NSString *)suiteId;
 - (NSString *)updateProfileJSON:(NSString *)json;
 - (NSString *)setInputPreset:(NSString *)preset forSuite:(NSString *)suiteId;
-- (NSString *)toggleFavouriteForSuite:(NSString *)suiteId;
 
 /** Portrait to landscape and back, remembered with the game. */
 - (NSString *)toggleOrientationForSuite:(NSString *)suiteId;
@@ -255,10 +254,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)keypadDrawOpacity;
 /// Brings a faded keypad back, for a touch that is not a key press.
 - (NSString *)noteKeypadUse;
-/// The one game to offer on the way in, and starting it.
-- (NSString *)continueJSON;
-- (NSString *)continueGame;
-
 /// Steering a game by tilting the phone.
 - (NSString *)tiltJSONForSuite:(NSString *)suiteId;
 - (NSString *)setTiltEnabled:(BOOL)enabled forSuite:(NSString *)suiteId;

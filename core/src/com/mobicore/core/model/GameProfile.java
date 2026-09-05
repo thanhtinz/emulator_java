@@ -134,7 +134,6 @@ public final class GameProfile {
     /** What the pre-flight scan concluded; see {@link Compatibility}. */
     private int compatibility = Compatibility.LEVEL_FULL;
     private List<String> setupNotes = new ArrayList<String>();
-    private boolean favourite;
     private long lastPlayed;
     private int playCount;
     /**
@@ -484,14 +483,6 @@ public final class GameProfile {
         this.skin = skin;
     }
 
-    public boolean isFavourite() {
-        return favourite;
-    }
-
-    public void setFavourite(boolean favourite) {
-        this.favourite = favourite;
-    }
-
     public long lastPlayed() {
         return lastPlayed;
     }
@@ -606,7 +597,6 @@ public final class GameProfile {
         json.put("auto", Boolean.valueOf(auto));
         json.put("compatibility", Integer.valueOf(compatibility));
         json.put("setupNotes", new ArrayList<Object>(setupNotes));
-        json.put("favourite", Boolean.valueOf(favourite));
         json.put("lastPlayed", Long.valueOf(lastPlayed));
         json.put("playCount", Integer.valueOf(playCount));
         json.put("playedMs", Long.valueOf(playedMs));
@@ -644,7 +634,6 @@ public final class GameProfile {
         for (int i = 0; i < notes.size(); i++) {
             profile.setupNotes.add(String.valueOf(notes.get(i)));
         }
-        profile.favourite = Json.bool(json, "favourite", false);
         profile.lastPlayed = Json.longValue(json, "lastPlayed", 0L);
         profile.playCount = Json.integer(json, "playCount", 0);
         profile.playedMs = Json.longValue(json, "playedMs", 0L);

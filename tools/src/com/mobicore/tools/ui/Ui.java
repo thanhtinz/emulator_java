@@ -454,7 +454,7 @@ public final class Ui {
 
     /**
      * Rounded label with an icon in front of it, for a state a word alone
-     * states weakly — a favourite, for one.
+     * states weakly — a warning, for one.
      */
     public int iconChip(String icon, String label, int x, int y, int textColor, int fillColor) {
         int padding = 9;

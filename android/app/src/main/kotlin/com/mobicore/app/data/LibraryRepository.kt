@@ -249,14 +249,6 @@ class LibraryRepository(filesDir: String) {
     fun sorted(entries: List<LibraryEntry>, mode: Int): List<LibraryEntry> =
         library.sort(entries, mode, _profiles.value)
 
-    fun favourites(): List<LibraryEntry> = library.favourites(_profiles.value)
-
-    /** Games with a recorded play time, most recent first. */
-    fun recentlyPlayed(limit: Int = 6): List<LibraryEntry> =
-        library.sort(library.all(), GameLibrary.SORT_RECENT, _profiles.value)
-            .filter { (_profiles.value[it.suiteId()]?.lastPlayed() ?: 0L) > 0L }
-            .take(limit)
-
     fun markPlayed(suiteId: String) {
         val profile = library.profile(suiteId) ?: return
         profile.markPlayed(System.currentTimeMillis())
@@ -271,7 +263,7 @@ class LibraryRepository(filesDir: String) {
     /**
      * Configures a game from the game again, throwing away hand-set values.
      *
-     * The user's own choices — volume, whether it is a favourite — are not
+     * The user's own choices — the volume above all — are not
      * detections and are carried across; everything else is worked out from
      * the suite as it was at import.
      */
@@ -386,7 +378,6 @@ class LibraryRepository(filesDir: String) {
         val fresh = AutoSetup.configure(library.load(suiteId)).profile()
         fresh.setVolume(current.volume())
         fresh.setMuted(current.isMuted)
-        fresh.isFavourite = current.isFavourite
         library.saveProfile(fresh)
         refresh()
         return fresh
@@ -464,27 +455,6 @@ class LibraryRepository(filesDir: String) {
     /** Keeps a picture of the game; returns where it went. */
     fun writeScreenshot(suiteId: String, png: ByteArray): String =
         library.writeScreenshot(suiteId, png)
-
-    /**
-     * The one game to offer on the way in, or null when there is none.
-     *
-     * Opening the app to play the game you were just playing is the most
-     * common thing anyone does with it, and without this it costs three taps.
-     *
-     * @return the game, and whether pressing it would carry on or start again
-     */
-    fun continueCard(): Pair<LibraryEntry, Boolean>? {
-        val profiles = library.allProfiles()
-        val latest = library.all()
-            .mapNotNull { entry -> profiles[entry.suiteId()]?.let { entry to it } }
-            .filter { it.second.lastPlayed() > 0 }
-            .maxByOrNull { it.second.lastPlayed() }
-            ?: return null
-        // Carrying on and starting again are not the same thing, and a player
-        // offered "continue" who gets a fresh start has lost what they came
-        // back for.
-        return latest.first to (library.readSaveState(latest.first.suiteId(), 0) != null)
-    }
 
     // ------------------------------------------------------------ collections
 
@@ -612,7 +582,7 @@ class LibraryRepository(filesDir: String) {
     /**
      * Puts a saved preset's settings onto a game, keeping everything that is
      * about the game itself: which suite it is, when it was last played,
-     * whether it is a favourite.
+     * and how long it has been played.
      */
     fun applyPreset(name: String, suiteId: String) {
         val profile = library.profile(suiteId) ?: return
@@ -733,13 +703,6 @@ class LibraryRepository(filesDir: String) {
         val fresh = GamepadProfile.defaults()
         fresh.setEnabled(profile.gamepad().isEnabled)
         profile.setGamepad(fresh)
-        library.saveProfile(profile)
-        refresh()
-    }
-
-    fun toggleFavourite(suiteId: String) {
-        val profile = library.profile(suiteId) ?: return
-        profile.isFavourite = !profile.isFavourite
         library.saveProfile(profile)
         refresh()
     }

@@ -23,11 +23,9 @@ import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sort
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,10 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -49,12 +44,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 import com.mobicore.app.data.LibraryRepository
 import com.mobicore.core.library.GameLibrary
 import com.mobicore.core.library.LibraryEntry
@@ -98,6 +93,8 @@ fun HomeScreen(
             library = library,
             query = query,
             searching = searching,
+            shelves = shelves,
+            shelf = shelf,
             onQuery = { query = it },
             onSearching = {
                 searching = it
@@ -106,12 +103,6 @@ fun HomeScreen(
             onTools = onTools,
             onSettings = onSettings,
         )
-
-        // Shelves only appear once there are some: a row of one chip saying
-        // "Tất cả" is a row that tells nobody anything.
-        if (shelves.isNotEmpty() && !searching) {
-            ShelfRow(shelves, shelf) { library.setShelf(it) }
-        }
 
         if (games.isEmpty()) {
             EmptyState(
@@ -126,20 +117,8 @@ fun HomeScreen(
 
         Box(Modifier.fillMaxSize()) {
             LazyColumn(Modifier.fillMaxSize()) {
-                // The game they were playing, offered before the list they
-                // would have to search. Only while nothing is being searched
-                // or filtered: then the list is the answer to a question, and
-                // this would be an answer to a different one.
-                val resume = if (query.isBlank() && shelf.isEmpty()) {
-                    remember(games, profiles) { library.continueCard() }
-                } else {
-                    null
-                }
-                if (resume != null) {
-                    item { ContinueCard(library, resume.first, resume.second, onOpen) }
-                }
                 itemsIndexed(shown) { index, entry ->
-                    GameRow(library, entry, profiles[entry.suiteId()], onOpen)
+                    GameRow(library, entry, onOpen)
                     if (index < shown.size - 1) {
                         HorizontalDivider(
                             Modifier.padding(start = 72.dp),
@@ -199,6 +178,8 @@ private fun ToolBar(
     library: LibraryRepository,
     query: String,
     searching: Boolean,
+    shelves: List<String>,
+    shelf: String,
     onQuery: (String) -> Unit,
     onSearching: (Boolean) -> Unit,
     onTools: () -> Unit,
@@ -254,6 +235,24 @@ private fun ToolBar(
                 SortItem(library, "Vừa chơi", GameLibrary.SORT_RECENT) { sortOpen = false }
                 SortItem(library, "Nhà phát hành", GameLibrary.SORT_VENDOR) { sortOpen = false }
                 SortItem(library, "Chơi lâu nhất", GameLibrary.SORT_PLAYED) { sortOpen = false }
+                // The shelves used to be a row of chips over the list — a
+                // second row of controls in the space the games should have
+                // had. They belong here: the sort order and the shelf are the
+                // two answers to "what is in this list, and in what order",
+                // and one question deserves one button.
+                if (shelves.isNotEmpty()) {
+                    HorizontalDivider(color = MobiColors.Border)
+                    Text(
+                        "KỆ GAME",
+                        color = MobiColors.TextDim,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 2.dp),
+                    )
+                    ShelfItem(library, "Tất cả", "", shelf) { sortOpen = false }
+                    shelves.forEach { name ->
+                        ShelfItem(library, name, name, shelf) { sortOpen = false }
+                    }
+                }
             }
         }
         Box {
@@ -314,7 +313,6 @@ private fun SortItem(library: LibraryRepository, label: String, mode: Int, onPic
 fun GameRow(
     library: LibraryRepository,
     entry: LibraryEntry,
-    profile: GameProfile?,
     onOpen: (String) -> Unit,
 ) {
     val artwork = remember(entry.suiteId()) { decodeArtwork(library.artwork(entry.suiteId())) }
@@ -328,26 +326,14 @@ fun GameRow(
         GameArtwork(entry.title(), artwork, size = 40)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = entry.title(),
-                    color = MobiColors.Text,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (profile?.isFavourite == true) {
-                    Spacer(Modifier.width(6.dp))
-                    Icon(
-                        Icons.Filled.Star,
-                        contentDescription = "Yêu thích",
-                        tint = MobiColors.Warn,
-                        modifier = Modifier.size(14.dp),
-                    )
-                }
-            }
+            Text(
+                text = entry.title(),
+                color = MobiColors.Text,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Spacer(Modifier.height(2.dp))
             Row {
                 Text(
@@ -369,95 +355,22 @@ fun GameRow(
     }
 }
 
-/**
- * The shelves, as a row of chips over the list.
- *
- * "Tất cả" is first and is a shelf like the others, because "no filter" is
- * what a player picks most often and reaching it should not mean finding a
- * cross to tap.
- */
+/** One shelf in the sort menu; "Tất cả" is the shelf that filters nothing. */
 @Composable
-private fun ShelfRow(shelves: List<String>, selected: String, onPick: (String) -> Unit) {
-    LazyRow(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item { ShelfChip("Tất cả", selected.isEmpty()) { onPick("") } }
-        items(shelves) { name ->
-            ShelfChip(name, name == selected) { onPick(if (name == selected) "" else name) }
-        }
-    }
-}
-
-@Composable
-private fun ShelfChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Text(
-        text = label,
-        color = if (selected) MobiColors.Background else MobiColors.Text,
-        fontSize = 13.sp,
-        maxLines = 1,
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) MobiColors.Accent else MobiColors.SurfaceAlt)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    )
-}
-
-/**
- * The game to carry on with, at the top of the library.
- *
- * It says which of the two it would do. Carrying on from where a game was left
- * is not starting it again, and a player offered "Chơi tiếp" who gets a fresh
- * start has lost the thing they came back for.
- */
-@Composable
-private fun ContinueCard(
+private fun ShelfItem(
     library: LibraryRepository,
-    entry: LibraryEntry,
-    resumes: Boolean,
-    onOpen: (String) -> Unit,
+    label: String,
+    name: String,
+    selected: String,
+    onPicked: () -> Unit,
 ) {
-    val artwork = remember(entry.suiteId()) { decodeArtwork(library.artwork(entry.suiteId())) }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 10.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(MobiColors.SurfaceAlt)
-            .clickable { onOpen(entry.suiteId()) }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        GameArtwork(entry.title(), artwork, size = 48)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = if (resumes) "Chơi tiếp" else "Chơi lại",
-                color = MobiColors.Accent,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = entry.title(),
-                color = MobiColors.Text,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = if (resumes) "Tiếp tục từ chỗ đã lưu" else "Bắt đầu lại từ đầu",
-                color = MobiColors.TextDim,
-                fontSize = 12.sp,
-            )
-        }
-        Icon(
-            Icons.Filled.PlayArrow,
-            contentDescription = null,
-            tint = MobiColors.Accent,
-            modifier = Modifier.size(28.dp),
-        )
-    }
+    DropdownMenuItem(
+        text = {
+            Text(label, color = if (name == selected) MobiColors.Accent else MobiColors.Text)
+        },
+        onClick = {
+            library.setShelf(name)
+            onPicked()
+        },
+    )
 }

@@ -2541,3 +2541,39 @@ bàn phím thường).
 
 Ảnh: `03-emulator.png`, `19-keypad-game.png`; `19-keypad-arrows.png` xoá theo
 kiểu đã bỏ.
+
+## Giai đoạn 62 — màn Home gọn như J2ME Loader
+
+Đã đọc thẳng mã J2ME Loader chứ không đoán. Màn danh sách của nó
+(`fragment_apps_list.xml`) đúng **ba thứ**: một danh sách, một dòng chữ cho lúc
+chưa có game nào, và nút tròn `+`. Mỗi hàng (`list_row_jar.xml`) đúng **bốn**:
+biểu tượng · tên đậm · nhà phát hành mờ · phiên bản mờ căn phải. Không chip,
+không thẻ nổi, không ngôi sao.
+
+Màn Home của MobiCore có thêm ba thứ J2ME Loader không có, và cả ba đều nằm
+**trên** danh sách — tức là đẩy game xuống dưới màn hình. Bỏ cả ba:
+
+- **Hàng chip bộ sưu tập.** Lọc theo kệ game **chuyển vào menu Sắp xếp**, không
+  mất. Đó là chỗ của nó: kiểu sắp xếp và cái kệ là hai câu trả lời cho cùng một
+  câu hỏi — *"danh sách này có gì, và xếp theo thứ tự nào"* — nên một câu hỏi
+  thì một cái nút.
+- **Thẻ "Chơi tiếp"** ở đầu danh sách. Game vừa chơi vẫn lên đầu bằng kiểu sắp
+  xếp "Vừa chơi", và mở game ra vẫn chơi tiếp từ chỗ đã lưu — thẻ ấy chỉ là một
+  lối tắt chiếm chỗ của bốn hàng game.
+- **Ngôi sao yêu thích**, và bỏ luôn cả tính năng: cờ trong hồ sơ, hàm ở lõi,
+  nút ở màn chi tiết của cả hai ứng dụng, hàm cầu nối.
+
+Bỏ thẻ "Chơi tiếp" thì `continueJson`/`continueGame` không còn ai gọi, nên đi
+theo, và **`ContinueTest` bị xoá**. Nói thẳng chỗ mất mát: bộ ấy kiểm *hợp đồng
+của cái thẻ* — không còn thẻ thì không còn hợp đồng. Việc mở game ra là chơi
+tiếp từ chỗ đã lưu **không** do lớp ấy giữ; nó nằm ở trạng thái lưu và
+`SaveStateTest` vẫn canh.
+
+Dọn kèm mã đã chết sẵn từ trước, sót lại từ màn Home cũ chia theo mục:
+`LibraryRepository.recentlyPlayed` và `MobiCoreClient.recent` không nơi nào gọi.
+
+Ảnh mới `05b-library-sort.png` vẽ menu Sắp xếp đang mở, có phần **KỆ GAME** bên
+dưới bốn kiểu sắp xếp — đây là chỗ chứng minh lọc theo kệ chỉ đổi chỗ chứ không
+biến mất. Bộ kiểm chữ tràn khung chạy cả `Preview.main` nên nó canh luôn cái
+menu mới ấy: thu bảng menu lại còn 120 điểm thì nó cắn ngay, gọi tên đúng ba
+dòng chữ tràn ra.

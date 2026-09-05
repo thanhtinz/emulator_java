@@ -113,17 +113,6 @@ fun GameDetailScreen(
                         tint = MobiColors.Text)
                 }
                 Spacer(Modifier.weight(1f))
-                IconButton(onClick = { library.toggleFavourite(suiteId) }) {
-                    Icon(
-                        imageVector = if (profile?.isFavourite == true) {
-                            Icons.Filled.Star
-                        } else {
-                            Icons.Filled.StarBorder
-                        },
-                        contentDescription = "Yêu thích",
-                        tint = if (profile?.isFavourite == true) MobiColors.Warn else MobiColors.TextDim,
-                    )
-                }
             }
         }
 

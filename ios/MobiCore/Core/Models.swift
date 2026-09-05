@@ -57,7 +57,6 @@ struct GameSettings: Codable, Hashable {
     var compatibility: Int
     /// Why the emulator set the game up this way, in the user's language.
     var setupNotes: [String]
-    var favourite: Bool
     var lastPlayed: Int64
     var playCount: Int
 
@@ -132,8 +131,6 @@ struct InputSettings: Codable, Hashable {
 
 struct LibraryResponse: Codable {
     let games: [Game]
-    let recent: [String]
-    let favourites: [String]
 }
 
 /// What `MobiCoreFacade.searchJson` reports: just the matches, in order.
@@ -187,7 +184,6 @@ struct ActionResult: Codable {
     let path: String?
     let restored: String?
     let backup: String?
-    let favourite: String?
     let width: Int?
     let height: Int?
     let midlet: String?
@@ -234,18 +230,6 @@ struct Screenshot: Codable, Identifiable, Hashable {
     let takenAt: Int64
     let bytes: Int
     var id: String { name }
-}
-
-/// The one game offered on the way in, if there is one.
-struct ContinueCard: Codable {
-    let has: Bool
-    let game: Game?
-    let suiteId: String?
-    /// True when pressing it carries on; false when it starts again.
-    let resumes: Bool?
-    let action: String?
-    let lastPlayed: Int64?
-    let playedName: String?
 }
 
 /// Bàn phím đã đo xong: mỗi phím một chỗ, do lõi tính.

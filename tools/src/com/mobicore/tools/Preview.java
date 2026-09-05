@@ -47,6 +47,8 @@ public final class Preview {
         write(vfs, outDir, "03-emulator.png", new EmulatorScreen(fixtures).render());
         write(vfs, outDir, "04-game-settings.png", new ProfileScreen(fixtures).render());
         write(vfs, outDir, "05-library.png", new LibraryScreen(fixtures).render());
+        write(vfs, outDir, "05b-library-sort.png",
+                new LibraryScreen(fixtures).sorting().render());
         write(vfs, outDir, "06-game-detail.png", new DetailScreen(fixtures).render());
         write(vfs, outDir, "07-dev-tools.png", new DevToolsScreen(fixtures).render());
         write(vfs, outDir, "08-list.png", new MenuScreen(fixtures, "list").render());

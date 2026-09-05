@@ -22,20 +22,29 @@ import java.util.Map;
  * Preview of the Home screen: a toolbar and the games, read from a real
  * {@link GameLibrary}.
  *
- * <p>Shaped after the emulators people already use — one flat, sorted list of
- * what is installed, with find, sort and everything else on the toolbar, and
- * the one floating button that adds a game. The tabs, sections and cards this
- * screen used to carry were the app talking about itself; a library screen's
- * job is to get out of the way of the game someone came to open.</p>
+ * <p>Shaped after the emulators people already use — J2ME Loader's own list
+ * screen is a list, a line of text for when it is empty, and the button that
+ * adds a game, and nothing else. The tabs, chips, sections and cards this
+ * screen used to carry all sat <em>above</em> the list, which is to say they
+ * pushed the games down the screen: the app talking about itself in the space
+ * where the thing someone came to open should have been.</p>
  */
 public final class LibraryScreen {
 
     private final String fixtureDir;
-    /** The shelves the sample library has, drawn as a row over the list. */
-    private CollectionStore shelves;
+    /** Which shelf the list is filtered to, or empty for all of them. */
+    private String shelf = "";
+    /** Draws the sort menu open, which is where the shelves live now. */
+    private boolean sortMenuOpen;
 
     public LibraryScreen(String fixtureDir) {
         this.fixtureDir = fixtureDir;
+    }
+
+    /** Draws the screen with the sort menu open over it. */
+    public LibraryScreen sorting() {
+        this.sortMenuOpen = true;
+        return this;
     }
 
     public Framebuffer render() throws Exception {
@@ -56,38 +65,24 @@ public final class LibraryScreen {
         shelves.add("Chơi trên xe buýt", "mobicore-samples.sky-runner.1-2-0");
         shelves.add("Chơi trên xe buýt", "mobicore-samples.tile-rush.1-0-4");
         shelves.add("Đua xe", "blue-fox-games.night-racer.2-1");
-        this.shelves = shelves;
 
         Map<String, GameProfile> profiles = library.allProfiles();
         long now = 1_700_000_000_000L;
-        markPlayed(library, profiles, "mobicore-samples.sky-runner.1-2-0", now, true);
-        markPlayed(library, profiles, "blue-fox-games.night-racer.2-1", now - 3_600_000L, false);
-        markPlayed(library, profiles, "iron-lantern.dungeon-bell.0-9", now - 86_400_000L, true);
+        markPlayed(library, profiles, "mobicore-samples.sky-runner.1-2-0", now);
+        markPlayed(library, profiles, "blue-fox-games.night-racer.2-1", now - 3_600_000L);
+        markPlayed(library, profiles, "iron-lantern.dungeon-bell.0-9", now - 86_400_000L);
         profiles = library.allProfiles();
 
-        // A real save state for the game played last, so the card says what
-        // it would really do rather than what it might.
-        EmulatorSession session = EmulatorSession.create(
-                library.load("mobicore-samples.sky-runner.1-2-0"),
-                profiles.get("mobicore-samples.sky-runner.1-2-0"),
-                vfs, layout, null);
-        session.start();
-        session.renderFrame();
-        library.writeSaveState("mobicore-samples.sky-runner.1-2-0", 0,
-                com.mobicore.core.emu.SaveState.capture(session), null);
-        session.destroy();
-
-        return draw(library, profiles);
+        return draw(library, profiles, shelves);
     }
 
     private void markPlayed(GameLibrary library, Map<String, GameProfile> profiles, String suiteId,
-                            long when, boolean favourite) throws Exception {
+                            long when) throws Exception {
         GameProfile profile = profiles.get(suiteId);
         if (profile == null) {
             return;
         }
         profile.markPlayed(when);
-        profile.setFavourite(favourite);
         library.saveProfile(profile);
     }
 
@@ -146,18 +141,17 @@ public final class LibraryScreen {
         return com.mobicore.core.gfx.PngWriter.encode(icon);
     }
 
-    private Framebuffer draw(GameLibrary library, Map<String, GameProfile> profiles) throws Exception {
+    private Framebuffer draw(GameLibrary library, Map<String, GameProfile> profiles,
+                             CollectionStore shelves) throws Exception {
         Framebuffer frame = Preview.newScreen();
         Ui ui = new Ui(frame);
         ui.background(Theme.BG);
 
         int y = toolBar(ui);
-        y = shelfRow(ui, y);
-        y = continueCard(ui, library, profiles, y);
         List<LibraryEntry> games = library.sort(library.all(), GameLibrary.SORT_TITLE, profiles);
         for (int i = 0; i < games.size(); i++) {
             LibraryEntry entry = games.get(i);
-            drawRow(ui, library, entry, profiles.get(entry.suiteId()), y);
+            drawRow(ui, library, entry, y);
             y += ROW_HEIGHT;
             if (i < games.size() - 1) {
                 frame.setColor(Theme.BORDER);
@@ -173,87 +167,60 @@ public final class LibraryScreen {
         // visits come back for, so it gets the one floating button on the
         // screen — always the same corner, never over the list.
         ui.fab(Icons.ADD, 0);
+        if (sortMenuOpen) {
+            sortMenu(ui, shelves);
+        }
         return frame;
     }
 
     /**
-     * The game they were playing, offered before the list they would have to
-     * search through.
+     * The sort menu, which is where the shelves live now.
      *
-     * <p>It says which of the two it would do. Carrying on from where a game
-     * was left is not starting it again, and a player offered "Chơi tiếp" who
-     * gets a fresh start has lost the thing they came back for.</p>
+     * <p>The chips they used to sit in were a second row of controls over the
+     * list, and one of the two things that pushed the games down the screen.
+     * They belong with the sort order for the same reason both are on this
+     * button: they are the two answers to "what is in this list, and in what
+     * order" — one question, one place.</p>
      */
-    private int continueCard(Ui ui, GameLibrary library, Map<String, GameProfile> profiles,
-                             int y) throws Exception {
-        LibraryEntry latest = null;
-        GameProfile latestProfile = null;
-        for (LibraryEntry entry : library.all()) {
-            GameProfile profile = profiles.get(entry.suiteId());
-            if (profile == null || profile.lastPlayed() <= 0) {
-                continue;
-            }
-            if (latestProfile == null || profile.lastPlayed() > latestProfile.lastPlayed()) {
-                latest = entry;
-                latestProfile = profile;
-            }
-        }
-        if (latest == null) {
-            return y;
-        }
+    private void sortMenu(Ui ui, CollectionStore shelves) {
         Framebuffer frame = ui.frame();
-        boolean resumes = library.readSaveState(latest.suiteId(), 0) != null;
+        frame.setColor(0xB0000000);
+        frame.fillRect(0, 0, frame.width(), frame.height());
 
-        // Measured from the text rather than guessed at: three lines of type
-        // in a box of a round number is how a descender ends up sitting on a
-        // border.
-        int lineGap = 4;
-        int lines = ui.small().height() + ui.mediumBold().height() + ui.small().height()
-                + lineGap * 2;
-        int inset = 14;
-        int cover = 48;
-        int height = Math.max(lines, cover) + inset * 2;
-        int x = MARGIN;
-        int width = frame.width() - MARGIN * 2;
-        int top = y + 8;
-        ui.panel(x, top, width, height, Theme.SURFACE_ALT, Theme.BORDER);
-        drawArtwork(ui, library, latest, x + inset, top + (height - cover) / 2, cover);
-
-        int textX = x + inset + cover + GAP;
-        int textTop = top + (height - lines) / 2;
-        ui.text(ui.small(), resumes ? "Chơi tiếp" : "Chơi lại", textX, textTop, Theme.ACCENT);
-        ui.text(ui.mediumBold(),
-                ui.ellipsize(ui.mediumBold(), latest.title(), width - inset * 2 - cover - GAP - 40),
-                textX, textTop + ui.small().height() + lineGap, Theme.TEXT);
-        ui.text(ui.small(), resumes ? "Tiếp tục từ chỗ đã lưu" : "Bắt đầu lại từ đầu",
-                textX, textTop + ui.small().height() + ui.mediumBold().height() + lineGap * 2,
-                Theme.TEXT_DIM);
-        Icons.drawCentred(frame, Icons.PLAY, x + width - inset - 13, top + height / 2, 26,
-                Theme.ACCENT);
-        return top + height + 8;
-    }
-
-    /**
-     * The shelves, as a row of chips over the list.
-     *
-     * <p>"Tất cả" is first and is a shelf like the others, because "no
-     * filter" is what a player picks most often and reaching it should not
-     * mean finding a cross to tap. The row appears only once there are
-     * shelves: one chip saying "Tất cả" tells nobody anything.</p>
-     */
-    private int shelfRow(Ui ui, int y) {
-        java.util.List<String> names = shelves == null
+        String[] orders = {"Theo tên", "Vừa chơi", "Nhà phát hành", "Chơi lâu nhất"};
+        List<String> names = shelves == null
                 ? new java.util.ArrayList<String>() : shelves.names();
-        if (names.isEmpty()) {
-            return y;
+
+        int rowHeight = ui.medium().height() + 24;
+        int headerHeight = ui.small().height() + 18;
+        int width = 300;
+        int height = 12 + rowHeight * orders.length + headerHeight
+                + rowHeight * (names.size() + 1) + 12;
+        int x = frame.width() - width - MARGIN;
+        int y = 74 + 6;
+        ui.panel(x, y, width, height, Theme.SURFACE, Theme.BORDER);
+
+        int row = y + 12;
+        for (int i = 0; i < orders.length; i++) {
+            ui.text(ui.medium(), orders[i], x + 18, row + (rowHeight - ui.medium().height()) / 2,
+                    i == 0 ? Theme.ACCENT : Theme.TEXT);
+            row += rowHeight;
         }
-        int top = y + 8;
-        int x = 12;
-        x += ui.chip("Tất cả", x, top, Theme.BG, Theme.ACCENT) + 8;
+        frame.setColor(Theme.BORDER);
+        frame.fillRect(x + 12, row, width - 24, 1);
+        ui.text(ui.small(), "KỆ GAME", x + 18, row + (headerHeight - ui.small().height()) / 2 + 2,
+                Theme.TEXT_DIM);
+        row += headerHeight;
+
+        ui.text(ui.medium(), "Tất cả", x + 18, row + (rowHeight - ui.medium().height()) / 2,
+                shelf.isEmpty() ? Theme.ACCENT : Theme.TEXT);
+        row += rowHeight;
         for (int i = 0; i < names.size(); i++) {
-            x += ui.chip(names.get(i), x, top, Theme.TEXT, Theme.SURFACE_ALT) + 8;
+            ui.text(ui.medium(), names.get(i), x + 18,
+                    row + (rowHeight - ui.medium().height()) / 2,
+                    names.get(i).equals(shelf) ? Theme.ACCENT : Theme.TEXT);
+            row += rowHeight;
         }
-        return top + ui.chipHeight() + 8;
     }
 
     /**
@@ -298,17 +265,15 @@ public final class LibraryScreen {
      * cards is eighty rectangles to look past, and the icon already tells one
      * row from the next.</p>
      */
-    private void drawRow(Ui ui, GameLibrary library, LibraryEntry entry, GameProfile profile,
-                         int y) throws Exception {
-        Framebuffer frame = ui.frame();
-        int width = frame.width();
+    private void drawRow(Ui ui, GameLibrary library, LibraryEntry entry, int y) throws Exception {
+        int width = ui.frame().width();
         drawArtwork(ui, library, entry, MARGIN, y + (ROW_HEIGHT - ICON) / 2, ICON);
 
         int left = MARGIN + ICON + GAP;
         int right = width - MARGIN;
         int textTop = y + (ROW_HEIGHT - ui.mediumBold().height() - ui.small().height() - 6) / 2;
         ui.text(ui.mediumBold(),
-                ui.ellipsize(ui.mediumBold(), entry.title(), right - left - 30),
+                ui.ellipsize(ui.mediumBold(), entry.title(), right - left),
                 left, textTop, Theme.TEXT);
 
         int metaY = textTop + ui.mediumBold().height() + 6;
@@ -318,11 +283,6 @@ public final class LibraryScreen {
                 ui.ellipsize(ui.small(), entry.vendor(), right - left - versionWidth - 16),
                 left, metaY, Theme.TEXT_DIM);
         ui.textRight(ui.small(), version, right, metaY, Theme.TEXT_DIM);
-
-        if (profile != null && profile.isFavourite()) {
-            Icons.drawCentred(frame, Icons.STAR, right - 8, textTop + ui.mediumBold().height() / 2,
-                    18, Theme.WARN);
-        }
     }
 
     private void drawArtwork(Ui ui, GameLibrary library, LibraryEntry entry, int x, int y, int size)

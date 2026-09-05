@@ -286,14 +286,6 @@ struct GameDetailView: View {
         }
         .navigationTitle(game?.title ?? "Trò chơi")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            Button {
-                client.toggleFavourite(suiteId)
-            } label: {
-                Image(systemName: (game?.settings?.favourite ?? false) ? "star.fill" : "star")
-            }
-            .tint(Palette.warn)
-        }
         .onChange(of: coverPick) { _, item in
             guard let item else { return }
             Task {

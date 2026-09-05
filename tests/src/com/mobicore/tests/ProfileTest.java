@@ -376,14 +376,12 @@ public final class ProfileTest extends Test {
         eq(500, fit[2], "fit uses the full width");
         eq(667, fit[3], "fit keeps the aspect ratio");
 
-        profile.setFavourite(true);
         profile.markPlayed(1234567L);
         eq(1, profile.playCount(), "playing increments the counter");
 
         profile.setSmoothing(false);
         GameProfile restored = GameProfile.fromJson(profile.toJson());
         check(!restored.smoothing(), "the smoothing choice survives JSON");
-        check(restored.isFavourite(), "favourite survives JSON");
         eq(1234567L, restored.lastPlayed(), "the play timestamp survives JSON as a long");
         eq(GameProfile.SCALE_FIT, restored.scaleMode(), "the scale mode survives JSON");
     }

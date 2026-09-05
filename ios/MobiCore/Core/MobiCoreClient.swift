@@ -9,8 +9,6 @@ import SwiftUI
 final class MobiCoreClient: ObservableObject {
 
     @Published private(set) var games: [Game] = []
-    @Published private(set) var recent: [Game] = []
-    @Published private(set) var favourites: [Game] = []
     @Published private(set) var lastError: String?
     /// The last thing worth telling the user that was not an error — the
     /// summary of an import, for one.
@@ -40,9 +38,6 @@ final class MobiCoreClient: ObservableObject {
     func refresh() {
         guard let response: LibraryResponse = decode(bridge.libraryJSON()) else { return }
         games = response.games
-        let byId = Dictionary(uniqueKeysWithValues: response.games.map { ($0.suiteId, $0) })
-        recent = response.recent.compactMap { byId[$0] }
-        favourites = response.favourites.compactMap { byId[$0] }
         refreshPresets()
     }
 
@@ -237,11 +232,6 @@ final class MobiCoreClient: ObservableObject {
     func resetArtwork(_ suiteId: String) {
         report(decode(bridge.resetArtwork(forSuite: suiteId)))
         artworkRevision &+= 1
-        refresh()
-    }
-
-    func toggleFavourite(_ suiteId: String) {
-        report(decode(bridge.toggleFavourite(forSuite: suiteId)))
         refresh()
     }
 
@@ -460,17 +450,6 @@ final class MobiCoreClient: ObservableObject {
 
     func deleteGameFile(_ path: String, for suiteId: String) {
         report(decode(bridge.deleteGameFile(path, forSuite: suiteId)))
-    }
-
-    // ------------------------------------------------------------ carrying on
-
-    /// The one game to offer on the way in, or nil when there is none.
-    ///
-    /// Opening the app to play the game you were just playing is the most
-    /// common thing anyone does with it, and without this it costs three taps.
-    func continueCard() -> ContinueCard? {
-        let card: ContinueCard? = decode(bridge.continueJSON())
-        return card?.has == true ? card : nil
     }
 
     // -------------------------------------------------------------- tilting

@@ -126,16 +126,12 @@ public final class LibraryTest extends Test {
 
         GameProfile profile = reopened.profile(entry.suiteId());
         check(profile != null, "the stored profile loads");
-        profile.setFavourite(true);
         profile.setVolume(40);
         profile.input().remap("fire", '5');
         reopened.saveProfile(profile);
         GameProfile again = reopened.profile(entry.suiteId());
-        check(again.isFavourite(), "profile edits persist");
-        eq(40, again.volume(), "the volume persists");
+        eq(40, again.volume(), "profile edits persist: the volume");
         eq('5', again.input().keyCodeFor("fire"), "the remap persists");
-        Map<String, GameProfile> profiles = reopened.allProfiles();
-        eq(1, reopened.favourites(profiles).size(), "favourites are listed");
 
         // A save written by the game must land in the suite's own sandbox.
         if (new File(fixtureDir, "demo/SkyRunner.class").exists()) {

@@ -37,55 +37,7 @@ struct HomeView: View {
             if client.games.isEmpty {
                 EmptyLibraryView(onImport: { importing = true })
             } else {
-                // Shelves only appear once there are some: a row of one chip
-                // saying "Tất cả" tells nobody anything.
-                if !shelves.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ShelfChip(label: "Tất cả", selected: shelf.isEmpty) { shelf = "" }
-                            ForEach(shelves) { collection in
-                                ShelfChip(label: collection.name,
-                                          selected: collection.name == shelf) {
-                                    shelf = collection.name == shelf ? "" : collection.name
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                    }
-                }
                 List {
-                    // The game they were playing, offered before the list
-                    // they would have to search. Only while nothing is being
-                    // searched or filtered: then the list is the answer to a
-                    // question, and this would answer a different one.
-                    if query.isEmpty, shelf.isEmpty, let card = client.continueCard(),
-                       let game = card.game {
-                        NavigationLink(value: game.suiteId) {
-                            HStack(spacing: 12) {
-                                GameArtwork(title: game.title,
-                                            image: client.artwork(game.suiteId), size: 48)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(card.action ?? "Chơi tiếp")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(Palette.accent)
-                                    Text(game.title)
-                                        .font(.headline)
-                                        .foregroundStyle(Palette.text)
-                                    Text(card.resumes == true
-                                         ? "Tiếp tục từ chỗ đã lưu" : "Bắt đầu lại từ đầu")
-                                        .font(.caption)
-                                        .foregroundStyle(Palette.textDim)
-                                }
-                                Spacer()
-                                Image(systemName: "play.fill")
-                                    .foregroundStyle(Palette.accent)
-                            }
-                            .padding(.vertical, 4)
-                        }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .listRowBackground(Palette.surfaceAlt)
-                    }
                     ForEach(shown) { game in
                         GameRowLink(game: game)
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8,
@@ -131,6 +83,18 @@ struct HomeView: View {
                     Text("Vừa chơi").tag(1)
                     Text("Nhà phát hành").tag(2)
                     Text("Chơi lâu nhất").tag(3)
+                }
+                // The shelves used to be a row of chips over the list. They
+                // belong here: the sort order and the shelf are the two
+                // answers to "what is in this list, and in what order", and
+                // one question deserves one button.
+                Section("Kệ game") {
+                    Picker("Kệ game", selection: $shelf) {
+                        Text("Tất cả").tag("")
+                        ForEach(shelves) { collection in
+                            Text(collection.name).tag(collection.name)
+                        }
+                    }
                 }
             } label: {
                 Image(systemName: "arrow.up.arrow.down")
@@ -204,17 +168,10 @@ struct GameRowLink: View {
             HStack(spacing: 14) {
                 GameArtwork(title: game.title, image: client.artwork(game.suiteId), size: 40)
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(game.title)
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(Palette.text)
-                            .lineLimit(1)
-                        if game.settings?.favourite == true {
-                            Image(systemName: "star.fill")
-                                .font(.caption2)
-                                .foregroundStyle(Palette.warn)
-                        }
-                    }
+                    Text(game.title)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Palette.text)
+                        .lineLimit(1)
                     HStack {
                         Text(game.vendor)
                             .font(.caption)
@@ -260,22 +217,4 @@ enum MobiCoreTypes {
     /// JAR and JAD have no system-declared types on iOS, so the picker accepts
     /// archives and plain data and the importer sniffs the bytes.
     static let importable: [UTType] = [.zip, .data, .plainText]
-}
-
-/// One shelf, as a chip over the list.
-private struct ShelfChip: View {
-    let label: String
-    let selected: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Text(label)
-            .font(.footnote)
-            .foregroundStyle(selected ? Palette.background : Palette.text)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(selected ? Palette.accent : Palette.surfaceAlt,
-                        in: RoundedRectangle(cornerRadius: 14))
-            .onTapGesture(perform: onTap)
-    }
 }

@@ -540,18 +540,6 @@ public final class GameLibrary {
         return profile == null ? 0 : profile.lastPlayed();
     }
 
-    /** Games marked favourite, in title order. */
-    public List<LibraryEntry> favourites(Map<String, GameProfile> profiles) {
-        List<LibraryEntry> matches = new ArrayList<LibraryEntry>();
-        for (LibraryEntry entry : entries.values()) {
-            GameProfile profile = profiles.get(entry.suiteId());
-            if (profile != null && profile.isFavourite()) {
-                matches.add(entry);
-            }
-        }
-        return sort(matches, SORT_TITLE, profiles);
-    }
-
     /** Loads every profile once; the library screens need them together. */
     public Map<String, GameProfile> allProfiles() throws IOException {
         Map<String, GameProfile> profiles = new LinkedHashMap<String, GameProfile>();

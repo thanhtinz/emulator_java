@@ -26,7 +26,6 @@ public final class Runner {
         tests.add(new BatchImportTest(fixtures));
         tests.add(new CollectionTest(fixtures));
         tests.add(new TiltTest(fixtures));
-        tests.add(new ContinueTest(fixtures));
         tests.add(new CrashTest(fixtures));
         tests.add(new HandsetTest(fixtures));
         tests.add(new HangTest(fixtures));

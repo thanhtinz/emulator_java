@@ -47,7 +47,6 @@ public final class ProfileScreen {
         // One key pointed somewhere else, which is what the row is for: this
         // game reads '2' for up, as plenty of them do.
         profile.input().setMapping("up", '2');
-        profile.setFavourite(true);
         profile.markPlayed(1_700_000_000_000L);
         library.saveProfile(profile);
 

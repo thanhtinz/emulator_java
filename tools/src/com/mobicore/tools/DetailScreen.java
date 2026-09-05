@@ -31,7 +31,6 @@ public final class DetailScreen {
                 facade.importSuite(SampleSuite.jar(fixtureDir), SampleSuite.jad()));
         String suiteId = Json.string(Json.child(imported, "game"), "suiteId", "");
 
-        facade.toggleFavourite(suiteId);
         // Renamed here so the screenshot shows what a renamed game looks
         // like, including the line offering the manifest name back.
         facade.renameGame(suiteId, "Sky Runner (bản Việt)");
@@ -101,9 +100,6 @@ public final class DetailScreen {
         // that decides whether pressing Chơi will do anything at all.
         compatibilityChip(ui, textLeft, chipY - ui.chipHeight() - 8,
                 Json.integer(settings, "compatibility", 0));
-        if (Json.bool(settings, "favourite", false)) {
-            ui.iconChip(Icons.STAR, "YÊU THÍCH", chipX, chipY, Theme.WARN, Theme.WARN_BG);
-        }
         y += cover + 18;
 
         // Actions --------------------------------------------------------

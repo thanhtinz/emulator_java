@@ -325,10 +325,6 @@
     return [_facade deleteScreenshotWithNSString:suiteId withNSString:name];
 }
 
-- (NSString *)toggleFavouriteForSuite:(NSString *)suiteId {
-    return [_facade toggleFavouriteWithNSString:suiteId];
-}
-
 #pragma mark - Saves
 
 - (NSString *)savesJSONForSuite:(NSString *)suiteId {
@@ -527,14 +523,6 @@
 
 - (NSString *)dismissCrash {
     return [_facade dismissCrash];
-}
-
-- (NSString *)continueJSON {
-    return [_facade continueJson];
-}
-
-- (NSString *)continueGame {
-    return [_facade continueGame];
 }
 
 - (NSString *)tiltJSONForSuite:(NSString *)suiteId {
