@@ -2489,6 +2489,7 @@ chồng nhau, cho vòng quay về bốn, bỏ bước chuyển hệ, bỏ chặn
 vùng nghỉ giữa cần, bỏ ngưỡng 22,5° — mỗi lần đúng câu tương ứng hỏng.
 
 Ảnh: `19-keypad-arrows.png`, `03-emulator.png`, `19b-keypad-game.png`.
+(Kiểu Mũi tên và hai tên ảnh ấy đã đổi ở giai đoạn 61.)
 
 Phím giữa ghi **"OK"** ở cả ba kiểu. J2ME Loader viết "F" lên nó và MIDP gọi nó
 là phím bắn, nhưng người chơi thì không ai gọi thế — nó là phím nói "được", và
@@ -2502,3 +2503,41 @@ nhỏ khi phông lớn không vừa phím tròn.
 Dọn kèm: mục "Quay màn hình" vẫn còn trong menu trong game của bản xem trước và
 trong câu hướng dẫn của màn ảnh chụp trên Android, dù tính năng ấy đã bỏ ở giai
 đoạn 57 — bảo người ta bấm một thứ không còn tồn tại.
+
+## Giai đoạn 61 — còn hai kiểu bàn phím
+
+Bỏ hẳn kiểu **Mũi tên**. Nó không phải một kiểu bàn phím mà là **nửa dưới của
+kiểu Đầy đủ** — cùng một cụm phím ấy, chỉ giấu bàn số đi. Bày ra ba lựa chọn
+mà một trong ba không trả lời câu hỏi nào là bắt người ta cân nhắc một thứ
+không có gì để cân nhắc. Còn hai, và hai cái ấy đúng là hai lối chơi khác nhau:
+bàn phím của chính chiếc máy — cho game hỏi tên hoặc đọc các con số — và tay
+cầm, cho game chơi bằng một ngón cái đặt trên cần.
+
+**Hai phím mềm của kiểu Đầy đủ trải ra hai bên**: L nằm trên bàn số, R nằm
+trên cụm mũi tên, mỗi cái phủ đúng nửa mà ngón cái của nó vẫn với tới. Trước
+đây cả hai chồng lên nửa bên phải, nên ngón cái trái phải bước qua cả bàn phím
+để với một phím vốn nằm ngay dưới nó. Trải ra rồi thì nhãn cũng vừa: "Tạm dừng"
+không còn bị cắt thành "Tạm d…".
+
+**Con số `keypadLayout` nay đã đổi nghĩa hai lần**, và một con số đã đổi nghĩa
+là con số không đọc được nếu không biết nó viết từ đời nào. Nên hồ sơ mang thêm
+`keypadVersion`. Đọc thẳng thì mọi game đã cài sẽ đổi bàn phím ngay lần mở đầu
+tiên sau bản cập nhật — đúng loại hỏng không ai báo, vì người ta tưởng mình
+trót đặt sai. Ba đời:
+
+| Đời | Số ấy từng nghĩa là | Đọc thành |
+|---|---|---|
+| 0 (trước giai đoạn 60) | đầy đủ · mũi tên · số · ẩn | tất cả về **Đầy đủ**; 3 thì thêm "đang ẩn" |
+| 1 (giai đoạn 60) | mũi tên · đầy đủ · chơi game | 2 → **Chơi game**, còn lại **Đầy đủ** |
+| 2 (nay) | đầy đủ · chơi game | đọc thẳng |
+
+Bộ bàn phím đã lưu cũng đi qua đúng ba nhánh ấy.
+
+Phép kiểm mới: phím mềm của kiểu Đầy đủ phải phủ hai nửa khác nhau và không
+gặp nhau ở giữa; và cả ba đời hồ sơ phải ra đúng bàn phím. Phá lại hai chỗ để
+chắc phép kiểm cắn — dồn hai phím mềm về một bên (hỏng bốn câu, kể cả câu
+"không phím nào chồng phím nào"), và bỏ nhánh đọc đời 1 (một tay cầm hoá thành
+bàn phím thường).
+
+Ảnh: `03-emulator.png`, `19-keypad-game.png`; `19-keypad-arrows.png` xoá theo
+kiểu đã bỏ.

@@ -441,7 +441,7 @@ class LibraryRepository(filesDir: String) {
      */
     fun cycleKeypadLayout(suiteId: String): String {
         val profile = library.profile(suiteId) ?: return ""
-        profile.setKeypadLayout((profile.keypadLayout() + 1) % 3)
+        profile.setKeypadLayout((profile.keypadLayout() + 1) % 2)
         library.saveProfile(profile)
         refresh()
         return profile.keypadLayoutName()

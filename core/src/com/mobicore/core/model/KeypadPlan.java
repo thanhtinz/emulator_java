@@ -6,16 +6,15 @@ import java.util.List;
 /**
  * Where every key of the virtual keypad goes, worked out once.
  *
- * <p>There are three keypads, and a player picks the one that suits the game
- * in front of them: a game played with the pad alone wants nothing else on
- * screen, a game that asks for a name wants the numbers, and an action game
- * wants a handful of the digits it actually reads and nothing more.</p>
+ * <p>There are two keypads, and they answer two ways of playing: the handset's
+ * own — the numbers beside the pad, for a game that asks for a name or reads
+ * the digits — and a gamepad, a stick under one thumb with OK and the four
+ * digits an action game reads under the other.</p>
  *
- * <p>The layouts follow J2ME Loader's, including the part that is easy to get
- * wrong: <em>the two softkeys are keys of the keypad</em>, not a bar beside
- * it. J2ME Loader snaps them west and east of the pad in its arrows layout and
- * north of it in the numbers-and-arrows layout, and that is what happens here
- * too — so they move, resize, fade and get dragged with every other key.</p>
+ * <p>Both put <em>the two softkeys inside the keypad</em>, not in a bar beside
+ * it, the way J2ME Loader does — so they move, resize, fade and get dragged
+ * with every other key. Each one sits over the half of the keypad its thumb
+ * already covers.</p>
  *
  * <p>This class exists because the same keypad has to be drawn three times —
  * the preview, Android and iOS — and it was being measured three times. Three
@@ -25,12 +24,10 @@ import java.util.List;
  */
 public final class KeypadPlan {
 
-    /** Arrows and fire only, with a softkey to either side. */
-    public static final int STYLE_ARROWS = 0;
     /** The numbers beside the pad, the way a handset had them. */
-    public static final int STYLE_FULL = 1;
-    /** Fire, the four directions, and the four digits games read. */
-    public static final int STYLE_GAME = 2;
+    public static final int STYLE_FULL = 0;
+    /** A stick, OK, and the four digits games read. */
+    public static final int STYLE_GAME = 1;
 
     /**
      * Key size against the screen, as J2ME Loader sizes it: the short edge
@@ -230,45 +227,15 @@ public final class KeypadPlan {
         KeypadPlan plan = new KeypadPlan(clamp(style));
         key = keySize(key);
         width = Math.max(width, roomNeeded(plan.style, key));
-        switch (plan.style) {
-            case STYLE_ARROWS:
-                plan.arrowsUpright(width, key, arrangement);
-                break;
-            case STYLE_GAME:
-                plan.gameUpright(width, key, arrangement);
-                break;
-            default:
-                plan.fullUpright(width, key, arrangement);
-                break;
+        if (plan.style == STYLE_GAME) {
+            plan.gameUpright(width, key, arrangement);
+        } else {
+            plan.fullUpright(width, key, arrangement);
         }
         return plan;
     }
 
-    /**
-     * Arrows alone, with a softkey in each margin.
-     *
-     * <p>J2ME Loader snaps them west and east of the top corners of the pad;
-     * the margins either side of a lone pad are empty and exactly where the
-     * thumbs already are.</p>
-     */
-    private void arrowsUpright(int width, int key, KeypadArrangement arrangement) {
-        int tall = padKeyHeight(key);
-        int padWidth = key * 3 + GAP * 2;
-        int padX = (width - padWidth) / 2;
-        int softHeight = (int) (key * SOFT_SCALE_Y);
-        int softWidth = padX - GAP - MARGIN;
-        if (softWidth < key) {
-            softWidth = key;
-        }
-        int softY = (tall - softHeight) / 2;
-        soft(arrangement, key, "softLeft", "L", MARGIN, softY, softWidth, softHeight);
-        soft(arrangement, key, "softRight", "R", width - MARGIN - softWidth, softY,
-                softWidth, softHeight);
-        directions(arrangement, key, padX, 0, key, tall, true);
-        height = tall * 3 + GAP * 2;
-    }
-
-    /** The numbers on one side, the pad on the other, softkeys over the pad. */
+    /** The numbers on one side, the pad on the other, a softkey over each. */
     private void fullUpright(int width, int key, KeypadArrangement arrangement) {
         int tall = padKeyHeight(key);
         int padWidth = key * 3 + GAP * 2;
@@ -276,11 +243,12 @@ public final class KeypadPlan {
         int numX = margin;
         int padX = width - margin - padWidth;
         int softHeight = (int) (key * SOFT_SCALE_Y);
-        int softWidth = (padWidth - GAP) / 2;
-
-        soft(arrangement, key, "softLeft", "L", padX, 0, softWidth, softHeight);
-        soft(arrangement, key, "softRight", "R", padX + padWidth - softWidth, 0,
-                softWidth, softHeight);
+        // One over each half rather than both over the pad: they are the two
+        // keys a game labels, and each belongs over the thumb that reaches
+        // it. Stacking both on one side leaves the other thumb crossing the
+        // keypad for a key that was always under its own.
+        soft(arrangement, key, "softLeft", "L", numX, 0, padWidth, softHeight);
+        soft(arrangement, key, "softRight", "R", padX, 0, padWidth, softHeight);
 
         int padY = softHeight + GAP;
         directions(arrangement, key, padX, padY, key, tall, true);
@@ -574,10 +542,6 @@ public final class KeypadPlan {
     /** The narrowest strip this keypad can be laid out in without spilling. */
     private static int roomNeeded(int style, int key) {
         int pad = key * 3 + GAP * 2;
-        if (style == STYLE_ARROWS) {
-            // The pad, plus a margin either side wide enough for a softkey.
-            return pad + (key + GAP + MARGIN) * 2;
-        }
         if (style == STYLE_GAME) {
             // The gamepad shrinks its keys to fit instead, so all it needs is
             // room for the pair of softkeys.
@@ -587,6 +551,6 @@ public final class KeypadPlan {
     }
 
     private static int clamp(int style) {
-        return style < STYLE_ARROWS || style > STYLE_GAME ? STYLE_FULL : style;
+        return style < STYLE_FULL || style > STYLE_GAME ? STYLE_FULL : style;
     }
 }

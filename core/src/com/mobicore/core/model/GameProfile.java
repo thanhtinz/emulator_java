@@ -21,20 +21,19 @@ public final class GameProfile {
     public static final int SCALE_ORIGINAL = 3;
 
     /**
-     * Which of the three keypads is on screen.
+     * Which of the two keypads is on screen.
      *
-     * <p>Three, and no more: a keypad is a thing the thumbs have to learn, and
-     * a list of near-identical variants is a question a player cannot answer
-     * by reading it. The three are the ones that answer a real difference in
-     * the game being played — the pad alone, the pad with the numbers a name
-     * has to be typed on, and a gamepad carrying only the digits an action
-     * game reads. Where each key goes is {@link KeypadPlan}'s to say.</p>
+     * <p>Two, because they answer two ways of playing and nothing in between
+     * did: the handset's own keypad, for a game that asks for a name or reads
+     * the digits, and a gamepad for one played with a thumb on a stick. A
+     * third that was only the second half of the first was a choice with no
+     * question behind it. Where each key goes is {@link KeypadPlan}'s to
+     * say.</p>
      *
-     * <p>Hiding the keypad is not one of them. It is not a fourth keypad, it
-     * is the absence of whichever one is chosen, so it is asked separately —
-     * and comes back to the same keypad when it is turned off again.</p>
+     * <p>Hiding the keypad is not one of them. It is not a third keypad, it is
+     * the absence of whichever one is chosen, so it is asked separately — and
+     * comes back to the same keypad when it is turned off again.</p>
      */
-    public static final int KEYPAD_ARROWS = KeypadPlan.STYLE_ARROWS;
     public static final int KEYPAD_FULL = KeypadPlan.STYLE_FULL;
     public static final int KEYPAD_GAME = KeypadPlan.STYLE_GAME;
 
@@ -238,12 +237,12 @@ public final class GameProfile {
     }
 
     public void setKeypadLayout(int layout) {
-        this.keypadLayout = layout < KEYPAD_ARROWS || layout > KEYPAD_GAME
+        this.keypadLayout = layout < KEYPAD_FULL || layout > KEYPAD_GAME
                 ? KEYPAD_FULL : layout;
     }
 
     /** The names, in the order the menu cycles them. */
-    public static final String[] KEYPAD_LAYOUT_NAMES = {"Mũi tên", "Đầy đủ", "Chơi game"};
+    public static final String[] KEYPAD_LAYOUT_NAMES = {"Đầy đủ", "Chơi game"};
 
     /** What the menu shows for the current keypad. */
     public String keypadLayoutName() {
@@ -260,25 +259,37 @@ public final class GameProfile {
     }
 
     /**
-     * Reads the keypad choice, translating a profile written before there
-     * were three keypads.
+     * What generation of profile the keypad choice is written in.
      *
-     * <p>The old numbering meant something else — full, arrows, numbers,
-     * hidden — so reading it straight would silently swap every player's
-     * keypad for a different one on the first launch after an update. A
-     * profile from before carries no {@code keypadHidden}, and that is what
-     * tells the two apart.</p>
+     * <p>The number in {@code keypadLayout} has meant three different things
+     * now, and a number that has changed meaning is a number that cannot be
+     * read without knowing when it was written. Reading one straight would
+     * silently swap every installed game's keypad on the first launch after an
+     * update — the kind of change nobody reports as a bug because it looks
+     * like they must have set it themselves.</p>
      */
+    public static final int KEYPAD_VERSION = 2;
+
     private void readKeypadLayout(Map<String, Object> json) {
-        if (json.containsKey("keypadHidden")) {
-            setKeypadLayout(Json.integer(json, "keypadLayout", KEYPAD_FULL));
+        int version = Json.integer(json, "keypadVersion",
+                json.containsKey("keypadHidden") ? 1 : 0);
+        int was = Json.integer(json, "keypadLayout", 0);
+        if (version >= KEYPAD_VERSION) {
+            setKeypadLayout(was);
             keypadHidden = Json.bool(json, "keypadHidden", false);
             return;
         }
-        int was = Json.integer(json, "keypadLayout", 0);
+        if (version == 1) {
+            // Three keypads: 0 arrows, 1 full, 2 gamepad. The arrows keypad
+            // is gone, and what it was is the pad half of the full one.
+            keypadHidden = Json.bool(json, "keypadHidden", false);
+            setKeypadLayout(was == 2 ? KEYPAD_GAME : KEYPAD_FULL);
+            return;
+        }
+        // Before that: 0 full, 1 arrows, 2 numbers, 3 hidden — all of them
+        // halves or the whole of the one keypad there was.
         keypadHidden = was == 3;
-        // Old 1 meant "arrows only"; old 0 and 2 both showed the numbers.
-        setKeypadLayout(was == 1 ? KEYPAD_ARROWS : KEYPAD_FULL);
+        setKeypadLayout(KEYPAD_FULL);
     }
 
     /** How solid the keypad is drawn, 20–100 percent. */
@@ -576,6 +587,7 @@ public final class GameProfile {
         json.put("orientation", Integer.valueOf(orientation));
         json.put("keypadLayout", Integer.valueOf(keypadLayout));
         json.put("keypadHidden", Boolean.valueOf(keypadHidden));
+        json.put("keypadVersion", Integer.valueOf(KEYPAD_VERSION));
         json.put("keypadOpacity", Integer.valueOf(keypadOpacity));
         json.put("keypadShape", Integer.valueOf(keypadShape));
         json.put("keypadFadeDelay", Integer.valueOf(keypadFadeDelay));

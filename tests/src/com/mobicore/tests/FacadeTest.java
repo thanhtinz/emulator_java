@@ -124,7 +124,7 @@ public final class FacadeTest extends Test {
         check(!Json.bool(Json.readObject(facade.toggleOrientation("nope")), "ok", true),
                 "a game that is not there cannot be turned");
 
-        // Which of the three keypads is on screen --------------------------
+        // Which of the two keypads is on screen ----------------------------
         eq(GameProfile.KEYPAD_FULL,
                 Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
                 "a game starts on the keypad a handset had");
@@ -133,13 +133,9 @@ public final class FacadeTest extends Test {
                 "and cycles on to the gamepad");
         eq("Chơi game", Json.string(cycled, "name", ""), "with a name for the menu");
         facade.cycleKeypadLayout(suiteId);
-        eq(GameProfile.KEYPAD_ARROWS,
-                Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
-                "then the pad alone");
-        facade.cycleKeypadLayout(suiteId);
         eq(GameProfile.KEYPAD_FULL,
                 Json.integer(Json.readObject(facade.profileJson(suiteId)), "keypadLayout", -1),
-                "and round again after three, not four");
+                "and round again after two, not three");
 
         // Putting the keypad away is its own answer, not a fourth keypad.
         check(Json.bool(Json.readObject(facade.toggleKeypad(suiteId)), "hidden", false),

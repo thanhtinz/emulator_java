@@ -183,16 +183,20 @@ public final class KeypadLayoutStore {
             return false;
         }
         Map<String, Object> settings = chosen.settings();
-        if (settings.containsKey("keypadHidden")) {
-            profile.setKeypadLayout(
-                    Json.integer(settings, "keypadLayout", profile.keypadLayout()));
+        // Con số này đã đổi nghĩa hai lần, nên phải biết nó viết từ đời nào
+        // mới đọc được — đọc thẳng là đổi bàn phím của người ta sau lưng họ.
+        int version = Json.integer(settings, "keypadVersion",
+                settings.containsKey("keypadHidden") ? 1 : 0);
+        int was = Json.integer(settings, "keypadLayout", 0);
+        if (version >= GameProfile.KEYPAD_VERSION) {
+            profile.setKeypadLayout(was);
             profile.setKeypadHidden(Json.bool(settings, "keypadHidden", false));
+        } else if (version == 1) {
+            profile.setKeypadHidden(Json.bool(settings, "keypadHidden", false));
+            profile.setKeypadLayout(was == 2 ? GameProfile.KEYPAD_GAME : GameProfile.KEYPAD_FULL);
         } else {
-            // Một bộ lưu từ trước khi bàn phím còn ba kiểu: số cũ mang nghĩa
-            // khác, nên đọc thẳng là đổi bàn phím của người ta sau lưng họ.
-            int was = Json.integer(settings, "keypadLayout", 0);
             profile.setKeypadHidden(was == 3);
-            profile.setKeypadLayout(was == 1 ? GameProfile.KEYPAD_ARROWS : GameProfile.KEYPAD_FULL);
+            profile.setKeypadLayout(GameProfile.KEYPAD_FULL);
         }
         profile.setKeypadShape(Json.integer(settings, "keypadShape", profile.keypadShape()));
         profile.setKeypadOpacity(Json.integer(settings, "keypadOpacity", profile.keypadOpacity()));
@@ -218,6 +222,7 @@ public final class KeypadLayoutStore {
         Map<String, Object> settings = Json.object();
         settings.put("keypadLayout", Integer.valueOf(profile.keypadLayout()));
         settings.put("keypadHidden", Boolean.valueOf(profile.keypadHidden()));
+        settings.put("keypadVersion", Integer.valueOf(GameProfile.KEYPAD_VERSION));
         settings.put("keypadShape", Integer.valueOf(profile.keypadShape()));
         settings.put("keypadOpacity", Integer.valueOf(profile.keypadOpacity()));
         settings.put("keypadFadeDelay", Integer.valueOf(profile.keypadFadeDelay()));
@@ -267,6 +272,7 @@ public final class KeypadLayoutStore {
         Map<String, Object> settings = Json.object();
         settings.put("keypadLayout", Integer.valueOf(kind));
         settings.put("keypadHidden", Boolean.FALSE);
+        settings.put("keypadVersion", Integer.valueOf(GameProfile.KEYPAD_VERSION));
         settings.put("keypadShape", Integer.valueOf(shape));
         settings.put("keypadOpacity", Integer.valueOf(opacity));
         settings.put("keypadFadeDelay", Integer.valueOf(fadeDelay));

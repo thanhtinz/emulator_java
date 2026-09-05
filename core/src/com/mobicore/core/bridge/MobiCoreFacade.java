@@ -635,7 +635,7 @@ public final class MobiCoreFacade {
             if (profile == null) {
                 return error("No profile for " + suiteId);
             }
-            profile.setKeypadLayout((profile.keypadLayout() + 1) % 3);
+            profile.setKeypadLayout((profile.keypadLayout() + 1) % 2);
             library.saveProfile(profile);
             Map<String, Object> json = Json.object();
             json.put("ok", Boolean.TRUE);

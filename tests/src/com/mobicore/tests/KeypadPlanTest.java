@@ -8,7 +8,7 @@ import com.mobicore.core.storage.Json;
 import java.util.Map;
 
 /**
- * The three keypads, measured rather than looked at.
+ * The two keypads, measured rather than looked at.
  *
  * <p>A keypad is judged with a thumb, and a thumb cannot be put in a test. But
  * the two ways a keypad fails outright can be: a key that is not there when
@@ -23,7 +23,7 @@ public final class KeypadPlanTest extends Test {
 
     @Override
     public String name() {
-        return "Ba kiểu bàn phím";
+        return "Hai kiểu bàn phím";
     }
 
     @Override
@@ -40,11 +40,6 @@ public final class KeypadPlanTest extends Test {
 
     /** Each style is exactly the keys it promises, and no others. */
     private void whichKeys() {
-        KeypadPlan arrows = KeypadPlan.portrait(KeypadPlan.STYLE_ARROWS, WIDTH, KEY, null);
-        eq(11, arrows.keys().size(), "arrows: eight ways, fire and two softkeys");
-        check(!hasAnyDigit(arrows), "arrows: not one number, which is the point of it");
-        check(arrows.has("upLeft") && arrows.has("downRight"), "arrows: the corners are there");
-
         KeypadPlan full = KeypadPlan.portrait(KeypadPlan.STYLE_FULL, WIDTH, KEY, null);
         for (int digit = 0; digit <= 9; digit++) {
             check(full.has("num" + digit), "full: the keypad carries " + digit);
@@ -78,7 +73,7 @@ public final class KeypadPlanTest extends Test {
 
         // The key in the middle says the same word on all three: a key that
         // renames itself when the keypad changes is one the thumb learns twice.
-        for (int style = KeypadPlan.STYLE_ARROWS; style <= KeypadPlan.STYLE_GAME; style++) {
+        for (int style = KeypadPlan.STYLE_FULL; style <= KeypadPlan.STYLE_GAME; style++) {
             eq("OK", KeypadPlan.portrait(style, WIDTH, KEY, null).find("fire").label(),
                     "style " + style + ": the key in the middle says OK");
         }
@@ -93,25 +88,25 @@ public final class KeypadPlanTest extends Test {
      * the thumb does not go.</p>
      */
     private void whereTheSoftKeysAre() {
-        for (int style = KeypadPlan.STYLE_ARROWS; style <= KeypadPlan.STYLE_GAME; style++) {
+        for (int style = KeypadPlan.STYLE_FULL; style <= KeypadPlan.STYLE_GAME; style++) {
             KeypadPlan plan = KeypadPlan.portrait(style, WIDTH, KEY, null);
             check(plan.has("softLeft") && plan.has("softRight"),
                     "style " + style + ": both softkeys are keys of the keypad");
         }
 
-        KeypadPlan arrows = KeypadPlan.portrait(KeypadPlan.STYLE_ARROWS, WIDTH, KEY, null);
-        KeypadPlan.Key left = arrows.find("softLeft");
-        KeypadPlan.Key right = arrows.find("softRight");
-        KeypadPlan.Key upLeft = arrows.find("upLeft");
-        KeypadPlan.Key upRight = arrows.find("upRight");
-        check(left.right() <= upLeft.x(), "arrows: the left softkey is west of the pad");
-        check(right.x() >= upRight.right(), "arrows: the right softkey is east of it");
-        check(left.y() < upLeft.bottom() && left.bottom() > upLeft.y(),
-                "arrows: and level with the top row rather than above it");
-
         KeypadPlan full = KeypadPlan.portrait(KeypadPlan.STYLE_FULL, WIDTH, KEY, null);
         check(full.find("softLeft").bottom() <= full.find("up").y(),
-                "full: the softkeys sit above the pad");
+                "full: the softkeys sit above the pads");
+        // One over each half, not both over the pad: each is under the thumb
+        // that reaches it, rather than one thumb crossing the keypad.
+        check(full.find("softLeft").x() < full.find("num1").right()
+                        && full.find("softLeft").right() > full.find("num1").x(),
+                "full: the left softkey is over the numbers");
+        check(full.find("softRight").x() < full.find("up").right()
+                        && full.find("softRight").right() > full.find("up").x(),
+                "full: and the right one over the pad");
+        check(full.find("softLeft").right() <= full.find("softRight").x(),
+                "full: and they do not meet in the middle");
 
         // The gamepad puts them across the top, over everything else.
         KeypadPlan game = KeypadPlan.portrait(KeypadPlan.STYLE_GAME, WIDTH, KEY, null);
@@ -144,6 +139,10 @@ public final class KeypadPlanTest extends Test {
             check(plans[i].find("softLeft").x() < plans[i].find("softRight").x(),
                     both[i] + ": left on the left, right on the right");
         }
+        for (int style = KeypadPlan.STYLE_FULL; style <= KeypadPlan.STYLE_GAME; style++) {
+            check(!KeypadPlan.portrait(style, WIDTH, KEY, null).has("softMiddle"),
+                    "style " + style + ": there is no third softkey");
+        }
     }
 
     /**
@@ -157,7 +156,7 @@ public final class KeypadPlanTest extends Test {
         // both are real, and both used to push keys on top of one another.
         int[] widths = {WIDTH, 320, 240, 0};
         int[] keys = {KEY, 44, 30, 0};
-        for (int style = KeypadPlan.STYLE_ARROWS; style <= KeypadPlan.STYLE_GAME; style++) {
+        for (int style = KeypadPlan.STYLE_FULL; style <= KeypadPlan.STYLE_GAME; style++) {
             for (int i = 0; i < widths.length; i++) {
                 KeypadPlan plan = KeypadPlan.portrait(style, widths[i], keys[i], null);
                 String clash = firstOverlap(plan);
@@ -169,7 +168,7 @@ public final class KeypadPlanTest extends Test {
 
     /** Every key is inside the strip it was measured for. */
     private void nothingEscapes() {
-        for (int style = KeypadPlan.STYLE_ARROWS; style <= KeypadPlan.STYLE_GAME; style++) {
+        for (int style = KeypadPlan.STYLE_FULL; style <= KeypadPlan.STYLE_GAME; style++) {
             KeypadPlan plan = KeypadPlan.portrait(style, WIDTH, KEY, null);
             String escaped = null;
             checkFits(style, 0, 0);
@@ -262,8 +261,9 @@ public final class KeypadPlanTest extends Test {
         check(firstOverlap(left) == null, "sideways: the pad column does not overlap itself");
         check(firstOverlap(right) == null, "sideways: nor the numbers column");
 
-        KeypadPlan bare = KeypadPlan.column(KeypadPlan.STYLE_ARROWS, false, 220, 520, KEY, null);
-        eq(1, bare.keys().size(), "sideways: an arrows keypad has no numbers column to fill");
+        KeypadPlan bare = KeypadPlan.column(KeypadPlan.STYLE_GAME, false, 220, 520, KEY, null);
+        check(bare.has("num1") && !bare.has("num5"),
+                "sideways: the gamepad's own digits, and no others");
     }
 
     /**
@@ -274,16 +274,27 @@ public final class KeypadPlanTest extends Test {
      * with a different keypad than the player left it on.</p>
      */
     private void oldProfilesKeepTheirKeypad() {
-        eq(GameProfile.KEYPAD_FULL, read(old(0)).keypadLayout(), "old \"full\" is the full keypad");
-        check(!read(old(0)).keypadHidden(), "and is not hidden");
-        eq(GameProfile.KEYPAD_ARROWS, read(old(1)).keypadLayout(), "old \"arrows only\" is the arrows keypad");
-        eq(GameProfile.KEYPAD_FULL, read(old(2)).keypadLayout(),
-                "old \"numbers only\" keeps its numbers");
-
+        // The first numbering: 0 full, 1 arrows, 2 numbers, 3 hidden. All of
+        // them were halves or the whole of the one keypad there was.
+        for (int was = 0; was <= 2; was++) {
+            eq(GameProfile.KEYPAD_FULL, read(old(was)).keypadLayout(),
+                    "the oldest keypad " + was + " is the handset's keypad");
+            check(!read(old(was)).keypadHidden(), "and is not put away");
+        }
         GameProfile hidden = read(old(3));
-        check(hidden.keypadHidden(), "old \"hidden\" is still put away");
+        check(hidden.keypadHidden(), "the oldest \"hidden\" is still put away");
         eq(GameProfile.KEYPAD_FULL, hidden.keypadLayout(),
                 "and comes back to a keypad rather than to nothing");
+
+        // The second: 0 arrows, 1 full, 2 gamepad, with keypadHidden beside
+        // it. The arrows keypad is gone and its games belong on the full one.
+        eq(GameProfile.KEYPAD_FULL, read(three(0, false)).keypadLayout(),
+                "a keypad of arrows becomes the keypad that contains it");
+        eq(GameProfile.KEYPAD_FULL, read(three(1, false)).keypadLayout(),
+                "and the full one stays full");
+        eq(GameProfile.KEYPAD_GAME, read(three(2, false)).keypadLayout(),
+                "and a gamepad stays a gamepad");
+        check(read(three(2, true)).keypadHidden(), "having put it away survives too");
 
         // Written by this version, read straight: hiding is its own answer now.
         com.mobicore.core.model.DeviceProfile device =
@@ -296,12 +307,19 @@ public final class KeypadPlanTest extends Test {
         eq(GameProfile.KEYPAD_GAME, again.keypadLayout(), "the chosen keypad survives a save");
         check(again.keypadHidden(), "and so does having put it away");
         eq("Chơi game", again.keypadLayoutName(), "the menu has a name for it");
+        eq(2, GameProfile.KEYPAD_VERSION, "and says which generation it was written in");
     }
 
     // ------------------------------------------------------------- plumbing
 
     private static String old(int layout) {
         return "{\"suiteId\":\"s\",\"keypadLayout\":" + layout + "}";
+    }
+
+    /** A profile from when there were three keypads: no version, but hidden. */
+    private static String three(int layout, boolean hidden) {
+        return "{\"suiteId\":\"s\",\"keypadLayout\":" + layout
+                + ",\"keypadHidden\":" + hidden + "}";
     }
 
     private static GameProfile read(String text) {

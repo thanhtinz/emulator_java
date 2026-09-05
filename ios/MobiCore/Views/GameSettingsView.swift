@@ -244,9 +244,8 @@ struct GameSettingsView: View {
                                 get: { current.keypadLayout },
                                 set: { client.setKeypadLayout($0, for: suiteId); reload() }
                             )) {
-                                Text("Mũi tên").tag(0)
-                                Text("Đầy đủ").tag(1)
-                                Text("Chơi game").tag(2)
+                                Text("Đầy đủ").tag(0)
+                                Text("Chơi game").tag(1)
                             }
                             .pickerStyle(.segmented)
 

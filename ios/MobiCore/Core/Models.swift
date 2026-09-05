@@ -65,8 +65,8 @@ struct GameSettings: Codable, Hashable {
     static let scaleModeNames = ["Vừa khung", "Bội số nguyên", "Kéo đầy", "Nguyên cỡ"]
     static let networkModeNames = ["Chặn", "Hỏi trước", "Cho phép"]
 
-    /// The three keypads, in the order the in-game menu cycles them.
-    static let keypadLayoutNames = ["Mũi tên", "Đầy đủ", "Chơi game"]
+    /// The two keypads, in the order the in-game menu cycles them.
+    static let keypadLayoutNames = ["Đầy đủ", "Chơi game"]
 
     /// What the in-game menu shows beside "Bàn phím".
     var keypadLayoutName: String {
