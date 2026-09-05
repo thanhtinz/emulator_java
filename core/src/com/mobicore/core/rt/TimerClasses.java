@@ -160,6 +160,14 @@ public final class TimerClasses {
                         schedule(queue, true, true))
                 .method("scheduleAtFixedRate", "(Ljava/util/TimerTask;JJ)V",
                         schedule(queue, true, false))
+                // The two that take a Date say *when*, not *how long from
+                // now*: a game that wants something to happen at midnight
+                // asks this way, and calling the wrong one is not an option
+                // because the other one does not exist.
+                .method("schedule", "(Ljava/util/TimerTask;Ljava/util/Date;)V",
+                        scheduleAt(queue, false))
+                .method("schedule", "(Ljava/util/TimerTask;Ljava/util/Date;J)V",
+                        scheduleAt(queue, true))
                 .method("cancel", "()V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         queue.cancelAll(self);
@@ -169,6 +177,34 @@ public final class TimerClasses {
                 .define();
 
         return queue;
+    }
+
+    /**
+     * The Date overloads, turned into the delay the queue already works in.
+     *
+     * <p>A moment already past is not an error — MIDP says the task runs at
+     * once — so the delay is floored at zero rather than refused.</p>
+     */
+    private static NativeMethod scheduleAt(final Queue queue, final boolean repeating) {
+        return new NativeMethod() {
+            public Object invoke(Vm vm, VmObject self, Object[] args) {
+                VmObject when = Rt.obj(args, 1);
+                if (when == null) {
+                    throw vm.nullPointer("A timer needs a time to run at");
+                }
+                if (!(when.host instanceof Long)) {
+                    throw vm.raise("java/lang/IllegalStateException", "This Date was not built");
+                }
+                long delay = ((Long) when.host).longValue() - vm.host().currentTimeMillis();
+                if (delay < 0L) {
+                    delay = 0L;
+                }
+                Object[] rewritten = repeating
+                        ? new Object[]{args[0], Long.valueOf(delay), args[2]}
+                        : new Object[]{args[0], Long.valueOf(delay)};
+                return schedule(queue, repeating, true).invoke(vm, self, rewritten);
+            }
+        };
     }
 
     /**

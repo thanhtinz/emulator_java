@@ -2608,3 +2608,41 @@ về ô va chạm hỏng).
 
 Ảnh `39-collide.png` phóng to cái hình ấy lên: khung vàng là chỗ hai hộp chồng
 nhau, và bên trong nó không ô đỏ nào cùng chỗ với ô xanh.
+
+## Giai đoạn 64 — nửa còn lại của RecordEnumeration, và cái tai của RecordStore
+
+Đọc một kho bản ghi từ đầu tới cuối cần bốn hàm, và máy ảo có đủ bốn. Nhưng
+mọi thứ một **bảng điểm** thật sự làm thì cần bảy hàm còn lại, và cả bảy đều
+thiếu hẳn — game gọi tới là dừng ngay tại dòng đó:
+
+- cuộn ngược lên: `hasPreviousElement`, `previousRecordId`, `previousRecord`;
+- nhảy thẳng tới một hàng: `getRecordId(int)`;
+- không nói dối khi có điểm mới ghi vào lúc bảng đang mở: `rebuild`,
+  `keepUpdated`, `isKeptUpdated`;
+- và nghe được rằng có thay đổi: cả giao diện `RecordListener` lẫn
+  `addRecordListener`/`removeRecordListener`.
+
+Con trỏ của `RecordEnumeration` nằm **giữa hai bản ghi**, nên đi lùi không phải
+là đi tới rồi trừ một. Đi tới rồi đi lùi hết phải chạm đúng những hàng ấy theo
+thứ tự ngược lại, và chạm đủ.
+
+Chỗ đáng nói là `rebuild`: phần lọc và sắp xếp được tách ra thành một hàm
+`fill` mà cả lúc dựng lẫn lúc dựng lại đều gọi, nên `rebuild` hỏi **đúng câu
+hỏi ban đầu** chứ không phải một bản cài đặt thứ hai có thể trôi đi mỗi nơi một
+kiểu. Người nghe được báo **sau khi** các bảng tự-cập-nhật đã dựng lại, để một
+listener duyệt bảng ngay trong lúc được gọi thì duyệt bảng mới chứ không phải
+bảng trước lúc ghi. Danh sách người nghe cũng được chụp lại một bản trước khi
+gọi, vì một listener được phép tự gỡ mình ra ngay trong lúc đang được gọi.
+
+Sổ theo dõi đánh theo **tên kho** chứ không theo tay cầm: một MIDlet mở cùng
+một kho hai lần thì bản ghi thêm qua tay này vẫn là bản ghi thêm đối với tay
+kia.
+
+`Timer.schedule(TimerTask, Date[, long])` cũng thiếu. Game muốn một việc xảy ra
+**lúc** nào đó chứ không phải **sau** bao lâu nữa thì gọi bản này, và bản kia
+không thay được vì nó nhận một thứ khác hẳn. Một mốc đã trôi qua thì chạy ngay,
+không phải một lỗi.
+
+Phá lại bốn chỗ để chắc phép kiểm cắn: cho `previousRecord` đi tới thay vì đi
+lùi, bỏ qua `keepUpdated`, không báo cho ai, và cho `fill` quên mất bộ so sánh
+— mỗi lần đúng câu tương ứng hỏng.

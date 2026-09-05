@@ -73,4 +73,10 @@ public class RecordStore {
                                               boolean keepUpdated) throws RecordStoreException {
         return null;
     }
+
+    public void addRecordListener(RecordListener listener) {
+    }
+
+    public void removeRecordListener(RecordListener listener) {
+    }
 }
