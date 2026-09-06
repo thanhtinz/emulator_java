@@ -377,11 +377,20 @@ public final class MidpGame {
                 .method("setTransform", "(I)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         SpriteState sprite = state(vm, self);
+                        // MIDP turns a sprite *about its reference pixel*, and
+                        // that pixel stays where it was on screen. Leaving the
+                        // top-left corner where it was instead makes a
+                        // character jump sideways by its own width every time
+                        // it turns around.
+                        int screenX = intField(self, "x") + refX(sprite);
+                        int screenY = intField(self, "y") + refY(sprite);
                         sprite.transform = Rt.i(args, 0);
                         self.set("width", Integer.valueOf(Transforms.resultWidth(sprite.transform,
                                 sprite.frameWidth, sprite.frameHeight)));
                         self.set("height", Integer.valueOf(Transforms.resultHeight(sprite.transform,
                                 sprite.frameWidth, sprite.frameHeight)));
+                        self.set("x", Integer.valueOf(screenX - refX(sprite)));
+                        self.set("y", Integer.valueOf(screenY - refY(sprite)));
                         return null;
                     }
                 })
@@ -396,19 +405,19 @@ public final class MidpGame {
                 .method("setRefPixelPosition", "(II)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         SpriteState sprite = state(vm, self);
-                        self.set("x", Integer.valueOf(Rt.i(args, 0) - sprite.refX));
-                        self.set("y", Integer.valueOf(Rt.i(args, 1) - sprite.refY));
+                        self.set("x", Integer.valueOf(Rt.i(args, 0) - refX(sprite)));
+                        self.set("y", Integer.valueOf(Rt.i(args, 1) - refY(sprite)));
                         return null;
                     }
                 })
                 .method("getRefPixelX", "()I", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Integer.valueOf(intField(self, "x") + state(vm, self).refX);
+                        return Integer.valueOf(intField(self, "x") + refX(state(vm, self)));
                     }
                 })
                 .method("getRefPixelY", "()I", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Integer.valueOf(intField(self, "y") + state(vm, self).refY);
+                        return Integer.valueOf(intField(self, "y") + refY(state(vm, self)));
                     }
                 })
                 .method("defineCollisionRectangle", "(IIII)V", new NativeMethod() {
@@ -528,6 +537,25 @@ public final class MidpGame {
             sequence[i] = i;
         }
         return sequence;
+    }
+
+    /**
+     * Where the reference pixel sits inside the frame <em>as drawn</em>.
+     *
+     * <p>{@code defineReferencePixel} names a point in the untransformed
+     * frame. Turn the sprite and that point is somewhere else in the picture,
+     * so every question about it has to go through the same mapping the pixels
+     * went through — which is why this asks {@link Transforms}, the one place
+     * that arithmetic lives.</p>
+     */
+    private static int refX(SpriteState sprite) {
+        return Transforms.mapX(sprite.transform, sprite.frameWidth, sprite.frameHeight,
+                sprite.refX, sprite.refY);
+    }
+
+    private static int refY(SpriteState sprite) {
+        return Transforms.mapY(sprite.transform, sprite.frameWidth, sprite.frameHeight,
+                sprite.refX, sprite.refY);
     }
 
     static SpriteState state(Vm vm, VmObject self) {

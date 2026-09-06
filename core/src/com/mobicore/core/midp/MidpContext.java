@@ -61,6 +61,15 @@ public final class MidpContext {
     private VmObject current;
     private VmObject midlet;
     private int keyStates;
+    /**
+     * Keys pressed since the game last asked, even if already let go.
+     *
+     * <p>{@code GameCanvas.getKeyStates} latches: a key pressed and released
+     * between two calls must still be reported once. Without this a quick tap
+     * lands entirely between two frames and vanishes — which is a fire button
+     * that misses for no reason the player can see.</p>
+     */
+    private int latched;
     private boolean repaintRequested = true;
     private boolean fullScreen;
     /** Height reserved by the system chrome; see {@link #canvasHeight()}. */
@@ -400,8 +409,12 @@ public final class MidpContext {
         if (!isAlert(current)) {
             return;
         }
+        VmObject leaving = current;
         VmObject back = alertReturn;
         setCurrent(back);
+        // The alert is a screen too: it gets told it is going away, the same
+        // as any other.
+        MidpUi.hideNotify(vm, leaving, back);
         if (back != null) {
             vm.callVirtual(back, "showNotify", "()V");
         }
@@ -732,14 +745,19 @@ public final class MidpContext {
 
     /** Clears the latched key state, as {@code GameCanvas.getKeyStates} does. */
     public int consumeKeyStates() {
-        return keyStates;
+        int answer = keyStates | latched;
+        latched = 0;
+        return answer;
     }
 
     public void setKeyState(int gameAction, boolean pressed) {
         int bit = 1 << gameAction;
         if (pressed) {
             keyStates |= bit;
+            latched |= bit;
         } else {
+            // The latch keeps the bit: letting go is not the same as never
+            // having pressed, and the game has not been told yet.
             keyStates &= ~bit;
         }
     }

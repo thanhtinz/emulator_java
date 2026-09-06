@@ -53,50 +53,49 @@ public final class Transforms {
                     continue;
                 }
                 int pixel = src[sourceY * srcWidth + sourceX];
-                int targetX;
-                int targetY;
-                switch (transform) {
-                    case MIRROR:
-                        targetX = width - 1 - column;
-                        targetY = row;
-                        break;
-                    case ROT180:
-                        targetX = width - 1 - column;
-                        targetY = height - 1 - row;
-                        break;
-                    case MIRROR_ROT180:
-                        targetX = column;
-                        targetY = height - 1 - row;
-                        break;
-                    case ROT90:
-                        targetX = height - 1 - row;
-                        targetY = column;
-                        break;
-                    case ROT270:
-                        targetX = row;
-                        targetY = width - 1 - column;
-                        break;
-                    // Lật trước, xoay sau — đúng thứ tự MIDP nói, và thứ tự
-                    // ấy có thật: lật rồi xoay chín mươi độ không ra cùng kết
-                    // quả với xoay rồi lật. Hai phép này từng làm ngược, nên
-                    // chúng đổi chỗ cho nhau: một con thú quay mặt sang phải
-                    // hiện ra quay sang trái.
-                    case MIRROR_ROT90:
-                        targetX = height - 1 - row;
-                        targetY = width - 1 - column;
-                        break;
-                    case MIRROR_ROT270:
-                        targetX = row;
-                        targetY = column;
-                        break;
-                    default:
-                        targetX = column;
-                        targetY = row;
-                        break;
-                }
+                int targetX = mapX(transform, width, height, column, row);
+                int targetY = mapY(transform, width, height, column, row);
                 out[targetY * outWidth + targetX] = pixel;
             }
         }
         return out;
+    }
+
+    /**
+     * Where one point of a frame lands after the same transform.
+     *
+     * <p>The pixel loop above calls these rather than carrying its own copy of
+     * the arithmetic. Two copies of eight cases is eight chances for a sprite
+     * to be drawn one way and asked about another — and that mismatch is
+     * exactly the kind that shows up as a character stepping sideways when it
+     * turns around, which nobody can describe well enough to report.</p>
+     *
+     * @param width  the frame's width before the transform
+     * @param height the frame's height before the transform
+     */
+    public static int mapX(int transform, int width, int height, int x, int y) {
+        switch (transform) {
+            case MIRROR: return width - 1 - x;
+            case ROT180: return width - 1 - x;
+            case MIRROR_ROT180: return x;
+            case ROT90: return height - 1 - y;
+            case ROT270: return y;
+            case MIRROR_ROT90: return height - 1 - y;
+            case MIRROR_ROT270: return y;
+            default: return x;
+        }
+    }
+
+    public static int mapY(int transform, int width, int height, int x, int y) {
+        switch (transform) {
+            case MIRROR: return y;
+            case ROT180: return height - 1 - y;
+            case MIRROR_ROT180: return height - 1 - y;
+            case ROT90: return x;
+            case ROT270: return width - 1 - x;
+            case MIRROR_ROT90: return width - 1 - x;
+            case MIRROR_ROT270: return x;
+            default: return y;
+        }
     }
 }

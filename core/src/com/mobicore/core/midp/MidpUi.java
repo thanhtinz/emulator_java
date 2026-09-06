@@ -418,13 +418,48 @@ public final class MidpUi {
         MidpGfx.setStatic(vm, gameCanvas, "GAME_D_PRESSED", 1 << MidpContext.ACTION_GAME_D);
     }
 
-    static Framebuffer backBuffer(MidpContext context, VmObject canvas) {
-        if (!(canvas.host instanceof Framebuffer)) {
-            Framebuffer back = new Framebuffer(context.canvasWidth(), context.canvasHeight());
-            back.setAntialias(context.smoothShapes());
-            canvas.host = back;
+    /**
+     * The GameCanvas back buffer, at the size the canvas is <em>now</em>.
+     *
+     * <p>Going full screen hands the command bar's strip back to the game, so
+     * the canvas really does grow. A buffer built at the old size and blitted
+     * on top leaves that strip with whatever was under it — a band along the
+     * bottom that never changes again while the game plays on above it.</p>
+     *
+     * <p>The old contents are carried across rather than dropped: a game that
+     * calls {@code setFullScreenMode} from {@code showNotify} carries on
+     * drawing over what it had, not from an empty screen.</p>
+     */
+    /**
+     * Tells the screen being put away that it is no longer on show.
+     *
+     * <p>A MIDlet stops its music, stops the thread that animates the screen
+     * and lets go of its images in {@code hideNotify}. Never calling it leaves
+     * the menu's music playing under the game and the menu's thread running
+     * for the rest of the session.</p>
+     */
+    static void hideNotify(Vm vm, VmObject leaving, VmObject arriving) {
+        if (leaving != null && leaving != arriving) {
+            vm.callVirtual(leaving, "hideNotify", "()V");
         }
-        return (Framebuffer) canvas.host;
+    }
+
+    static Framebuffer backBuffer(MidpContext context, VmObject canvas) {
+        int width = context.canvasWidth();
+        int height = context.canvasHeight();
+        Framebuffer back = canvas.host instanceof Framebuffer ? (Framebuffer) canvas.host : null;
+        if (back == null || back.width() != width || back.height() != height) {
+            Framebuffer fresh = new Framebuffer(width, height);
+            fresh.setAntialias(context.smoothShapes());
+            if (back != null) {
+                fresh.setBlendMode(Framebuffer.BLEND_REPLACE);
+                fresh.drawFramebuffer(back, 0, 0);
+                fresh.setBlendMode(Framebuffer.BLEND_SRC_OVER);
+            }
+            canvas.host = fresh;
+            back = fresh;
+        }
+        return back;
     }
 
     private static void flush(MidpContext context, VmObject canvas) {
@@ -456,7 +491,9 @@ public final class MidpUi {
                 .method("setCurrent", "(Ljavax/microedition/lcdui/Displayable;)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         VmObject next = Rt.obj(args, 0);
+                        VmObject leaving = context.current();
                         context.setCurrent(next);
+                        hideNotify(vm, leaving, next);
                         if (next != null) {
                             vm.callVirtual(next, "showNotify", "()V");
                         }
@@ -472,7 +509,9 @@ public final class MidpUi {
                                 // đầu tiên là chết ngay tại dòng ấy.
                                 VmObject alert = Rt.obj(args, 0);
                                 VmObject next = Rt.obj(args, 1);
+                                VmObject leaving = context.current();
                                 context.setCurrent(alert, next);
+                                hideNotify(vm, leaving, alert);
                                 if (alert != null) {
                                     vm.callVirtual(alert, "showNotify", "()V");
                                 }
@@ -490,7 +529,9 @@ public final class MidpUi {
                             return null;
                         }
                         if (context.current() != form) {
+                            VmObject leaving = context.current();
                             context.setCurrent(form);
+                            hideNotify(vm, leaving, form);
                             vm.callVirtual(form, "showNotify", "()V");
                         }
                         form.set("focus", Integer.valueOf(MidpForms.itemsOf(form).indexOf(item)));

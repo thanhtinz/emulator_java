@@ -2646,3 +2646,56 @@ không phải một lỗi.
 Phá lại bốn chỗ để chắc phép kiểm cắn: cho `previousRecord` đi tới thay vì đi
 lùi, bỏ qua `keepUpdated`, không báo cho ai, và cho `fill` quên mất bộ so sánh
 — mỗi lần đúng câu tương ứng hỏng.
+
+## Giai đoạn 65 — bốn chỗ game không chết mà chạy sai
+
+Khác với những hàm thiếu hẳn ở hai giai đoạn trước: ở đây game **chạy**, và
+chạy hơi lệch theo đúng cái cách người chơi cảm thấy nhưng không tả nổi — nên
+cũng chẳng ai báo bao giờ.
+
+**1. Nút bắn "trượt".** `GameCanvas.getKeyStates()` phải **chốt** phím lại: một
+cú bấm xảy ra *giữa* hai lần gọi vẫn phải được báo một lần. Máy ảo thì bấm là
+bật bit, thả là xoá bit — vòng lặp game hỏi mỗi khung hình một lần, mà một cú
+bấm gọn ngắn hơn một khung hình, nên nó **rơi lọt giữa hai khung và biến mất
+hẳn**. Trong mọi game dùng `GameCanvas`, tức gần như mọi game hành động. Nay có
+thêm một tập `latched`: thả tay không xoá nó, và lần hỏi tiếp theo trả về rồi
+mới xoá. `keyStates()` giữ nguyên nghĩa cũ (phím đang giữ) vì đó là thứ trạng
+thái lưu chụp lại.
+
+**2. Nhân vật quay mặt là nhảy ngang.** MIDP nói rõ: `setTransform` xoay sprite
+**quanh điểm mốc**, và điểm mốc phải đứng yên tại chỗ cũ trên màn hình — góc
+trên trái mới là thứ dời đi. Máy ảo làm ngược: giữ nguyên góc, nên sprite nhảy
+đúng bằng bề rộng của nó mỗi lần quay mặt. Và `getRefPixelX/Y` cùng
+`setRefPixelPosition` dùng `refX`/`refY` **thô**, chỉ đúng khi chưa xoay gì.
+
+Chỗ đáng nói là cách sửa: phép đưa **một điểm** qua tám phép lật xoay được đặt
+vào `Transforms.mapX/mapY`, **và vòng lặp điểm ảnh của `apply` gọi chính nó**
+thay vì giữ bản sao số học của riêng mình. Hai bản sao của tám trường hợp là
+tám cơ hội để sprite được vẽ một đằng và được hỏi một nẻo. Phép kiểm còn đối
+chiếu hai đường: đánh dấu một điểm ảnh, cho `apply` chuyển cả tấm, rồi tìm lại
+điểm ấy và so với `mapX/mapY` — cho cả 8 phép × 15 vị trí.
+
+**3. Dải đen đóng băng ở đáy.** Bộ đệm sau của `GameCanvas` dựng một lần rồi
+thôi, không bao giờ so lại với cỡ khung hiện tại. Game dựng màn chơi **trong
+lúc menu còn hiện** — chuyện thường nhất trên đời — thì bộ đệm mang cỡ của
+khung đang bị thanh tiêu đề và thanh lệnh ăn bớt; tới lúc màn chơi lên, phần
+ấy trả lại cho game mà bộ đệm thì không với tới. Nay `backBuffer` so cỡ và dựng
+lại, **chép nội dung cũ sang** vì game vẽ tiếp chứ không vẽ lại từ đầu.
+
+**4. Nhạc màn trước phát tiếp.** `setCurrent` gọi `showNotify` cho màn mới mà
+không gọi `hideNotify` cho màn cũ. Game dừng nhạc, dừng luồng phụ và thả ảnh
+trong `hideNotify` — không gọi thì luồng ấy chạy tiếp suốt phiên. Sửa ở cả bốn
+đường: hai bản `setCurrent`, `setCurrentItem`, và chỗ đóng hộp thoại của giai
+đoạn 59.
+
+**Hai chỗ chính phép kiểm bắt được, không phải bản rà:**
+
+- Một câu tôi viết sai: "thả tay ra cũng là tin". Không phải — phím ấy đã được
+  báo là đang giữ rồi, thả ra không có tin gì mới. Máy ảo đúng, câu hỏi sai.
+- Phép kiểm bộ đệm sau **không cắn** khi phá lại chỗ sửa. Hoá ra fixture dựng
+  `GameCanvas` lúc chưa có màn hình nào, nên chưa có thanh tiêu đề nào để ăn
+  bớt và bộ đệm đã sẵn cỡ đầy — tức là nó đang kiểm một tình huống không chứa
+  lỗi. Dựng lại fixture cho đúng đường đi thật (dựng màn chơi trong lúc menu
+  còn hiện) thì nó cắn.
+
+Phá lại đủ bốn chỗ, mỗi lần chỉ hỏng đúng câu của nó.
