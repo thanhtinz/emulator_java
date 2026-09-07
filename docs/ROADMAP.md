@@ -2699,3 +2699,52 @@ trong `hideNotify` — không gọi thì luồng ấy chạy tiếp suốt phiê
   còn hiện) thì nó cắn.
 
 Phá lại đủ bốn chỗ, mỗi lần chỉ hỏng đúng câu của nó.
+
+## Giai đoạn 66 — năm chỗ mất dữ liệu và mất cú chạm
+
+Giai đoạn trước là những chỗ game **chạy sai**. Năm chỗ này là những chỗ máy ảo
+**đánh mất** thứ game giao cho nó, và không nói một lời nào.
+
+**1. Đóng một tay cầm RMS làm mất lặng lẽ mọi lần ghi qua tay cầm kia.** MIDP
+nói hai lần `openRecordStore` cùng tên trả về **cùng một kho**, và máy ảo làm
+đúng thế. Nhưng `close` thì xoá kho khỏi sổ ngay lần đầu, trong khi tay cầm còn
+lại vẫn trỏ vào nó: lần ghi tiếp theo vẫn báo thành công, `flush` tra sổ không
+thấy tên nữa, và **không ghi gì cả**. Nay `Store` đếm số tay cầm đang mở, chỉ
+rời sổ khi về 0. Và `persist` gọi `flush(Store)` — ghi thẳng cái kho cầm trong
+tay — thay vì `flush(tên)`: kể cả sổ có sai thì lần ghi vẫn xuống đĩa.
+
+**2. Game hỏng lúc thoát thì kéo theo cả phần lưu.** `destroy()` chỉ bắt
+`VmThrow`, nên bất cứ hỏng hóc nào khác cũng nhảy qua đầu `rms.flushAll()` ngay
+dưới. `destroyApp` là cơ hội ghi cuối cùng, và cũng là chỗ game cẩu thả nhất.
+Nay `flushAll` và `closeAll` nằm trong `finally`: hỏng kiểu gì phần lưu cũng
+không phải con tin.
+
+**3. Một lớp hỏng làm kẹt tấm vẽ đến hết màn.** `LayerManager.paint` cất phép
+tịnh tiến và vùng cắt, gọi `paint` của từng lớp — **mã của game** — rồi mới trả
+lại. Một lỗi ném ra giữa chừng mà game bắt được ở trên là tấm vẽ kẹt vĩnh viễn
+ở phép tịnh tiến của lớp: mọi thứ vẽ sau đó lệch và bị cắt. Nay là `finally`.
+
+**4. Chạm hụt menu thì chạy lệnh đầu tiên.** Phép chia số nguyên của Java cắt
+về phía không, nên `(y - top - 4) / row` với tử số âm nhỏ hơn một hàng vẫn ra
+`0`: chạm vào **cả một dải cao bằng một hàng** phía trên bảng menu rơi vào mục
+đầu — và câu bảo vệ `index < 0` không bao giờ cứu được. Đáng nói hơn: bảng menu
+**cuộn** khi dài quá, còn phép thử chạm thì không biết, nên với menu dài mọi
+hàng đều bấm nhầm. Nay hình học của bảng nằm gọn trong `ScreenRenderer`
+(`menuTop`, `menuVisible`, `menuScroll`, `menuRowAt`) và cả chỗ vẽ lẫn chỗ chạm
+đều hỏi nó — kiểm biên trước, chia sau.
+
+**5. Nhấc tay ngoài khung thì game không bao giờ biết.** Mọi sự kiện có toạ độ
+ngoài khung đều bị vứt. Đúng với `pointerPressed`, sai với `pointerReleased` và
+`pointerDragged`: một cử chỉ đã bắt đầu **bên trong** vẫn là của game dù ngón
+tay đi đâu. Kéo từ trong khung rồi nhấc tay trên bàn phím ảo thì game tưởng
+ngón tay còn ấn — nút kẹt, đường ngắm kẹt. Nay có cờ đánh dấu cử chỉ đang thuộc
+về game, và trong lúc ấy toạ độ được **kẹp vào mép** thay vì bị vứt, đúng như
+máy thật báo.
+
+**Một chỗ phép kiểm dạy lại:** phá `flush(Store)` về `flush(tên)` **không cắn**
+— vì phép đếm tay cầm đã giữ kho trong sổ rồi. Hai chỗ sửa che nhau. Giữ cả
+hai, nhưng ghi rõ ở đây: cái được phép kiểm giữ là phép đếm; `flush(Store)` là
+lớp phòng thứ hai, không phải thứ được chứng minh.
+
+Bộ kiểm mới `LossTest` + fixture `demo/Losses`. Phá lại từng chỗ một: cả năm
+đều cắn, mỗi lần chỉ hỏng đúng câu của nó. **41 bộ / 1823 phép kiểm**, xanh.

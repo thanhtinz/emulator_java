@@ -96,7 +96,7 @@ public final class ScreenRenderer {
 
     // ------------------------------------------------------------------ List
 
-    static int rowHeight() {
+    public static int rowHeight() {
         return plain().height() + ROW_EXTRA;
     }
 
@@ -480,11 +480,11 @@ public final class ScreenRenderer {
         }
         BitmapFont font = plain();
         int row = rowHeight();
-        int height = Math.min(commands.size() * row + 8, frame.height() - 40);
-        int visible = Math.max(1, (height - 8) / row);
+        int height = menuHeight(frame.height(), commands.size());
+        int visible = menuVisible(frame.height(), commands.size());
         int width = frame.width() - 24;
         int x = 12;
-        int y = frame.height() - SystemChrome.softKeyBarHeight() - height - 4;
+        int y = menuTop(frame.height(), commands.size());
 
         frame.setTranslation(0, 0);
         frame.resetClip();
@@ -494,7 +494,7 @@ public final class ScreenRenderer {
         frame.drawRect(x, y, width, height);
 
         int focus = Math.max(0, Math.min(context.menuIndex(), commands.size() - 1));
-        int first = Math.max(0, Math.min(focus - visible + 1, commands.size() - visible));
+        int first = menuScroll(frame.height(), commands.size(), context.menuIndex());
         for (int i = 0; i < visible && first + i < commands.size(); i++) {
             int index = first + i;
             int rowY = y + 4 + i * row;
@@ -508,6 +508,51 @@ public final class ScreenRenderer {
             font.draw(frame, clip(font, label == null ? "" : label, width - 16),
                     x + 8, rowY + (row - font.height()) / 2);
         }
+    }
+
+    // The menu panel's geometry, in one place: the hit test has to land on the
+    // row the eye sees, and a menu long enough to scroll makes that a real
+    // question rather than a formality.
+
+    static int menuHeight(int frameHeight, int count) {
+        return Math.min(count * rowHeight() + 8, frameHeight - 40);
+    }
+
+    public static int menuTop(int frameHeight, int count) {
+        return frameHeight - SystemChrome.softKeyBarHeight()
+                - menuHeight(frameHeight, count) - 4;
+    }
+
+    /** How many rows of the panel are on show at once. */
+    public static int menuVisible(int frameHeight, int count) {
+        return Math.max(1, (menuHeight(frameHeight, count) - 8) / rowHeight());
+    }
+
+    /** The command drawn in the panel's top row, once the list has scrolled. */
+    static int menuScroll(int frameHeight, int count, int focus) {
+        int visible = menuVisible(frameHeight, count);
+        int here = Math.max(0, Math.min(focus, count - 1));
+        return Math.max(0, Math.min(here - visible + 1, count - visible));
+    }
+
+    /**
+     * The command a touch at {@code y} lands on, or -1 for a miss.
+     *
+     * <p>Bounds first and division afterwards: Java rounds a negative quotient
+     * towards zero, so dividing straight away turns the whole row-high band
+     * above the panel into row 0 — a mis-tap that runs a command.</p>
+     */
+    public static int menuRowAt(int frameHeight, int count, int focus, int y) {
+        if (count <= 0) {
+            return -1;
+        }
+        int row = rowHeight();
+        int first = menuTop(frameHeight, count) + 4;
+        int shown = Math.min(menuVisible(frameHeight, count), count);
+        if (y < first || y >= first + shown * row) {
+            return -1;
+        }
+        return menuScroll(frameHeight, count, focus) + (y - first) / row;
     }
 
     // ----------------------------------------------------------------- text

@@ -34,6 +34,8 @@ public final class RecordStoreManager {
         private int version;
         private long lastModified;
         private boolean dirty;
+        /** How many handles the game still holds on this store. */
+        private int openCount;
 
         Store(String name) {
             this.name = name;
@@ -194,6 +196,9 @@ public final class RecordStoreManager {
     public Store openStore(String storeName, boolean createIfMissing) throws IOException {
         Store cached = open.get(storeName);
         if (cached != null) {
+            // MIDP hands out one store to every handle, so closing one handle
+            // must not take the store away from the others: count them.
+            cached.openCount++;
             return cached;
         }
         String path = pathFor(storeName);
@@ -206,12 +211,22 @@ public final class RecordStoreManager {
         } else {
             return null;
         }
+        store.openCount = 1;
         open.put(storeName, store);
         return store;
     }
 
     public void flush(String storeName) throws IOException {
-        Store store = open.get(storeName);
+        flush(open.get(storeName));
+    }
+
+    /**
+     * Writes the store held in hand, whatever the book of open names says.
+     *
+     * <p>A write must never depend on the store still being listed: that is
+     * how a save is lost in silence.</p>
+     */
+    public void flush(Store store) throws IOException {
         if (store != null && store.dirty) {
             save(store);
             store.dirty = false;
@@ -225,8 +240,11 @@ public final class RecordStoreManager {
     }
 
     public void close(String storeName) throws IOException {
-        flush(storeName);
-        open.remove(storeName);
+        Store store = open.get(storeName);
+        flush(store);
+        if (store != null && --store.openCount <= 0) {
+            open.remove(storeName);
+        }
     }
 
     public boolean deleteStore(String storeName) throws IOException {

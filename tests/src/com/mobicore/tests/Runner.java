@@ -43,6 +43,7 @@ public final class Runner {
         tests.add(new CollisionTest(fixtures));
         tests.add(new RecordsTest(fixtures));
         tests.add(new BehaviourTest(fixtures));
+        tests.add(new LossTest(fixtures));
         tests.add(new BridgeTest());
         tests.add(new FileTest(fixtures));
         tests.add(new ProfileTest());

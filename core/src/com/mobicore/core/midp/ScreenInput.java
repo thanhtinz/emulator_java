@@ -460,11 +460,10 @@ public final class ScreenInput {
         if (commandList.isEmpty()) {
             return false;
         }
-        int row = ScreenRenderer.rowHeight();
-        int height = Math.min(commandList.size() * row + 8,
-                context.screen().height() - 40);
-        int top = context.screen().height() - SystemChrome.softKeyBarHeight() - height - 4;
-        int index = (y - top - 4) / row;
+        // The panel's own geometry answers this, so the row a finger lands on
+        // is always the row the eye sees — scrolling included.
+        int index = ScreenRenderer.menuRowAt(context.screen().height(),
+                commandList.size(), context.menuIndex(), y);
         if (index < 0 || index >= commandList.size()) {
             context.closeMenu();
             return true;

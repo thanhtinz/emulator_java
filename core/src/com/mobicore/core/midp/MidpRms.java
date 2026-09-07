@@ -382,7 +382,9 @@ public final class MidpRms {
 
     private static void persist(Vm vm, RecordStoreManager manager, RecordStoreManager.Store store) {
         try {
-            manager.flush(store.name());
+            // The store in hand, not its name: a handle closed elsewhere must
+            // not turn this write into silence.
+            manager.flush(store);
         } catch (IOException e) {
             throw vm.raise("javax/microedition/rms/RecordStoreException",
                     "Cannot write the record store: " + e.getMessage());

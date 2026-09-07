@@ -494,14 +494,20 @@ public final class EmulatorSession {
             vm.callVirtual(midlet, "destroyApp", "(Z)V", Integer.valueOf(1));
         } catch (VmThrow e) {
             log.error("destroyApp threw " + e);
+        } catch (RuntimeException e) {
+            // Whatever went wrong on the way out — a broken class, a thread
+            // cut short by the watchdog — the player's save is not its
+            // hostage. Hence the finally below rather than a line after this.
+            log.error("destroyApp failed: " + e);
+        } finally {
+            try {
+                // A record store the game left open still has to reach storage.
+                rms.flushAll();
+            } catch (IOException e) {
+                log.error("Cannot flush record stores: " + e.getMessage());
+            }
+            network.closeAll();
         }
-        try {
-            // A record store the game left open still has to reach storage.
-            rms.flushAll();
-        } catch (IOException e) {
-            log.error("Cannot flush record stores: " + e.getMessage());
-        }
-        network.closeAll();
         state = STATE_DESTROYED;
         log.info("MIDlet destroyed");
     }
@@ -717,28 +723,62 @@ public final class EmulatorSession {
     }
 
     public void pointerReleased(int x, int y) {
-        deliverPointer("pointerReleased", x, y);
+        boolean ours = pointerIsOurs;
+        pointerIsOurs = false;
+        deliverPointer("pointerReleased", x, y, ours);
     }
 
     public void pointerDragged(int x, int y) {
-        deliverPointer("pointerDragged", x, y);
+        deliverPointer("pointerDragged", x, y, pointerIsOurs);
     }
 
+    /**
+     * Whether the finger now down started its gesture inside the canvas.
+     *
+     * <p>A gesture that began on the game belongs to the game until the finger
+     * comes up, wherever it wanders in between. Dropping the release because
+     * the finger ended up over the on-screen keypad leaves the game believing
+     * the button is still held: a stuck fire key, a stuck aim.</p>
+     */
+    private boolean pointerIsOurs;
+
     private void deliverPointer(String method, int x, int y) {
+        deliverPointer(method, x, y, false);
+    }
+
+    private void deliverPointer(String method, int x, int y, boolean continuing) {
         VmObject current = context.current();
         if (current == null || state != STATE_ACTIVE || !isCanvas(current)) {
+            pointerIsOurs = false;
             return;
         }
         // Touches arrive in display coordinates; the game thinks in canvas
         // coordinates, which start below the title bar.
         int canvasX = x - context.canvasLeft();
         int canvasY = y - context.canvasTop();
-        if (canvasX < 0 || canvasY < 0
-                || canvasX >= context.canvasWidth() || canvasY >= context.canvasHeight()) {
+        boolean inside = canvasX >= 0 && canvasY >= 0
+                && canvasX < context.canvasWidth() && canvasY < context.canvasHeight();
+        if (!inside && !continuing) {
             return;
+        }
+        if (!inside) {
+            // Held to the edge it left by, which is what a real handset
+            // reports and what the game is written to expect.
+            canvasX = clamp(canvasX, context.canvasWidth());
+            canvasY = clamp(canvasY, context.canvasHeight());
+        }
+        if ("pointerPressed".equals(method)) {
+            pointerIsOurs = true;
         }
         vm.callVirtual(current, method, "(II)V",
                 Integer.valueOf(canvasX), Integer.valueOf(canvasY));
+    }
+
+    private static int clamp(int value, int size) {
+        if (value < 0) {
+            return 0;
+        }
+        return value >= size ? size - 1 : value;
     }
 
     /** Invokes the current screen's command listener, as a softkey press does. */

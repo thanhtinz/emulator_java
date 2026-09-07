@@ -944,16 +944,23 @@ public final class MidpGame {
                             target.clipRect(x, y, layers.viewWidth, layers.viewHeight);
                         }
                         target.translate(x - layers.viewX, y - layers.viewY);
-                        // Later layers paint on top, matching the specification's
-                        // "index 0 is closest to the viewer" order reversed.
-                        for (int i = layers.layers.size() - 1; i >= 0; i--) {
-                            VmObject layer = layers.layers.get(i);
-                            if (layer != null) {
-                                vm.callVirtual(layer, "paint", "(Ljavax/microedition/lcdui/Graphics;)V", graphics);
+                        try {
+                            // Later layers paint on top, matching the specification's
+                            // "index 0 is closest to the viewer" order reversed.
+                            for (int i = layers.layers.size() - 1; i >= 0; i--) {
+                                VmObject layer = layers.layers.get(i);
+                                if (layer != null) {
+                                    vm.callVirtual(layer, "paint",
+                                            "(Ljavax/microedition/lcdui/Graphics;)V", graphics);
+                                }
                             }
+                        } finally {
+                            // A layer's paint is the game's own code: if it throws
+                            // and the game catches it upstairs, the canvas must not
+                            // be left translated and clipped for ever after.
+                            target.setTranslation(savedX, savedY);
+                            target.setClip(clipX, clipY, clipWidth, clipHeight);
                         }
-                        target.setTranslation(savedX, savedY);
-                        target.setClip(clipX, clipY, clipWidth, clipHeight);
                         return null;
                     }
                 })
