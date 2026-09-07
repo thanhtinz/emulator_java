@@ -139,23 +139,53 @@ public final class DeviceProfile {
             new DeviceProfile("qvga-320x240", "Màn hình ngang 320x240", 320, 240,
                     KEYPAD_NOKIA, 24, true);
 
+    /**
+     * The other screens games were built for, and hard-coded against.
+     *
+     * <p>A game written for a Series 40 phone does not merely look small at
+     * 240x320: it indexes into a sprite sheet cut for 176x208, so on the wrong
+     * screen it reads past the edge of its own artwork. Emulators that offer
+     * only one size report exactly this as blank screens and crashes, and
+     * these three are the ones named most often.</p>
+     */
+    public static final DeviceProfile S60_176x208 =
+            new DeviceProfile("s60-176x208", "Nokia Series 60 176x208", 176, 208,
+                    KEYPAD_NOKIA, 18, false);
+
+    public static final DeviceProfile S40_128x128 =
+            new DeviceProfile("s40-128x128", "Nokia Series 40 128x128", 128, 128,
+                    KEYPAD_NOKIA, 16, false);
+
+    public static final DeviceProfile QVGA_208x320 =
+            new DeviceProfile("qvga-208x320", "Màn hình 208x320", 208, 320,
+                    KEYPAD_NOKIA, 18, false);
+
     private static final List<DeviceProfile> CATALOG = Collections.unmodifiableList(
-            new ArrayList<DeviceProfile>(java.util.Arrays.asList(QVGA_240x320)));
+            new ArrayList<DeviceProfile>(java.util.Arrays.asList(
+                    QVGA_240x320, S60_176x208, S40_128x128, QVGA_208x320)));
 
     /**
-     * The screen, as a list of one.
+     * The screens a game can be told it is running on.
      *
-     * <p>Still a list because the JSON the apps read has always carried one,
-     * and a screen a game declares for itself still has to be describable —
-     * but nothing offers a choice any more.</p>
+     * <p>240x320 first because most of these games were written for it; the
+     * rest are there because a game built for one of them cannot be made to
+     * work by scaling — it has to be told the size it expects.</p>
      */
     public static List<DeviceProfile> catalog() {
         return CATALOG;
     }
 
-    /** Landscape asks for the turned screen; everything else gets the one. */
+    /** By id, with the common screen as the answer to anything unknown. */
     public static DeviceProfile byId(String id) {
-        return QVGA_LANDSCAPE.id().equals(id) ? QVGA_LANDSCAPE : QVGA_240x320;
+        if (QVGA_LANDSCAPE.id().equals(id)) {
+            return QVGA_LANDSCAPE;
+        }
+        for (int i = 0; i < CATALOG.size(); i++) {
+            if (CATALOG.get(i).id().equals(id)) {
+                return CATALOG.get(i);
+            }
+        }
+        return QVGA_240x320;
     }
 
     public static DeviceProfile custom(int width, int height) {

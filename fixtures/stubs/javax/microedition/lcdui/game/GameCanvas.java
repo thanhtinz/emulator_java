@@ -19,6 +19,16 @@ public abstract class GameCanvas extends Canvas {
     protected GameCanvas(boolean suppressKeyEvents) {
     }
 
+    /**
+     * A GameCanvas draws into its own buffer, so it does not need paint.
+     *
+     * <p>Real MIDlets subclass GameCanvas without implementing paint, and
+     * every working implementation gives them this. Leaving it abstract here
+     * means their source does not compile against the emulator at all.</p>
+     */
+    protected void paint(Graphics g) {
+    }
+
     protected Graphics getGraphics() {
         return null;
     }

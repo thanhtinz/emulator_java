@@ -19,6 +19,16 @@ import com.mobicore.core.vm.VmObject;
  */
 public final class LangClasses {
 
+    /**
+     * The heap a MIDP handset had, which is the figure a game reasons about.
+     *
+     * <p>Two megabytes is a mid-range MIDP 2.0 phone. The exact number matters
+     * less than its order of magnitude: a game asking {@code freeMemory()} is
+     * deciding how much detail it can afford, and an answer in the gigabytes
+     * makes it decide as though it were running on a desktop.</p>
+     */
+    private static final long HEAP_BYTES = 2L * 1024 * 1024;
+
     private LangClasses() {
     }
 
@@ -694,16 +704,26 @@ public final class LangClasses {
                 })
                 .method("freeMemory", "()J", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Long.valueOf(Runtime.getRuntime().freeMemory());
+                        long used = vm.allocatedBytes();
+                        if (HEAP_BYTES - used < HEAP_BYTES / 8) {
+                            // Running low is when a real machine collects, and
+                            // a game that never calls gc() must not be walked
+                            // down to zero and told it has nowhere to put the
+                            // next level.
+                            vm.collect();
+                            used = vm.allocatedBytes();
+                        }
+                        return Long.valueOf(HEAP_BYTES - used);
                     }
                 })
                 .method("totalMemory", "()J", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
-                        return Long.valueOf(Runtime.getRuntime().totalMemory());
+                        return Long.valueOf(HEAP_BYTES);
                     }
                 })
                 .method("gc", "()V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
+                        vm.collect();
                         return null;
                     }
                 })

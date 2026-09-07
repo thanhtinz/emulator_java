@@ -14,6 +14,7 @@ import com.mobicore.core.midp.MidpGfx;
 import com.mobicore.core.midp.MidpUi;
 import com.mobicore.core.midp.ScreenInput;
 import com.mobicore.core.midp.ScreenRenderer;
+import com.mobicore.core.midp.MidpMedia;
 import com.mobicore.core.midp.MidpNet;
 import com.mobicore.core.midp.MidpRms;
 import com.mobicore.core.midp.SystemChrome;
@@ -535,6 +536,9 @@ public final class EmulatorSession {
         // Hộp thoại hẹn giờ tự đóng ở đây, cạnh nhịp của Timer: đây là chỗ
         // duy nhất mỗi khung hình đã có sẵn một nhịp theo giờ thật.
         context.dismissAlertIfDue(vm.host().currentTimeMillis());
+        // A sound that ran out has to say so on its own: a game with a
+        // PlayerListener has said it is not going to poll for it.
+        MidpMedia.tick(vm, context);
         context.drainCallbacks();
         VmObject current = context.current();
         if (current == null) {
@@ -703,6 +707,11 @@ public final class EmulatorSession {
     private void deliver(String method, int keyCode) {
         VmObject current = context.current();
         if (current == null || state != STATE_ACTIVE || !isCanvas(current)) {
+            return;
+        }
+        // A GameCanvas built with suppressKeyEvents polls the keys itself.
+        // Telling it as well means every press is read twice.
+        if (MidpContext.gameAction(keyCode) != 0 && MidpUi.suppressesKeyEvents(current)) {
             return;
         }
         vm.callVirtual(current, method, "(I)V", Integer.valueOf(keyCode));

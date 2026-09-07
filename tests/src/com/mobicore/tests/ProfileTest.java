@@ -257,7 +257,10 @@ public final class ProfileTest extends Test {
         // One screen for every game. A catalog of handsets was a decision
         // the player had no way to make well, and every entry in it was a
         // way for a game to end up on a screen it was never sized for.
-        eq(1, DeviceProfile.catalog().size(), "there is one screen, not a catalog");
+        eq(4, DeviceProfile.catalog().size(),
+                "the screens games were actually built for, not one of them");
+        eq(DeviceProfile.QVGA_240x320.id(), DeviceProfile.catalog().get(0).id(),
+                "and the common one comes first");
         eq("240x320", DeviceProfile.QVGA_240x320.resolution(), "resolution is formatted");
         eq(DeviceProfile.ORIENTATION_LANDSCAPE, DeviceProfile.QVGA_LANDSCAPE.orientation(),
                 "the same screen turned is landscape");

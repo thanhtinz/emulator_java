@@ -326,8 +326,56 @@ public final class Vm {
 
     // ------------------------------------------------------------------ heap
 
+    /**
+     * Bytes the emulated program has asked for since the last collection.
+     *
+     * <p>A J2ME game asks {@code Runtime.freeMemory()} and decides things by
+     * the answer — which level of detail to draw, how many sprites to keep,
+     * whether to load the next map. The host's own figure is meaningless to
+     * it: a handset had a megabyte or two, and a number in the gigabytes makes
+     * every one of those decisions the wrong way round. So the sizes are
+     * counted here and reported against a handset-sized budget.</p>
+     *
+     * <p>This counts what was asked for, not what is still alive — nothing
+     * here tracks death. {@link #collect()} is what brings it back down, which
+     * is the same bargain the game already understands: allocate, call
+     * {@code gc()}, get memory back.</p>
+     */
+    private long allocated;
+
+    /** How many bytes have been asked for since the last collection. */
+    public synchronized long allocatedBytes() {
+        return allocated;
+    }
+
+    /** Forgets the running total, as a collection would. */
+    public synchronized void collect() {
+        allocated = 0;
+    }
+
+    synchronized void note(long bytes) {
+        allocated += bytes;
+    }
+
+    /** Header plus one slot per field, which is how a real heap charges. */
+    private static long sizeOf(VmClass type) {
+        return 16L + 4L * type.instanceSlots();
+    }
+
+    private static long sizeOf(char kind, int length) {
+        int each;
+        switch (kind) {
+            case 'J': case 'D': each = 8; break;
+            case 'B': case 'Z': each = 1; break;
+            case 'C': case 'S': each = 2; break;
+            default: each = 4; break;
+        }
+        return 16L + (long) each * length;
+    }
+
     public VmObject newInstance(VmClass type) {
         initialize(type);
+        note(sizeOf(type));
         return new VmObject(type);
     }
 
@@ -353,11 +401,13 @@ public final class Vm {
             case 'S': data = new short[length]; break;
             default: data = new Object[length]; break;
         }
+        note(sizeOf(kind, length));
         return new VmArray(arrayClass, kind, componentDescriptor, length, data);
     }
 
     /** Wraps an existing host array without copying it. */
     public VmArray wrapArray(String componentDescriptor, Object data, int length) {
+        note(sizeOf(componentDescriptor.charAt(0), length));
         return new VmArray(loadClass("[" + componentDescriptor), componentDescriptor.charAt(0),
                 componentDescriptor, length, data);
     }

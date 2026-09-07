@@ -2748,3 +2748,86 @@ lớp phòng thứ hai, không phải thứ được chứng minh.
 
 Bộ kiểm mới `LossTest` + fixture `demo/Losses`. Phá lại từng chỗ một: cả năm
 đều cắn, mỗi lần chỉ hỏng đúng câu của nó. **41 bộ / 1823 phép kiểm**, xanh.
+
+## Giai đoạn 67 — đối chiếu với các emulator thật
+
+Cho tới đây tôi làm theo một danh sách tự nghĩ ra. Giai đoạn này đọc thẳng mã
+nguồn của những emulator J2ME có phần MIDP thật — MicroEmulator, FreeJ2ME,
+FreeJ2ME-Plus, KEmulator nnmod, SquirrelJME — rồi đối chiếu từng hành vi.
+
+### Mình đang đứng ở đâu
+
+Sáu hành vi mà game thật phụ thuộc, và ai làm đúng:
+
+| Hành vi | MicroEmulator | FreeJ2ME | FreeJ2ME-Plus | KEmulator | SquirrelJME | MobiCore |
+|---|---|---|---|---|---|---|
+| `getKeyStates` chốt | ✔ | ✘ xoá khi đọc | ~ tap vẫn mất | ~ | ✘ chưa làm | ✔ |
+| Sprite reference pixel theo phép xoay | ✔ | ✘ lẫn hai khái niệm | ✔ | ? | ✔ | ✔ |
+| Va chạm theo điểm ảnh | ✔ | ✘ trả `false` | ✔ | ? | ✘ chưa làm | ✔ |
+| `LayerManager` cất và trả vùng cắt | ✔ | ✘ không cắt gì | ✔ | ? | ? | ✔ |
+| RecordStore chung giữa hai tay cầm | ~ | ✘ | ✘ | ? | ? | ✔ |
+| Luồng sự kiện MIDP | ✔ | ✘ gọi thẳng | ✘ | ? | ~ | ✔ |
+
+Ba giai đoạn 63, 65, 66 vừa rồi hoá ra rơi đúng vào những ô này. Riêng dòng
+RecordStore thì **không repo nào trong bảng làm đúng**: cả hai nhánh FreeJ2ME
+đều `new RecordStore(...)` cho mỗi lần mở, MicroEmulator có sổ nhưng không tra
+sổ trước khi nạp lại từ đĩa.
+
+Bảng này là thứ cộng đồng J2ME thật sự dùng để đánh giá một emulator — không có
+TCK mở, nên không ai "đạt chuẩn" được; cái thay thế là một bảng đối chiếu hành
+vi và một danh sách game chạy được.
+
+### Sáu chỗ mình thiếu, và đã sửa
+
+**1. `GameCanvas(true)` — tham số bị bỏ qua hoàn toàn.** Hàm dựng chỉ tạo bộ
+đệm rồi thôi. MIDP nói khi cờ ấy bật thì phím game **không** được gửi tới
+`keyPressed`/`keyReleased` nữa, vì game đã tự hỏi bằng `getKeyStates`.
+MicroEmulator có hẳn một SPI riêng cho việc này. Bỏ qua nó nghĩa là game đọc
+mỗi cú bấm hai lần — nhân vật đi gấp đôi tốc độ. Nay cờ được cất vào chính đối
+tượng và `EmulatorSession.deliver` hỏi nó; chỉ chặn phím *game*, phím số và
+phím mềm vẫn tới vì đó là cách người chơi bấm menu.
+
+**2. `GameCanvas` phải có sẵn `paint` rỗng.** Chuyện này chứng minh bằng thực
+nghiệm chứ không phải suy luận: tải MIDlet demo của MicroEmulator về rồi biên
+dịch 21 file của họ vào bộ stub của mình — **20 file sạch, đúng một lỗi**, và
+lỗi ấy là `GameCanvasPanel is not abstract and does not override paint`. Game
+viết cho `GameCanvas` không cài `paint` vì nó vẽ qua bộ đệm riêng. Máy ảo đã có
+sẵn `paint` rỗng; thiếu là ở `fixtures/stubs`, tức là ở đúng cái mặt mà mã
+nguồn của người khác biên dịch vào.
+
+**3. Hai phím cùng lúc.** Lỗi FreeJ2ME #215 (Rayman): bấm nhảy thì nhả mất
+trái đang giữ — do gán đè cả bitfield thay vì bật một bit. `setKeyState` của
+mình vốn đã đúng, nhưng **chưa có câu hỏi nào hỏi tới**. Nay có, và phá lại
+bằng cách đổi `|=` thành `=` thì nó cắn.
+
+**4. `freeMemory` trả về bộ nhớ của máy chủ.** `Runtime.freeMemory()` và
+`totalMemory()` chuyển thẳng ra ngoài, tức game thấy vài **gigabyte**. Máy J2ME
+có một hai megabyte, và game quyết định theo con số ấy: vẽ mức chi tiết nào,
+giữ bao nhiêu sprite, có nạp màn sau không. Nay máy ảo đếm số byte đã cấp phát
+(`Vm.note`) và báo theo ngân sách 2 MB. Đây là đếm **những gì đã xin**, không
+phải những gì còn sống — không có chỗ nào theo dõi cái chết; `gc()` là thứ đưa
+nó về, đúng cái giao kèo game vốn đã hiểu. Khi sắp cạn thì máy tự thu, để một
+game không bao giờ gọi `gc()` không bị dồn xuống số không.
+
+**5. Danh mục màn hình chỉ có một cỡ.** FreeJ2ME #215 nêu đích danh các cỡ còn
+thiếu là nguyên nhân màn hình trắng và crash. Game viết cho 176x208 không chỉ
+trông nhỏ trên màn khác — nó cắt bảng sprite theo đúng cỡ ấy và đọc quá mép
+tranh của chính mình. Thêm **176x208, 128x128, 208x320**.
+
+**6. `END_OF_MEDIA` chỉ phát khi game hỏi `getState`.** Trong khi cả điểm của
+việc đăng ký một `PlayerListener` là để **không phải hỏi**. Game đăng ký nghe
+rồi đợi bài hát hết để sang bài sau thì đợi mãi. Nay mỗi khung hình máy ảo tự
+soát các player đang phát (`MidpMedia.tick`), và chỗ báo "đã hết" gom về một
+hàm `finish` duy nhất nên không thể báo hai lần — đúng lỗi "double audio loop"
+mà FreeJ2ME có.
+
+### Một chỗ phép kiểm dạy lại
+
+Câu kiểm đầu tiên của tôi cho mục 1 dùng phím `'5'` làm ví dụ "phím không phải
+phím game" — và nó hỏng. Máy ảo đúng: `'5'` **là** ACTION_FIRE trên mọi bàn
+phím máy từng có, nên bị chặn cùng cả bàn phím là phải. Đổi sang `'1'`. Lại một
+lần nữa: máy ảo đúng, câu hỏi sai.
+
+Bộ kiểm mới `SpecTest` + fixture `demo/SpecProbe` (một `GameCanvas(true)` không
+cài `paint`, đúng như MIDlet của người khác). Phá lại đủ sáu chỗ, mỗi lần chỉ
+hỏng đúng câu của nó. **42 bộ / 1844 phép kiểm**, xanh.

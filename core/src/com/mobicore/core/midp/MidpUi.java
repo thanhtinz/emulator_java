@@ -248,6 +248,27 @@ public final class MidpUi {
                 .define();
     }
 
+    /**
+     * Whether this screen asked not to be told about game keys.
+     *
+     * <p>{@code GameCanvas(true)} means the game reads the keys itself with
+     * {@code getKeyStates} and does not want them delivered as events too.
+     * Only the game keys are held back — the number keys and the softkeys are
+     * still the way the player works the menus.</p>
+     */
+    public static boolean suppressesKeyEvents(VmObject screen) {
+        if (screen == null) {
+            return false;
+        }
+        // A plain Canvas has no such field, and asking for one it does not
+        // have is an error rather than a "no".
+        if (screen.type().findField("suppressKeyEvents") == null) {
+            return false;
+        }
+        Object flag = screen.get("suppressKeyEvents");
+        return flag instanceof Integer && ((Integer) flag).intValue() != 0;
+    }
+
     // ------------------------------------------------------------- Canvas
 
     private static void canvas(final Vm vm, final MidpContext context) {
@@ -369,6 +390,11 @@ public final class MidpUi {
                 .staticField("FIRE_PRESSED", "I")
                 .staticField("GAME_A_PRESSED", "I").staticField("GAME_B_PRESSED", "I")
                 .staticField("GAME_C_PRESSED", "I").staticField("GAME_D_PRESSED", "I")
+                .field("suppressKeyEvents", "Z")
+                // GameCanvas does not need paint: it draws into its own buffer
+                // and pushes it with flushGraphics. Games subclass it without
+                // implementing paint, so the method has to exist here.
+                .method("paint", "(Ljavax/microedition/lcdui/Graphics;)V", noop())
                 .method("<init>", "(Z)V", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         // The back buffer is the same size as the screen, which
@@ -378,6 +404,11 @@ public final class MidpUi {
                                 context.canvasHeight());
                         back.setAntialias(context.smoothShapes());
                         self.host = back;
+                        // A game that polls getKeyStates asks, with this flag,
+                        // not to be told the same press a second time through
+                        // keyPressed. Ignoring it means the game reads every
+                        // press twice and the character moves at double speed.
+                        self.set("suppressKeyEvents", Rt.box(Rt.bool(args, 0)));
                         return null;
                     }
                 })

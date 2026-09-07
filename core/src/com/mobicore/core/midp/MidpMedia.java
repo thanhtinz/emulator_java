@@ -16,6 +16,8 @@ import com.mobicore.core.vm.VmObject;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * {@code javax.microedition.media}: the sound half of MIDP.
@@ -84,6 +86,61 @@ public final class MidpMedia {
         PlayerState(String contentType) {
             this.contentType = contentType;
         }
+    }
+
+    /**
+     * Every player that has been handed to the game and not closed.
+     *
+     * <p>Kept so the end of a sound can be noticed by the emulator rather than
+     * only by a game that happens to ask. A game that registers a
+     * {@code PlayerListener} has said, in so many words, that it is not going
+     * to poll.</p>
+     */
+    private static final List<VmObject> LIVE = new ArrayList<VmObject>();
+
+    private static void watch(VmObject player) {
+        synchronized (LIVE) {
+            LIVE.add(player);
+        }
+    }
+
+    /**
+     * Tells any player that has run to its end that it has.
+     *
+     * <p>Called once a frame. Without it {@code END_OF_MEDIA} only ever
+     * reached a game that called {@code getState} — and the whole point of a
+     * listener is that the game does not have to.</p>
+     */
+    public static void tick(Vm vm, MidpContext context) {
+        VmObject[] players;
+        synchronized (LIVE) {
+            players = LIVE.toArray(new VmObject[LIVE.size()]);
+        }
+        for (int i = 0; i < players.length; i++) {
+            VmObject player = players[i];
+            if (!(player.host instanceof PlayerState)) {
+                continue;
+            }
+            PlayerState state = (PlayerState) player.host;
+            if (state.state == CLOSED) {
+                synchronized (LIVE) {
+                    LIVE.remove(player);
+                }
+                continue;
+            }
+            if (state.state == STARTED && !context.audio().isPlaying(state.voice)) {
+                finish(vm, player, state);
+            }
+        }
+    }
+
+    /** The one place a player is told it reached the end, so it is told once. */
+    private static void finish(Vm vm, VmObject player, PlayerState state) {
+        // Prefetched again, not started: a game polling getState to know when
+        // a sound finished depends on that.
+        state.state = PREFETCHED;
+        state.mediaTimeUs = state.clip == null ? 0 : state.clip.durationMs() * 1000L;
+        notifyListener(vm, player, "endOfMedia", Long.valueOf(state.mediaTimeUs));
     }
 
     public static void install(final Vm vm, final MidpContext context) {
@@ -190,6 +247,7 @@ public final class MidpMedia {
                     + " and media passed as a stream, not " + locator;
         }
         player.host = state;
+        watch(player);
         return player;
     }
 
@@ -204,6 +262,7 @@ public final class MidpMedia {
                     + (type == null || type.length() == 0 ? "this file" : type);
         }
         player.host = state;
+        watch(player);
         return player;
     }
 
@@ -327,14 +386,8 @@ public final class MidpMedia {
                 .method("getState", "()I", new NativeMethod() {
                     public Object invoke(Vm vm, VmObject self, Object[] args) {
                         PlayerState state = state(vm, self);
-                        // A player that has run to the end is prefetched
-                        // again, not started: a game polling getState to know
-                        // when a sound finished depends on that.
                         if (state.state == STARTED && !context.audio().isPlaying(state.voice)) {
-                            state.state = PREFETCHED;
-                            state.mediaTimeUs = state.clip == null
-                                    ? 0 : state.clip.durationMs() * 1000L;
-                            notifyListener(vm, self, "endOfMedia", Long.valueOf(state.mediaTimeUs));
+                            finish(vm, self, state);
                         }
                         return Integer.valueOf(state.state);
                     }
