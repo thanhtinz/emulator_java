@@ -75,6 +75,10 @@ public final class VmTest extends Test {
         compareDouble("floatMath", new Class[]{double.class, double.class},
                 Double.valueOf(9.5d), Double.valueOf(2.25d));
         compareString("strings", new Class[]{String.class}, "world");
+        // Arrays of references are covariant and arrays of primitives are
+        // not, and the wrong thing put into an array has to be refused where
+        // it happens. The host JVM answers all of that, so it is the judge.
+        compareString("arrayTypes", new Class[0]);
 
         // Static initialisers must run exactly once, so the second call to a
         // method that mutates static state continues from the first.
@@ -109,7 +113,11 @@ public final class VmTest extends Test {
         for (int i = 0; i < args.length; i++) {
             vmArgs[i] = vm.newString((String) args[i]);
         }
-        Object result = vm.callStatic(PROBE, method, "(Ljava/lang/String;)Ljava/lang/String;", vmArgs);
+        // The descriptor comes from the argument types like everywhere else:
+        // hard-coding one signature here means the next question that takes no
+        // arguments looks like a missing method.
+        Object result = vm.callStatic(PROBE, method,
+                descriptor(types, "Ljava/lang/String;"), vmArgs);
         eq(expected, vm.stringOf((VmObject) result), method + " string result");
     }
 

@@ -2831,3 +2831,48 @@ lần nữa: máy ảo đúng, câu hỏi sai.
 Bộ kiểm mới `SpecTest` + fixture `demo/SpecProbe` (một `GameCanvas(true)` không
 cài `paint`, đúng như MIDlet của người khác). Phá lại đủ sáu chỗ, mỗi lần chỉ
 hỏng đúng câu của nó. **42 bộ / 1844 phép kiểm**, xanh.
+
+## Giai đoạn 68 — mảng tham chiếu là hiệp biến, và `aastore` phải kiểm
+
+Hai chỗ trong máy ảo, và chúng là một chuyện: có phép gán đúng rồi thì phép
+kiểm khi cất mới viết được.
+
+**1. Chú thích nói một đằng, mã làm một nẻo.** `VmClass.isAssignableTo` viết
+hẳn "Arrays of references are covariant" rồi ngay dưới so **chuỗi mô tả bằng
+nhau**, tức đòi trùng khít. Nên `String[]` không gán được cho `Object[]`, trong
+khi Java nói ngược lại. Hậu quả rơi vào `checkcast` và `instanceof`: ép kiểu
+lên `Object[]` ném `ClassCastException`, `instanceof Object[]` trả `false`. Đó
+là lối viết bình thường của mọi thư viện gom đồ — game dựng một cái kho nhỏ giữ
+`Object[]` rồi nhét mảng riêng của nó vào là dừng ngay tại dòng ấy.
+
+`componentType` là **chuỗi**, mà chuỗi thì không đủ để biết `String` thừa kế
+`Object`: phải phân giải ra lớp. Nay lớp mảng giữ một đường về máy ảo đã dựng
+ra nó (chỉ lớp mảng cần, nên không lan ra chỗ khác) và tra **lười** — một mô tả
+trong bể hằng số có thể nhắc tới lớp không nạp được, và trước giờ điều đó không
+hề gây lỗi. Nhiều chiều thì đệ quy tự lo: `int[][]` gán được cho `Object[]` vì
+`int[]` gán được cho `Object`.
+
+**2. `aastore` không kiểm gì cả.** Máy ảo Java bắt buộc ném
+`ArrayStoreException` khi cất một tham chiếu không hợp kiểu — đây là chỗ trình
+biên dịch **không thể** quyết được, vì một biến `Object[]` có thể đang giữ một
+`String[]`. Thiếu phép kiểm thì thứ sai được cất vào trong im lặng, rồi chương
+trình vỡ ở một chỗ khác hẳn với một `ClassCastException` không nêu được dòng
+nào lẫn giá trị nào đã gây ra. Lớp ngoại lệ vốn đã có sẵn, chỉ chưa ai ném.
+
+Đường nóng được giữ thông: mảng có thành phần là `Object` thì nhận tất, trả lời
+ngay không hỏi thêm — mảng đỡ lưng của `Vector` là `Object[]`, và một game đầy
+`Vector` chạy phép này mỗi khung hình.
+
+**Trọng tài là JVM thật.** Câu hỏi đặt vào `demo/VmProbe.arrayTypes()` và so
+qua `VmTest`, tức là fixture chạy **hai lần — một lần trên JVM của máy chủ, một
+lần trong máy ảo** — rồi đối chiếu. Không có kỳ vọng nào do tôi tự viết ra: tám
+câu (hiệp biến hai chiều, mảng nguyên thuỷ không hiệp biến, mảng hai chiều, ép
+kiểu hẹp lại, và bốn phép cất) đều lấy đáp án từ JVM.
+
+Trên đường đi lộ thêm một chỗ: `VmTest.compareString` **cắm cứng** chữ ký
+`(Ljava/lang/String;)Ljava/lang/String;`, nên câu hỏi đầu tiên không có tham số
+hiện ra thành "không có hàm ấy". Nay nó dựng chữ ký từ kiểu tham số như mọi
+hàm so sánh khác.
+
+Phá lại cả hai chỗ, mỗi lần chỉ hỏng đúng câu của nó. **42 bộ / 1845 phép
+kiểm**, xanh.

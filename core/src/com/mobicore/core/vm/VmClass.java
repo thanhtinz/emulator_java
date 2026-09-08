@@ -43,6 +43,18 @@ public final class VmClass {
 
     /** Set for array types; {@code null} otherwise. */
     private final String componentType;
+    /**
+     * The machine that defined this array class, so its component can be
+     * looked up when someone asks whether one array fits in another.
+     *
+     * <p>Only array classes carry this. The component is resolved when it is
+     * first needed rather than when the array class is made: a descriptor in a
+     * constant pool can name a class that is not loadable, and until now that
+     * cost nothing.</p>
+     */
+    private Vm owner;
+    private VmClass componentClass;
+    private boolean componentResolved;
     /** Lazily created {@code java.lang.Class} mirror handed to the program. */
     private VmObject mirror;
     /**
@@ -311,10 +323,38 @@ public final class VmClass {
             return true;
         }
         if (isArray() && target.isArray()) {
-            // Arrays of references are covariant; primitive arrays are not.
-            return componentType.equals(target.componentType);
+            // Arrays of references are covariant — String[] really is an
+            // Object[] — and arrays of primitives are not: int[] is not an
+            // Object[], and an int[] only fits an int[].
+            VmClass mine = componentClass();
+            VmClass theirs = target.componentClass();
+            if (mine == null || theirs == null) {
+                return componentType.equals(target.componentType);
+            }
+            return mine.isAssignableTo(theirs);
         }
         return isSubclassOf(target);
+    }
+
+    /**
+     * The class of this array's elements, or {@code null} for a primitive
+     * array and for anything that is not an array at all.
+     */
+    public VmClass componentClass() {
+        if (!componentResolved) {
+            componentResolved = true;
+            if (owner != null && componentType != null
+                    && (componentType.charAt(0) == 'L' || componentType.charAt(0) == '[')) {
+                componentClass = owner.loadClass(componentType.charAt(0) == 'L'
+                        ? componentType.substring(1, componentType.length() - 1)
+                        : componentType);
+            }
+        }
+        return componentClass;
+    }
+
+    void setOwner(Vm owner) {
+        this.owner = owner;
     }
 
     private boolean implementsInterface(VmClass target) {

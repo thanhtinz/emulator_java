@@ -864,7 +864,9 @@ public final class Interpreter {
         if (op == Opcodes.AASTORE) {
             Object value = frame.popRef();
             int index = frame.pop();
-            checkArray(frame.popRef(), index).objects()[index] = value;
+            VmArray array = checkArray(frame.popRef(), index);
+            checkStore(array, value);
+            array.objects()[index] = value;
             return;
         }
         if (op == Opcodes.LASTORE || op == Opcodes.DASTORE) {
@@ -887,6 +889,34 @@ public final class Interpreter {
             case Opcodes.BASTORE: array.bytes()[index] = (byte) value; break;
             case Opcodes.CASTORE: array.chars()[index] = (char) value; break;
             default: array.shorts()[index] = (short) value; break;
+        }
+    }
+
+    /**
+     * A reference being put into an array has to fit the array it goes into.
+     *
+     * <p>An {@code Object[]} variable can be holding a {@code String[]}, so
+     * the compiler cannot decide this and the machine must. Without the check
+     * the wrong thing is stored in silence and the program falls over
+     * somewhere else entirely, with a ClassCastException that names neither
+     * the line nor the value that caused it.</p>
+     */
+    private void checkStore(VmArray array, Object value) {
+        if (value == null) {
+            return;
+        }
+        VmClass component = array.type().componentClass();
+        // Object[] takes anything, and it is the common case by a wide margin
+        // — a Vector's backing store is one, and a game full of Vectors runs
+        // this on every frame. Answer it without asking anything further.
+        if (component == null || Vm.OBJECT.equals(component.name())) {
+            return;
+        }
+        VmClass actual = ((VmObject) value).type();
+        if (!actual.isAssignableTo(component)) {
+            throw vm.raise("java/lang/ArrayStoreException",
+                    actual.binaryName() + " does not fit an array of "
+                            + component.binaryName());
         }
     }
 

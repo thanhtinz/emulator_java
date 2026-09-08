@@ -238,6 +238,9 @@ public final class Vm {
         VmClass type = new VmClass(descriptor, VmClass.ACC_ABSTRACT, null, OBJECT, null,
                 descriptor.substring(1));
         classes.put(descriptor, type);
+        // So the array can look its own element type up later, which is what
+        // deciding whether one array fits in another comes down to.
+        type.setOwner(this);
         type.setSuperClass(loadClass(OBJECT));
         type.setState(VmClass.STATE_INITIALISED);
         return type;

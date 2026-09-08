@@ -82,6 +82,68 @@ public class VmProbe {
         return total;
     }
 
+    /**
+     * What the machine says about arrays of references, in one string.
+     *
+     * <p>Every answer here is taken from the real JVM as well, so nothing in
+     * it is a guess of mine: arrays of references are covariant, arrays of
+     * primitives are not, and putting the wrong thing into an array has to be
+     * refused at the moment it happens rather than discovered later.</p>
+     */
+    public static String arrayTypes() {
+        StringBuffer out = new StringBuffer();
+
+        String[] names = new String[]{"a", "b"};
+        Object[] anything = new Object[2];
+        int[] numbers = new int[]{1, 2};
+        int[][] grid = new int[2][2];
+
+        // Covariance, both ways round.
+        out.append(names instanceof Object[]).append(' ');
+        out.append(((Object) numbers) instanceof Object[]).append(' ');
+        out.append(((Object) grid) instanceof Object[]).append(' ');
+        out.append(((Object) names) instanceof String[]).append(' ');
+        out.append(((Object) anything) instanceof String[]).append(' ');
+
+        // The cast that goes with it. Widening is fine; narrowing is not,
+        // unless the thing really is what it is being narrowed to.
+        Object[] widened = names;
+        out.append(widened.length).append(' ');
+        out.append(narrow(names)).append(' ');
+        out.append(narrow(anything)).append(' ');
+
+        // Storing. `widened` is declared Object[] and is really a String[], so
+        // this is the case the compiler cannot decide and the machine must.
+        out.append(store(widened, "hai")).append(' ');
+        out.append(store(widened, new Integer(7))).append(' ');
+        out.append(store(widened, null)).append(' ');
+        // And a real Object[] takes whatever it is given.
+        out.append(store(anything, new Integer(7))).append(' ');
+        out.append(store(anything, "ba"));
+
+        return out.toString();
+    }
+
+    /** Whether that array really is an array of strings. */
+    private static String narrow(Object[] array) {
+        try {
+            String[] strings = (String[]) array;
+            return "được" + strings.length;
+        } catch (ClassCastException e) {
+            return "không";
+        }
+    }
+
+    /** Whether that value can be put in that array. */
+    private static String store(Object[] array, Object value) {
+        try {
+            array[0] = value;
+            return "cất";
+        } catch (ArrayStoreException e) {
+            return "chối";
+        }
+    }
+
     public static String strings(String name) {
         StringBuffer buffer = new StringBuffer();
         buffer.append("[").append(name.toUpperCase()).append("]");
